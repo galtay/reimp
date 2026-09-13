@@ -22,22 +22,25 @@ what differs is the objective alone.
 # ~20 s per objective on real data: the pipeline end to end, fold 0
 uv run tabssl fit --config tabssl/configs/debug.yaml --model.objective vime \
   --trainer.default_root_dir runs/tabssl_debug/vime
-uv run tabssl-embed --ckpt runs/tabssl_debug/vime/checkpoints/last.ckpt \
+uv run tabssl-embed --ckpt runs/tabssl_debug/vime/fold0/checkpoints/last.ckpt \
   --out out/tabssl_debug/vime/fold0.parquet
 
 # The paper's settings, one run per fold and objective (scarf, vime, byol, none)
 uv run tabssl fit --config tabssl/configs/tcga_scarf.yaml --data.fold 0  # and so on for folds 1-4
-uv run tabssl-embed --ckpt runs/tabssl_scarf/version_0/checkpoints/best-<...>.ckpt
+uv run tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/best.ckpt
 uv run reimp-shared probe out/tabssl_scarf out/pca256 --against pca256
 ```
 
 `tabssl-embed` reads the fold, the data settings and the objective from the
 checkpoint and, without `--out`, writes `out/tabssl_<objective>/fold<k>.parquet`:
 each objective is its own set of embeddings for `reimp-shared probe`, one
-file per fold. Each full config early-stops on the validation patients'
-loss and keeps the best checkpoint (`best-epoch<e>-val<loss>.ckpt`) beside
-`last.ckpt`; embed from the best. The `none` config makes one pass over the
-training samples and writes only `last.ckpt`.
+file per fold. Fold k of a run lands in `<trainer.default_root_dir>/fold<k>/`
+— `runs/tabssl_scarf/fold0/` holds the config, metrics and TensorBoard
+events, and `checkpoints/` below it — and rerunning a fold replaces it.
+Each full config early-stops on the validation patients' loss and keeps the
+best checkpoint, `best.ckpt`, beside `last.ckpt`; embed from `best.ckpt`.
+The `none` config makes one pass over the training samples and writes only
+`last.ckpt`: embed from `runs/tabssl_none/fold<k>/checkpoints/last.ckpt`.
 
 [`paper.md`](paper.md) records what the paper did, including its
 evaluations; below is how this reimplementation follows it.
@@ -69,7 +72,8 @@ or `log1p` of `tpm_unstranded`. At the start of `fit`, on the fold's
   constant over training gets std 1), saved in the checkpoint and applied
   to every input, at training and at embedding;
 - each gene's scaled [min, max] over the training samples, SCARF's
-  uniform replacement range, also saved;
+  uniform replacement range, also saved; every scaled input, at training
+  and at embedding, is clipped to it (below);
 - the pool of scaled training samples every marginal replacement (VIME,
   BYOL, SCARF's `marginal` option) is drawn from — rebuilt from the data
   at each fit rather than saved;
@@ -79,8 +83,22 @@ or `log1p` of `tpm_unstranded`. At the start of `fit`, on the fold's
 Validation samples are scaled by the training scaler and corrupted from the
 training pool; they are used for the loss, early stopping and the best
 checkpoint, nothing else. Test samples are touched only at embedding.
-`tests/test_lit.py` poisons every validation and test sample and checks
-that no statistic moves.
+`tests/test_lit.py` rewrites every validation and test sample and checks
+that no fitted statistic moves; `tests/test_cli.py` does the same around
+`tabssl-embed` and checks that no training sample's embedding moves.
+
+**Clipping to the training range** is ours; the paper's `StandardScaler`
+does not clip. A gene nearly constant over the training samples (expressed
+in only one of them, say) has a tiny standard deviation, and a held-out
+sample that expresses it more scales to thousands of them. On fold 0,
+1,017 genes have 0 < std < 0.01, training z-scores peak at |z| = 91
+(√(n_train − 1), one expressing sample) and held-out ones at 1,398, with
+118 entries in 52 held-out samples beyond 100. One such gene swamps the
+first layer and throws the sample's embedding outside every training
+sample's. Clipped to each gene's scaled training [min, max], the training
+samples are unchanged and held-out |z| peaks at 88; 0.017% of held-out
+entries are clipped. A gene constant over training clips to its one value,
+so it carries no signal at embedding either.
 
 Training corruptions are redrawn every batch from the global RNG
 (`seed_everything`); validation corruptions come from a generator reset to
@@ -118,6 +136,10 @@ The *For reimp* section of [`paper.md`](paper.md) sets these out; in brief:
   z-score per fold fit on training samples, saved with the model; the
   paper quantile-normalized the whole cohort before splitting and refit a
   `StandardScaler` on each file it loaded, test samples included.
+- **Scaled inputs are clipped** to each gene's training range, at training
+  and at embedding, so a gene nearly constant over training cannot give a
+  held-out sample z-scores in the thousands (see *Inputs and fitted
+  statistics*).
 - **Early stopping** on the validation patients' pretext loss (patience 30,
   the paper's only stated patience), embedding the best checkpoint. The
   paper trains for a fixed number of epochs, and the epoch it reports is

@@ -20,17 +20,23 @@ Both embed a sample as its posterior mean.
 uv run vae fit --config vae/configs/debug.yaml          # Tybalt, about a minute on real data
 uv run vae fit --config vae/configs/debug_mmdae.yaml    # MMD-AE + organ head, likewise
 
-# One model per fold, 0-4; each run is a new version_N under the config's run directory.
+# One model per fold, 0-4; fold k runs in runs/<variant>/fold<k>/.
 uv run vae fit --config vae/configs/tybalt.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_none.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_organ.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_project.yaml --data.fold 0   # optional, not ranked
 
 # The fold is read from the checkpoint; keep one directory per model and variant.
-uv run vae-embed --ckpt runs/tybalt/version_0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
-uv run vae-embed --ckpt runs/mmdae_organ/version_0/checkpoints/best.ckpt --out out/mmdae_organ/fold0.parquet
+uv run vae-embed --ckpt runs/tybalt/fold0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
+uv run vae-embed --ckpt runs/mmdae_organ/fold0/checkpoints/best.ckpt --out out/mmdae_organ/fold0.parquet
 uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ --against pca256
 ```
+
+Each fold's run directory (`FoldCLI`, from `reimp_shared.foldcli`) holds
+the saved `config.yaml`, the CSV logger's `metrics.csv`, and
+`checkpoints/best.ckpt` (the lowest `val/loss`, what `vae-embed` reads) and
+`checkpoints/last.ckpt`. Rerunning a fold replaces its run. The debug
+configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`.
 
 ## The two models
 
@@ -38,7 +44,7 @@ uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ -
 |---|---|---|
 | input | `unstranded` counts, `lognorm` (the PCA baseline's input) | `tpm_unstranded`, log1p |
 | genes | the 5,000 protein-coding genes with the largest median absolute deviation | all 19,944 protein-coding genes |
-| scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score |
+| scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score; val and test clipped to the gene's training range |
 | encoder | genes → 100; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
 | decoder | 100 → genes, sigmoid | 121 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
 | sampling | z = μ + exp(logvar / 2) · ε | the same, with logvar capped at 0 |
@@ -47,7 +53,7 @@ uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ -
 | supervision | none | `none`; `organ` (26 classes) or `project` (33): a 121 → 32 → classes head (BatchNorm, ReLU, dropout 0.1) on the sampled z, cross-entropy at weight 1 |
 | optimizer | Adam 5e-4, batch 50, at most 50 epochs | Adam 1.72e-3, batch 32, at most 500 epochs |
 | stopping | early stopping on the fold's val loss (patience 10), best checkpoint kept | the same |
-| init | Glorot-uniform weights, zero biases (Keras's default) | PyTorch's default |
+| init | Glorot-uniform weights, zero biases (Keras's default) | Xavier-uniform encoder and decoder weights; PyTorch's default biases and classifier head (Flexynesis's) |
 | parameters | 1.5M | 160M |
 | embedding | μ, 100-d and non-negative (the ReLU'd head) | μ, 121-d |
 
@@ -76,7 +82,7 @@ Every statistic comes from the fold's training samples (`shared/EVALS.md`,
 rule 3):
 
 - the gene ranking by median absolute deviation, and the per-gene minimum
-  and maximum or mean and SD: `GeneScaler.fit` on `data.rows("train")` in
+  and maximum, or mean, SD and range: `GeneScaler.fit` on `data.rows("train")` in
   `VAEDataModule.setup`. The fitted scaler is the DataModule's state, so it
   is saved in every checkpoint, and `vae-embed` restores it rather than
   refitting;
@@ -99,14 +105,15 @@ selection (and `top_genes`) and its `supervision`.
 | `regularizer` | `kl` (warmed up by `kappa` per epoch) or `mmd` (against `mmd_prior_samples` N(0, I) draws) |
 | `logvar_max` | cap on the log-variance before exp; 0.0 for the MMD-AE, `null` (none) for Tybalt, whose KL restrains it |
 | `class_hidden`, `class_dropout` | the classifier head, when `n_classes` > 0 |
-| `glorot_init` | Glorot-uniform weights and zero biases |
+| `glorot_init` | Tybalt's (Keras's): Glorot-uniform weights and zero biases in every linear layer |
+| `xavier_init` | the MMD-AE's (Flexynesis's): Xavier-uniform encoder and decoder weights only; biases and the classifier head keep PyTorch's default. At most one of the two; neither is PyTorch's default |
 | `lr`, `seed` | Adam's learning rate; the seed of the validation noise |
 
 | `data.` | |
 |---|---|
 | every `ExpressionDataModule` field | `quantification`, `gene_types`, `transform`, `fold`, `batch_size`, ... |
 | `top_genes` | keep this many genes by median absolute deviation over the training rows; `null` keeps all |
-| `scaling` | `minmax`, `zscore` or `none`, fit on the training rows |
+| `scaling` | `minmax` or `zscore`, fit on the training rows, each clipping val and test values to the training range; or `none` |
 | `supervision` | `none`, `organ` or `project`; adds `label` to every batch |
 | `project_organ` | replaces the committed project → organ map |
 
@@ -156,6 +163,19 @@ MMD-AE:
   run the head passed 100 on some samples within 40 steps, exp overflowed,
   and the val loss was inf, so early stopping chose nothing. 0 is where a
   KL term holds an uninformative dimension. The embedding, μ, is untouched.
+- **Val and test z-scores are clipped to each gene's training range**
+  (`GeneScaler`, `zscore`); training values never are. Flexynesis's
+  `StandardScaler` does not clip. Over 19,944 protein-coding genes, a gene
+  expressed in a handful of training samples has a near-zero training SD,
+  and a held-out sample expressing it lands far outside anything the model
+  saw. Measured on fold 0 (8,304 training, 3,201 val and test samples): max
+  |z| 91 over the training rows, 238 over the held-out ones (`USP17L23`,
+  training SD 0.0015, nonzero in 3 training samples); 13 held-out samples
+  have a gene past |z| 100, which no training sample has. 1,771 held-out
+  samples have some value outside the training range, mostly by less than
+  one SD; 109 go more than 10 SDs past it, 17 more than 50. In the worst
+  sample the excess is a third of its squared norm. Tybalt's min-max
+  already clips to [0, 1].
 - **No 121 → 121 "fusion" layer** after each head. Flexynesis adds one for
   a single omics layer; two linear maps in a row are one linear map, so it
   changes only the optimization.
@@ -183,16 +203,23 @@ patients.
   `torch.distributions`; the KL warm-up schedule; the MMD kernel is
   exp(−‖x − y‖² / d²), MMD is 0 for one sample and pulls a shifted sample
   towards the prior; σ = exp(logvar / 2); Tybalt's heads are non-negative;
-  the hidden layer and mirrored decoder; Glorot init.
+  the hidden layer and mirrored decoder; Glorot init, and Flexynesis's
+  Xavier init touching only encoder and decoder weights.
 - `test_scaling`: median (not mean) absolute deviation, top-gene order and
-  ties, min-max with clipping, z-score, statistics from the rows fit.
-- `test_data`: the scaler is fit on training rows only (rescaling every val
-  and test value leaves it unchanged, and it equals a fit on the training
+  ties, min-max with clipping, z-score clipped to the training range with
+  no training value moved, statistics from the rows fit.
+- `test_data`: for both scalings, the scaler is fit on training rows only
+  (`scramble_held_out` rewriting every val and test value of fold 3 leaves
+  it and the training rows unchanged, and it equals a fit on the training
   rows alone), labels for tumours and normals, and a checkpoint restores the
   scaler without refitting.
 - `test_organs`: all 33 projects mapped; each within-organ probe group
   shares one organ; 26 classes; labels depend on the project alone.
 - `test_lit`, `test_cli`: training steps, the warm-up in a fit, the
-  supervised head, posterior-mean predictions, every config runs a batch,
-  and a one-fold fit then `vae-embed` writes a file `read_embeddings`
-  accepts.
+  supervised head, posterior-mean predictions, every config runs a batch;
+  a fit through the CLI on fold 0 or 2 lands in `<root>/fold<k>/` with
+  `checkpoints/best.ckpt` and `last.ckpt`, a rerun replaces it, and
+  `vae-embed` on it writes a file `read_embeddings` accepts; and, for a
+  Tybalt and an MMD-AE model fit on fold 3, `vae-embed` embeds every
+  training sample alike when the held-out rows are scrambled
+  (`assert_embedding_ignores_held_out`).

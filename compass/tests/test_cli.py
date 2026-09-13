@@ -9,6 +9,7 @@ from reimp_compass.lit import LitCompass
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 
 CONFIGS = Path(__file__).parents[1] / "configs"
 
@@ -48,7 +49,33 @@ def test_every_config_runs_a_batch(config, fake_dataset, hierarchy_path, tmp_pat
     )
 
 
+def test_fit_runs_in_the_folds_directory(fake_dataset, hierarchy_path, tmp_path) -> None:
+    build_cli(
+        [
+            "fit",
+            "--config",
+            str(CONFIGS / "tcga.yaml"),
+            *_fake_overrides(hierarchy_path, tmp_path),
+            "--data.fold=2",
+            "--data.batch_size=8",
+            "--trainer.max_epochs=1",
+            "--trainer.limit_train_batches=2",
+            "--trainer.limit_val_batches=1",
+            "--trainer.accelerator=cpu",
+            "--trainer.enable_progress_bar=false",
+        ]
+    )
+    run = tmp_path / "fold2"
+    assert sorted(p.name for p in (run / "checkpoints").iterdir()) == ["best.ckpt", "last.ckpt"]
+    assert (run / "config.yaml").is_file() and (run / "metrics.csv").is_file()
+    assert not list(tmp_path.rglob("version_*"))
+    best = run / "checkpoints" / "best.ckpt"
+    concepts, _ = embed(best, tmp_path / "f.parquet", accelerator="cpu")
+    assert set(read_embeddings(concepts)[2].tolist()) == {2}
+
+
 def _checkpoint(fold: int, hierarchy_path: str, tmp_path) -> Path:
+    """A tiny COMPASS fit on fold `fold` of the fake dataset, saved."""
     dm = ExpressionDataModule("tpm_unstranded", transform="log1p", batch_size=8, fold=fold)
     model = LitCompass(
         n_genes=dm.n_genes, hierarchy_path=hierarchy_path, d_model=8, head_dim=4, dim_ff=16
@@ -66,6 +93,20 @@ def _checkpoint(fold: int, hierarchy_path: str, tmp_path) -> Path:
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
     return ckpt
+
+
+@pytest.mark.parametrize("output", ["concepts", "sets"])
+def test_embedding_ignores_held_out_rows(
+    output, fake_dataset, hierarchy_path, monkeypatch, tmp_path
+) -> None:
+    # Embedding scales with the checkpoint's training-row min-max, never refit.
+    ckpt = _checkpoint(1, hierarchy_path, tmp_path)
+
+    def embed_one(out: Path) -> Path:
+        concepts, sets = embed(ckpt, out, out.with_name(f"sets-{out.name}"), accelerator="cpu")
+        return concepts if output == "concepts" else sets
+
+    assert_embedding_ignores_held_out(embed_one, 1, monkeypatch, tmp_path)
 
 
 @pytest.mark.parametrize("fold", [0, 2])

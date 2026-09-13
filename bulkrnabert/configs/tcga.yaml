@@ -17,6 +17,9 @@ trainer:
   devices: 1
   gradient_clip_val: 1.0
   log_every_n_steps: 10
+  # Fold k runs in runs/bulkrnabert/fold<k>/: logs there, and
+  # checkpoints/best.ckpt (lowest val/loss) and last.ckpt, for
+  # `bulkrnabert-embed`. A rerun of the fold replaces them.
   default_root_dir: runs/bulkrnabert
   logger:
     - class_path: lightning.pytorch.loggers.CSVLogger
@@ -34,8 +37,7 @@ trainer:
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        filename: best
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
         logging_interval: step

@@ -3,7 +3,13 @@ import pytest
 import torch
 
 from reimp_shared.ranking import GeneRanker
-from reimp_tifbert.sequences import all_windows, n_windows, rank_genes, sample_windows
+from reimp_tifbert.sequences import (
+    all_windows,
+    detected_in,
+    n_windows,
+    rank_genes,
+    sample_windows,
+)
 
 PAD = 10_000
 
@@ -27,11 +33,16 @@ def _sentences(lengths: list[int], width: int) -> torch.Tensor:
 # ---------- ranking ----------
 
 
+def _rank(ranker: GeneRanker, train: np.ndarray, values: np.ndarray, max_genes=None):
+    """`rank_genes` with the ranker and detection mask both fit on `train`."""
+    return rank_genes(ranker.fit(train), values, detected_in(train), max_genes, PAD)
+
+
 def test_a_sentence_is_the_rankers_order_of_the_expressed_genes() -> None:
     values = _values()
-    ranker = GeneRanker().fit(values)
+    ranker = GeneRanker()
+    genes, lengths = _rank(ranker, values, values)
     assert (ranker.weight_ > 0).all()
-    genes, lengths = rank_genes(ranker, values, None, PAD)
     order = ranker.order(values)
     assert genes.dtype == np.int64 and genes.shape == values.shape
     for row, n in enumerate(lengths):
@@ -41,20 +52,35 @@ def test_a_sentence_is_the_rankers_order_of_the_expressed_genes() -> None:
         assert (genes[row, n:] == PAD).all()
 
 
-def test_genes_never_expressed_in_training_are_left_out() -> None:
+@pytest.mark.parametrize("score", ["expression", "z", "tfidf", "cohort_l2"])
+def test_genes_never_expressed_in_training_are_left_out(score) -> None:
     train, test = _values(0), _values(1)
     train[:, 4] = 0.0
     test[:, 4] = 50.0
-    ranker = GeneRanker().fit(train)
-    genes, lengths = rank_genes(ranker, test, None, PAD)
+    genes, lengths = _rank(GeneRanker(score), train, test)
     assert not (genes == 4).any()
     assert (lengths == ((test > 0).sum(axis=1) - 1)).all()
 
 
+def test_genes_the_score_weighs_zero_are_kept_and_rank_last() -> None:
+    """Under the `count` weight a gene detected in every training sample weighs 0."""
+    # Enough training samples that only the ubiquitous genes are detected in all.
+    train, test = _values(0, n=50), _values(1)
+    ubiquitous = [2, 5, 7]
+    train[:, ubiquitous] = test[:, ubiquitous] = 50.0
+    ranker = GeneRanker("tfidf", "count")
+    genes, lengths = _rank(ranker, train, test)
+    assert np.flatnonzero(ranker.weight_ == 0).tolist() == ubiquitous
+    assert (lengths == (test > 0).sum(axis=1)).all()
+    for row, n in enumerate(lengths):
+        # The weighted genes first, in score order; the ubiquitous ones after, in gene order.
+        assert genes[row, n - len(ubiquitous) : n].tolist() == ubiquitous
+
+
 def test_scores_that_go_negative_still_keep_only_expressed_genes_in_order() -> None:
     values = _values()
-    ranker = GeneRanker("z").fit(values)
-    genes, lengths = rank_genes(ranker, values, None, PAD)
+    ranker = GeneRanker("z")
+    genes, lengths = _rank(ranker, values, values)
     for row, n in enumerate(lengths):
         kept = genes[row, :n]
         assert n == (values[row] > 0).sum()
@@ -64,9 +90,8 @@ def test_scores_that_go_negative_still_keep_only_expressed_genes_in_order() -> N
 
 def test_max_genes_keeps_the_top_ranked() -> None:
     values = _values()
-    ranker = GeneRanker().fit(values)
-    full, full_lengths = rank_genes(ranker, values, None, PAD)
-    top, top_lengths = rank_genes(ranker, values, 5, PAD)
+    full, full_lengths = _rank(GeneRanker(), values, values)
+    top, top_lengths = _rank(GeneRanker(), values, values, max_genes=5)
     assert top.shape == (len(values), 5)
     np.testing.assert_array_equal(top, full[:, :5])
     np.testing.assert_array_equal(top_lengths, np.minimum(full_lengths, 5))

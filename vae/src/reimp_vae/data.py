@@ -53,7 +53,8 @@ class VAEDataModule(ExpressionDataModule):
     - `top_genes` keeps the genes with the largest median absolute deviation
       over the training rows (Tybalt: 5,000); None keeps every selected gene.
     - `scaling` is `minmax` (Tybalt; val and test clipped to [0, 1]),
-      `zscore` (the MMD-AE) or `none`.
+      `zscore` (the MMD-AE; val and test clipped to the training range) or
+      `none`.
     - `supervision` adds labels: `organ` or `project` (`organs`), and
       `project_organ` replaces the committed project -> organ mapping.
 

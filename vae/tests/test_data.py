@@ -3,12 +3,14 @@ import numpy as np
 import pytest
 
 from reimp_shared.data import load_expression
-from reimp_vae import data as vae_data
+from reimp_shared.testing import scramble_held_out
 from reimp_vae.data import VAEDataModule
 from reimp_vae.lit import LitVAE
 from reimp_vae.scaling import GeneScaler
 
 TYBALT = dict(quantification="unstranded", transform="lognorm", top_genes=10, scaling="minmax")
+MMDAE = dict(quantification="tpm_unstranded", transform="log1p", top_genes=None, scaling="zscore")
+STATISTICS = ["genes_", "offset_", "scale_", "low_", "high_"]
 
 
 def test_width_and_classes_are_known_before_setup(fake_dataset, project_organ) -> None:
@@ -44,35 +46,34 @@ def test_zscore_standardizes_every_gene_on_the_training_rows(fake_dataset) -> No
     np.testing.assert_allclose(train.std(axis=0), 1.0, atol=1e-4)
 
 
-def test_scaler_is_fit_on_training_rows_only(fake_dataset, monkeypatch) -> None:
-    """Rescaling every val and test value leaves the gene ranking and scaling unchanged."""
+@pytest.mark.parametrize("settings", [TYBALT, MMDAE], ids=["minmax", "zscore"])
+def test_scaler_is_fit_on_training_rows_only(settings, fake_dataset, monkeypatch) -> None:
+    """Rewriting every val and test value leaves the gene ranking and scaling unchanged."""
+    fold = 3
 
-    def fitted() -> GeneScaler:
-        dm = VAEDataModule(**TYBALT)
+    def fitted() -> VAEDataModule:
+        dm = VAEDataModule(**settings, fold=fold)
         dm.setup()
-        return dm.scaler
+        return dm
 
     clean = fitted()
-    real = vae_data.load_expression
+    # What it holds is the training rows' own statistics.
+    kwargs = {k: settings[k] for k in ("quantification", "transform")}
+    data = load_expression(**kwargs, fold=fold)
+    direct = GeneScaler(settings["scaling"], settings["top_genes"])
+    direct.fit(data.values[data.rows("train")])
+    for name in STATISTICS:
+        np.testing.assert_array_equal(getattr(clean.scaler, name), getattr(direct, name))
+    everything = GeneScaler(settings["scaling"], settings["top_genes"]).fit(data.values)
+    assert not np.array_equal(clean.scaler.scale_, everything.scale_)
 
-    def held_out_rescaled(**kwargs):
-        data = real(**kwargs)
-        held_out = data.samples["split"].to_numpy() != "train"
-        data.values[held_out] = data.values[held_out][:, ::-1] * 50 + 3
-        return data
-
-    monkeypatch.setattr(vae_data, "load_expression", held_out_rescaled)
-    shifted = fitted()
-    for name in ["genes_", "offset_", "scale_"]:
-        np.testing.assert_array_equal(getattr(clean, name), getattr(shifted, name))
-
-    # And what it holds is the training rows' own statistics.
-    data = load_expression(quantification="unstranded", transform="lognorm")
-    direct = GeneScaler("minmax", 10).fit(data.values[data.rows("train")])
-    for name in ["genes_", "offset_", "scale_"]:
-        np.testing.assert_array_equal(getattr(clean, name), getattr(direct, name))
-    everything = GeneScaler("minmax", 10).fit(data.values)
-    assert not np.array_equal(clean.scale_, everything.scale_)
+    scramble_held_out(monkeypatch, fold)
+    scrambled = fitted()
+    for name in STATISTICS:
+        np.testing.assert_array_equal(getattr(clean.scaler, name), getattr(scrambled.scaler, name))
+    train = clean.data.rows("train")
+    np.testing.assert_array_equal(scrambled.data.values[train], clean.data.values[train])
+    assert not np.array_equal(scrambled.data.values, clean.data.values), "scramble never reached"
 
 
 def test_supervised_items_carry_labels_for_tumours_and_normals(fake_dataset, project_organ) -> None:

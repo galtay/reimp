@@ -1,7 +1,7 @@
 # About a minute on real data: Tybalt (configs/tybalt.yaml) on fold 0 for
 # three short epochs, enough to cross the KL warm-up, to check the pipeline
 # end to end before a real run. Then:
-#   vae-embed --ckpt runs/debug/tybalt/checkpoints/best.ckpt --out out/vae_debug/tybalt/fold0.parquet
+#   vae-embed --ckpt runs/debug/tybalt/fold0/checkpoints/best.ckpt --out out/vae_debug/tybalt/fold0.parquet
 seed_everything: 0
 
 trainer:

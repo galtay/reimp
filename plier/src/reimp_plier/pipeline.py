@@ -1,11 +1,11 @@
 """PLIER for one cross-validation fold, every statistic from its training samples.
 
-`fit_fold` fits the per-gene means and SDs on the fold's training
+`fit_fold` fits the per-gene means, SDs and ranges on the fold's training
 samples, drops the genes constant there, maps the prior onto the rest and
 fits PLIER — its SVD, k, λ1, λ2 and λ3 — on those samples alone.
-`FoldModel.embed` z-scores any sample with the training statistics and
-projects it with the trained Z and λ2, so training, validation and test
-samples are embedded by one map.
+`FoldModel.embed` clips any sample to the training ranges, z-scores it
+with the training statistics and projects it with the trained Z and λ2,
+so training, validation and test samples are embedded by one map.
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class FoldModel:
     unmapped: list[str] = field(default_factory=list)
 
     def embed(self, data: ExpressionData) -> np.ndarray:
-        """Every sample of `data`, samples x k: B = (ZᵀZ + λ2 I)⁻¹Zᵀy."""
+        """Every sample of `data`, samples x k: B = (ZᵀZ + λ2 I)⁻¹Zᵀy, y clipped and z-scored."""
         columns = pd.Index(data.genes["gene_id"]).get_indexer(self.gene_ids)
         if (columns < 0).any():
             raise ValueError(f"{int((columns < 0).sum())} of the model's genes are not in the data")
@@ -62,6 +62,8 @@ class FoldModel:
             unmapped=np.array(self.unmapped, dtype=str),
             mean=self.scaler.mean,
             sd=self.scaler.sd,
+            low=self.scaler.low,
+            high=self.scaler.high,
             z=m.z_,
             b=m.b_,
             u=m.u_,
@@ -95,7 +97,7 @@ class FoldModel:
             fold = cls(
                 gene_ids=f["gene_id"],
                 gene_names=f["gene_name"],
-                scaler=GeneScaler(mean=f["mean"], sd=f["sd"]),
+                scaler=GeneScaler(mean=f["mean"], sd=f["sd"], low=f["low"], high=f["high"]),
                 model=model,
                 unmapped=f["unmapped"].tolist(),
             )

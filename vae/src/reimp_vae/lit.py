@@ -51,7 +51,8 @@ class LitVAE(L.LightningModule):
     Tybalt: 100-d latent, no hidden layer, BatchNorm + ReLU on both heads,
     sigmoid decoder with BCE, KL warmed up with κ = 1, Glorot init, Adam at
     5e-4. The MMD-AE config sets a 121-d latent, one hidden layer of
-    0.2 · n_genes, linear heads, MSE, MMD and Adam at 1.72e-3.
+    0.2 · n_genes, linear heads, MSE, MMD, Flexynesis's Xavier init
+    (`xavier_init`, `glorot_init: false`) and Adam at 1.72e-3.
     """
 
     def __init__(
@@ -70,6 +71,7 @@ class LitVAE(L.LightningModule):
         class_hidden: int = 32,
         class_dropout: float = 0.1,
         glorot_init: bool = True,
+        xavier_init: bool = False,
         lr: float = 5e-4,
         seed: int = 0,
     ) -> None:
@@ -94,6 +96,7 @@ class LitVAE(L.LightningModule):
             class_hidden=class_hidden,
             class_dropout=class_dropout,
             glorot_init=glorot_init,
+            xavier_init=xavier_init,
             logvar_max=logvar_max,
         )
         self._generator = torch.Generator().manual_seed(seed)

@@ -27,8 +27,8 @@ trainer:
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        # runs/mojo/fold<k>/checkpoints/best.ckpt, the one mojo-embed reads.
+        filename: best
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
         logging_interval: step

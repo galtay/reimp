@@ -198,7 +198,10 @@ objective, and each objective writes its own embeddings directory
 - Input: `lognorm` (or `log1p` of TPM) from `reimp_shared.data`, then a
   per-gene z-score **fit on training samples**. No quantile normalization
   or ComBat: both are fit across the cohort, and they are not part of the
-  methods.
+  methods. (2026-09-13: the z-scores are also clipped to each gene's
+  training range, at training and at embedding. On fold 0, genes nearly
+  constant over training gave held-out samples |z| up to 1,398, against
+  91 in training. See the README.)
 - VIME's corruption redrawn every batch rather than once per run; the
   fixed draw is an artefact of the reference code. Note this in the
   README as a deviation.

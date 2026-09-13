@@ -9,6 +9,7 @@ from reimp_bulkformer.graph import coexpression_graph
 from reimp_bulkformer.lit import LitBulkFormer, pearson, warmup_cosine
 from reimp_bulkformer.model import mask_genes, masked_mse
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.testing import scramble_held_out
 
 TINY = dict(d_model=16, n_blocks=1, n_layers=1, n_heads=2, dropout=0.0, graph_k=5)
 
@@ -47,7 +48,11 @@ def _graph(model: LitBulkFormer) -> tuple[torch.Tensor, torch.Tensor]:
 # ---------- fitted statistics ----------
 
 
-def test_fitted_statistics_come_from_training_rows_only(fake_dataset) -> None:
+def _head_bias(model: LitBulkFormer) -> torch.Tensor:
+    return model.model.head[1][-1].bias.detach().clone()
+
+
+def test_fitted_statistics_come_from_training_rows_only(fake_dataset, monkeypatch) -> None:
     model, dm = _fitted(fake_dataset)
     train = dm.data.values[dm.data.rows("train")]
     index, weight = coexpression_graph(np.expm1(train), k=TINY["graph_k"])
@@ -55,23 +60,23 @@ def test_fitted_statistics_come_from_training_rows_only(fake_dataset) -> None:
     torch.testing.assert_close(model.model.graph_weight, weight)
     np.testing.assert_allclose(model.gene_mean.numpy(), train.mean(axis=0), rtol=1e-5)
 
-    rng = np.random.default_rng(0)
-
-    def refit(rows: np.ndarray) -> LitBulkFormer:
-        values = dm.data.values.copy()
-        values[rows] = rng.uniform(0, 10, (len(rows), values.shape[1])).astype(np.float32)
-        other = LitBulkFormer(n_genes=dm.n_genes, **TINY)
-        other.fit_statistics(dataclasses.replace(dm.data, values=values))
-        return other
-
-    # Scrambling every validation and test sample changes nothing...
+    # Scrambling every validation and test sample, as loaded, changes nothing...
+    scramble_held_out(monkeypatch, dm.hparams.fold)
+    unchanged, scrambled = _fitted(fake_dataset)
     held_out = np.concatenate([dm.data.rows("val"), dm.data.rows("test")])
-    unchanged = refit(held_out)
+    assert not np.allclose(scrambled.data.values[held_out], dm.data.values[held_out])
     assert torch.equal(unchanged.model.graph_index, index)
     torch.testing.assert_close(unchanged.model.graph_weight, weight)
     torch.testing.assert_close(unchanged.gene_mean, model.gene_mean)
+    torch.testing.assert_close(_head_bias(unchanged), _head_bias(model))
+
     # ...while scrambling the training samples does.
-    changed = refit(dm.data.rows("train"))
+    values = dm.data.values.copy()
+    rows = dm.data.rows("train")
+    rng = np.random.default_rng(0)
+    values[rows] = rng.uniform(0, 10, (len(rows), values.shape[1])).astype(np.float32)
+    changed = LitBulkFormer(n_genes=dm.n_genes, **TINY)
+    changed.fit_statistics(dataclasses.replace(dm.data, values=values))
     assert not torch.allclose(changed.gene_mean, model.gene_mean)
     assert not torch.equal(changed.model.graph_index, index)
 

@@ -14,25 +14,25 @@ trainer:
   accelerator: auto
   devices: 1
   log_every_n_steps: 10
+  # Fold k runs in runs/compass/fold<k>/ (FoldCLI points loggers and
+  # checkpoints there); a variant needs its own root, or it replaces the run.
   default_root_dir: runs/compass
   logger:
     - class_path: lightning.pytorch.loggers.CSVLogger
       init_args:
         save_dir: runs/compass
-        name: ""
     - class_path: lightning.pytorch.loggers.TensorBoardLogger
       init_args:
         save_dir: runs/compass
-        name: ""
   callbacks:
+    # runs/compass/fold<k>/checkpoints/best.ckpt (lowest val/loss) and last.ckpt
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
         monitor: val/loss
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        filename: best
     - class_path: lightning.pytorch.callbacks.EarlyStopping
       init_args:
         monitor: val/loss

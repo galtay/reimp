@@ -13,7 +13,12 @@ rule 3):
   minmax   (x − min) / (max − min), Tybalt's MinMaxScaler. Every row is then
            clipped to [0, 1], which only moves val and test values outside
            the training range: a sigmoid output and BCE cannot represent them.
-  zscore   (x − mean) / sd, the MMD-AE's StandardScaler
+  zscore   (x − mean) / sd, the MMD-AE's StandardScaler. Every row is then
+           clipped to the gene's range over the training rows, which again
+           only moves val and test values: a gene expressed in a handful of
+           training samples has a near-zero SD, and puts a held-out sample
+           that expresses it far beyond anything the model saw (fold 0: |z|
+           up to 238 in val and test, 91 in training).
   none     values as given
 
 A gene constant over the training rows gets scale 1, as in scikit-learn's
@@ -61,6 +66,8 @@ class GeneScaler:
         self.genes_: np.ndarray | None = None
         self.offset_: np.ndarray | None = None
         self.scale_: np.ndarray | None = None
+        self.low_: np.ndarray | None = None  # zscore: the training range, scaled
+        self.high_: np.ndarray | None = None
 
     def fit(self, values: np.ndarray) -> GeneScaler:
         """Choose genes and measure their scaling from `values` (samples x genes)."""
@@ -81,28 +88,41 @@ class GeneScaler:
             offset, scale = np.zeros(len(self.genes_)), np.ones(len(self.genes_))
         self.offset_ = offset
         self.scale_ = np.where(scale > 0, scale, 1.0)
+        self.low_ = self.high_ = None
+        if self.scaling == "zscore":
+            # Scaled exactly as `transform` scales, so no training value is clipped.
+            self.low_, self.high_ = self._affine(np.stack([x.min(axis=0), x.max(axis=0)]))
         return self
 
-    def transform(self, values: np.ndarray) -> np.ndarray:
-        """The chosen genes of `values`, scaled, as float32."""
-        if self.genes_ is None:
-            raise RuntimeError("call fit before transform")
-        x = np.asarray(values)[:, self.genes_].astype(np.float32)
+    def _affine(self, x: np.ndarray) -> np.ndarray:
+        x = x.astype(np.float32)
         x -= self.offset_.astype(np.float32)
         x /= self.scale_.astype(np.float32)
+        return x
+
+    def transform(self, values: np.ndarray) -> np.ndarray:
+        """The chosen genes of `values`, scaled and clipped, as float32."""
+        if self.genes_ is None:
+            raise RuntimeError("call fit before transform")
+        x = self._affine(np.asarray(values)[:, self.genes_])
         if self.scaling == "minmax":
             np.clip(x, 0.0, 1.0, out=x)
+        elif self.low_ is not None:
+            np.clip(x, self.low_, self.high_, out=x)
         return x
 
     def state_dict(self) -> dict[str, torch.Tensor]:
         """The fitted statistics as tensors, for a checkpoint; empty before `fit`."""
         if self.genes_ is None:
             return {}
-        return {
+        state = {
             "genes": torch.from_numpy(self.genes_.astype(np.int64)),
             "offset": torch.from_numpy(self.offset_),
             "scale": torch.from_numpy(self.scale_),
         }
+        if self.low_ is not None:
+            state["low"], state["high"] = torch.from_numpy(self.low_), torch.from_numpy(self.high_)
+        return state
 
     def load_state_dict(self, state: dict[str, torch.Tensor]) -> None:
         """Restore what `state_dict` saved; an empty state leaves the scaler unfit."""
@@ -111,3 +131,6 @@ class GeneScaler:
         self.genes_ = state["genes"].numpy()
         self.offset_ = state["offset"].numpy()
         self.scale_ = state["scale"].numpy()
+        # A checkpoint from before the zscore clip has no range, and is not clipped.
+        self.low_ = state["low"].numpy() if "low" in state else None
+        self.high_ = state["high"].numpy() if "high" in state else None

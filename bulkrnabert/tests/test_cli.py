@@ -9,6 +9,7 @@ from reimp_bulkrnabert.lit import LitBulkRNABert
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 
 CONFIGS = Path(__file__).parents[1] / "configs"
 
@@ -39,8 +40,14 @@ def test_every_config_runs_a_batch(config, fake_dataset, tmp_path) -> None:
     )
 
 
-def test_debug_config_checkpoints_under_its_root_dir(fake_dataset, tmp_path, monkeypatch) -> None:
-    """`last.ckpt` follows `default_root_dir`, where the README's embed command reads it."""
+@pytest.mark.parametrize(
+    ("config", "checkpoints"),
+    [("debug.yaml", ["last.ckpt"]), ("tcga.yaml", ["best.ckpt", "last.ckpt"])],
+)
+def test_a_fold_runs_in_its_own_directory(
+    config, checkpoints, fake_dataset, tmp_path, monkeypatch
+) -> None:
+    """Fold 2 runs in `<root>/fold2/`, where the README's embed commands read its checkpoints."""
     cwd = tmp_path / "cwd"
     cwd.mkdir()
     monkeypatch.chdir(cwd)
@@ -48,23 +55,34 @@ def test_debug_config_checkpoints_under_its_root_dir(fake_dataset, tmp_path, mon
     args = [
         "fit",
         "--config",
-        str(CONFIGS / "debug.yaml"),
+        str(CONFIGS / config),
         "--trainer.accelerator=cpu",
+        "--trainer.max_epochs=1",
         "--trainer.limit_train_batches=2",
         "--trainer.limit_val_batches=1",
+        "--trainer.accumulate_grad_batches=1",
         f"--trainer.default_root_dir={root}",
         "--data.batch_size=8",
+        "--data.fold=2",
+        # The paper-size encoder, cut down to run in a test.
+        "--model.d_model=16",
+        "--model.n_layers=1",
+        "--model.n_heads=2",
+        "--model.dim_ff=32",
     ]
     build_cli(args)
-    build_cli(args)  # a rerun overwrites the checkpoint
-    assert [p.name for p in (root / "checkpoints").iterdir()] == ["last.ckpt"]
+    build_cli(args)  # a rerun of the fold replaces its run
+    assert [p.name for p in root.iterdir()] == ["fold2"]
+    assert sorted(p.name for p in (root / "fold2" / "checkpoints").iterdir()) == checkpoints
+    assert (root / "fold2" / "config.yaml").exists()
     assert not any(cwd.iterdir())
-    loaded = LitBulkRNABert.load_from_checkpoint(root / "checkpoints" / "last.ckpt")
-    assert loaded.hparams.token_max is not None
+    for name in checkpoints:
+        loaded = LitBulkRNABert.load_from_checkpoint(root / "fold2" / "checkpoints" / name)
+        assert loaded.hparams.token_max is not None
 
 
-@pytest.mark.parametrize("fold", [0, 2])
-def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+def _checkpoint(tmp_path: Path, fold: int) -> Path:
+    """A tiny BulkRNABert fit on fold `fold` of the fake dataset, saved."""
     dm = ExpressionDataModule(
         quantification="tpm_unstranded", transform="log1p", batch_size=8, fold=fold
     )
@@ -81,7 +99,20 @@ def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
     trainer.fit(model, datamodule=dm)
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
+    return ckpt
 
+
+def test_embedding_ignores_held_out_rows(fake_dataset, monkeypatch, tmp_path) -> None:
+    """Embedding bins by the checkpoint's training maximum, never one refit on held-out rows."""
+    ckpt = _checkpoint(tmp_path, fold=1)
+    assert_embedding_ignores_held_out(
+        lambda out: embed(ckpt, out, accelerator="cpu"), 1, monkeypatch, tmp_path
+    )
+
+
+@pytest.mark.parametrize("fold", [0, 2])
+def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold)
     sample_index, embeddings, folds = read_embeddings(
         embed(ckpt, tmp_path / "embeddings.parquet", accelerator="cpu")
     )

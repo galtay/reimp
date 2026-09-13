@@ -16,8 +16,10 @@ trainer:
   default_root_dir: runs/bulkformer_debug
   logger: false
   callbacks:
+    # Only runs/bulkformer_debug/fold<k>/checkpoints/last.ckpt.
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
+        save_top_k: 0
         save_last: true
 
 model:

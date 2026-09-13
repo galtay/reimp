@@ -2,17 +2,19 @@
 
 tabssl fit --config tabssl/configs/debug.yaml --model.objective vime
 tabssl fit --config tabssl/configs/tcga_scarf.yaml --data.fold 2
+
+Fold k runs in `<trainer.default_root_dir>/fold<k>/` (`FoldCLI`), e.g.
+`runs/tabssl_scarf/fold2/checkpoints/best.ckpt`.
 """
 
 from __future__ import annotations
 
-from lightning.pytorch.cli import LightningCLI
-
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.foldcli import FoldCLI
 from reimp_tabssl.lit import LitTabSSL
 
 
-class TabSSLCLI(LightningCLI):
+class TabSSLCLI(FoldCLI):
     def add_arguments_to_parser(self, parser) -> None:
         # The gene count follows from the DataModule's gene selection, so it
         # is read off the instantiated DataModule rather than set by hand.
@@ -20,13 +22,7 @@ class TabSSLCLI(LightningCLI):
 
 
 def build_cli(args: list[str] | None = None, run: bool = True) -> TabSSLCLI:
-    return TabSSLCLI(
-        LitTabSSL,
-        ExpressionDataModule,
-        save_config_kwargs={"overwrite": True},
-        args=args,
-        run=run,
-    )
+    return TabSSLCLI(LitTabSSL, ExpressionDataModule, args=args, run=run)
 
 
 def main() -> None:

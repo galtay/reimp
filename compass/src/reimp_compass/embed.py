@@ -5,7 +5,7 @@ Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 the 43 concept scores to `--out`, and with `--sets-out` the 132 set scores
 to a second file.
 
-  compass-embed --ckpt runs/compass/checkpoints/best.ckpt \\
+  compass-embed --ckpt runs/compass/fold0/checkpoints/best.ckpt \\
       --out out/compass/fold0.parquet --sets-out out/compass_sets/fold0.parquet
 """
 

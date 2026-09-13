@@ -4,7 +4,7 @@
 #   vae fit --config vae/configs/debug_mmdae.yaml --data.supervision none \
 #     --trainer.default_root_dir runs/debug/mmdae_none
 # Then:
-#   vae-embed --ckpt runs/debug/mmdae_organ/checkpoints/best.ckpt \
+#   vae-embed --ckpt runs/debug/mmdae_organ/fold0/checkpoints/best.ckpt \
 #     --out out/vae_debug/mmdae_organ/fold0.parquet
 seed_everything: 0
 
@@ -42,6 +42,7 @@ model:
   class_hidden: 32
   class_dropout: 0.1
   glorot_init: false
+  xavier_init: true # Flexynesis's: encoder and decoder weights; default biases and head
   lr: 1.72e-3
 
 data:

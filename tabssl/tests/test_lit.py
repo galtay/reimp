@@ -3,8 +3,9 @@ import numpy as np
 import pytest
 import torch
 
-from reimp_shared.data import ExpressionDataModule
+from reimp_shared.data import ExpressionDataModule, load_expression
 from reimp_shared.preprocess import log_normalize
+from reimp_shared.testing import scramble_held_out
 from reimp_tabssl.lit import LitTabSSL
 
 TINY = dict(hidden_dim=16, byol_hidden_dim=32, dropout=0.0)
@@ -134,19 +135,23 @@ def test_invalid_settings_are_rejected() -> None:
 
 
 @pytest.mark.parametrize("objective", ["scarf", "vime"])
-def test_fitted_statistics_come_from_training_rows_only(objective, fake_dataset, tmp_path) -> None:
-    dm = ExpressionDataModule(transform="lognorm", batch_size=8)
-    dm.setup()
-    train = dm.data.rows("train")
-    others = np.setdiff1d(np.arange(len(dm.data.values)), train)
-    clean_train = dm.data.values[train].copy()
-    # Poison every validation and test sample: any statistic that saw one would show it.
-    dm.data.values[others] = 1e4
+def test_fitted_statistics_come_from_training_rows_only(
+    objective, fake_dataset, monkeypatch, tmp_path
+) -> None:
+    fold = 1
+    clean = load_expression(transform="lognorm", fold=fold)
+    train = clean.rows("train")
+    others = np.setdiff1d(np.arange(len(clean.values)), train)
+    clean_train = clean.values[train]
+    # Rewrite every validation and test sample: any statistic that saw one would move.
+    scramble_held_out(monkeypatch, fold)
 
+    dm = ExpressionDataModule(transform="lognorm", batch_size=8, fold=fold)
     model = LitTabSSL(n_genes=dm.n_genes, objective=objective, **TINY)
     _trainer(tmp_path, max_epochs=1, limit_train_batches=2, limit_val_batches=1).fit(
         model, datamodule=dm
     )
+    assert not np.allclose(dm.data.values[others], clean.values[others])  # the scramble took
 
     torch.testing.assert_close(model.scaler.mean, torch.from_numpy(clean_train.mean(axis=0)))
     torch.testing.assert_close(model.scaler.std, torch.from_numpy(clean_train.std(axis=0)))
@@ -168,6 +173,30 @@ def test_statistics_are_saved_with_the_model(tmp_path) -> None:
     for name in ["scaler.mean", "scaler.std", "low", "high"]:
         assert torch.equal(loaded.state_dict()[name], model.state_dict()[name])
     assert "pool" not in model.state_dict()  # rebuilt from the data at every fit
+
+
+def test_inputs_are_clipped_to_the_training_range() -> None:
+    model = _model("scarf").eval()
+    train = _values(seed=1)  # the samples `_model` fit on
+    # Training samples lie within their own range: the clip leaves them as they are.
+    torch.testing.assert_close(model.scale(train), model.scaler(train), rtol=0, atol=0)
+    # Far outside the range, as a held-out sample can be for a gene nearly
+    # constant over training: clipped to the training extreme.
+    held_out = _values(n=4, seed=2)
+    held_out[:, 0], held_out[:, 1] = 1e4, -1e4
+    x = model.scale(held_out)
+    assert (x >= model.low).all() and (x <= model.high).all()
+    torch.testing.assert_close(x[:, 0], model.high[0].expand(4))
+    torch.testing.assert_close(x[:, 1], model.low[1].expand(4))
+    # So it embeds as the training maximum (minimum) would.
+    at_extremes = held_out.clone()
+    at_extremes[:, 0], at_extremes[:, 1] = train[:, 0].max(), train[:, 1].min()
+    with torch.no_grad():
+        embed = [
+            model.predict_step({"values": v, "sample_index": torch.arange(4)}, 0)["embedding"]
+            for v in (held_out, at_extremes)
+        ]
+    torch.testing.assert_close(embed[0], embed[1])
 
 
 # ---------- validation, embedding and the untrained control ----------
@@ -195,7 +224,8 @@ def test_embeddings_are_the_encoder_on_clean_scaled_inputs(fake_dataset, tmp_pat
     sample_index = torch.cat([o["sample_index"] for o in first])
     assert sample_index.tolist() == dm.data.samples["sample_index"].tolist()
     with torch.no_grad():
-        expected = model.eval().encoder(model.scaler(torch.from_numpy(dm.data.values)))
+        scaled = model.scaler(torch.from_numpy(dm.data.values))
+        expected = model.eval().encoder(torch.clamp(scaled, model.low, model.high))
     torch.testing.assert_close(embeddings, expected)
     assert embeddings.shape == (len(sample_index), TINY["hidden_dim"])
 

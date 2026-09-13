@@ -15,15 +15,22 @@ max-pooled over genes.
 ```bash
 uv run bulkformer fit --config bulkformer/configs/debug.yaml               # ~15 s on real data
 uv run bulkformer fit --config bulkformer/configs/tcga.yaml --data.fold 0  # and so on for folds 1-4
-uv run bulkformer-embed --ckpt runs/bulkformer/version_0/checkpoints/last.ckpt \
+uv run bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt \
     --out out/bulkformer/fold0.parquet
-uv run bulkformer-embed --ckpt <same> --pooling mean --out out/bulkformer_mean/fold0.parquet
+uv run bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt --pooling mean \
+    --out out/bulkformer_mean/fold0.parquet
 uv run reimp-shared probe out/bulkformer out/pca256 --against pca256
 ```
 
+Fold k of a run lands in `<trainer.default_root_dir>/fold<k>/`
+(`reimp_shared.foldcli`): `config.yaml`, the CSV and TensorBoard logs, and
+`checkpoints/best.ckpt` (lowest `val/loss`) beside `checkpoints/last.ckpt`
+(the end of the cosine schedule, which is what we embed). Rerunning a fold
+replaces its run.
+
 The debug config trains a 1.3M-parameter model for 40 steps of 4 samples
-on fold 0 and saves `runs/bulkformer_debug/checkpoints/last.ckpt`; on an
-M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s,
+on fold 0 and saves only `runs/bulkformer_debug/fold0/checkpoints/last.ckpt`;
+on an M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s,
 and embedding all 11,505 samples from it ~2.5 min. `tcga.yaml`'s 14.8M
 model measured 2.2 s per step of 8 samples on the same machine, with a
 31 GiB peak MPS allocation: ~37 min per epoch, ~12 h for its 20 epochs per
@@ -98,8 +105,12 @@ All in `LitBulkFormer.fit_statistics`, from `data.rows("train")` only
 - the head's output bias, started at the training mean log1p TPM.
 
 `tests/test_lit.py::test_fitted_statistics_come_from_training_rows_only`
-scrambles every validation and test sample and checks that none of them
+scrambles every validation and test sample as loaded
+(`reimp_shared.testing.scramble_held_out`) and checks that none of them
 moves; scrambling the training samples does.
+`tests/test_cli.py::test_embedding_ignores_held_out_rows` does the same at
+embed time: after scrambling, `bulkformer-embed` gives every training
+sample of the checkpoint's fold the same embedding as before.
 
 ## Configs and fields
 
@@ -155,11 +166,14 @@ Where the paper or its code is silent, or we differ:
 - **FAVOR+ is our own** (`favor.py`), since performer-pytorch is
   unmaintained: its feature map and stabilizers, orthogonal random
   features (d_head · ln d_head per head), one projection shared across
-  heads, redrawn every 1,000 steps. Its `eps` is 1e-6, not 1e-4: keys are
-  scaled by their largest feature over the sequence, so over thousands of
-  genes a typical key feature is comparable to 1e-4, which pulls attention
-  towards uniform and stops the estimate improving with more features
-  (`tests/test_favor.py` checks that it converges).
+  heads, redrawn every 1,000 steps, and its `eps` of 1e-4. Keys are scaled
+  by their largest feature over the sequence, so over thousands of genes a
+  typical key feature is comparable to 1e-4, which shrinks the estimate
+  towards uniform attention. At the default 110 features per 32-d head
+  that trades a little bias for much less variance: on 2,048-4,096
+  random tokens, eps 1e-6 was never closer to softmax attention, and at
+  query and key scales 0.7-1.0 it was 1.4-2.8 times as far
+  (`tests/test_favor.py`).
 - **Undirected graph**: the union of the top-20 lists. The paper passes its
   graph to GCNConv without saying which direction an edge runs.
 - The GCN's bias is added after aggregation, as in GCNConv.

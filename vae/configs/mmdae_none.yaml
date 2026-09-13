@@ -12,12 +12,13 @@ trainer:
   accelerator: auto
   devices: 1
   log_every_n_steps: 20
+  # Fold k runs in runs/mmdae_none/fold<k>/, with checkpoints/best.ckpt and last.ckpt:
+  #   vae-embed --ckpt runs/mmdae_none/fold0/checkpoints/best.ckpt --out out/mmdae_none/fold0.parquet
   default_root_dir: runs/mmdae_none
   logger:
     - class_path: lightning.pytorch.loggers.CSVLogger
       init_args:
-        save_dir: runs/mmdae_none
-        name: ""
+        save_dir: runs/mmdae_none # replaced by the fold's directory
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
@@ -42,6 +43,7 @@ model:
   mmd_prior_samples: 200
   logvar_max: 0.0 # posterior no wider than the prior; see README
   glorot_init: false
+  xavier_init: true # Flexynesis's: encoder and decoder weights; default biases
   lr: 1.72e-3
 
 data:

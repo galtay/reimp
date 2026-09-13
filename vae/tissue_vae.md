@@ -190,6 +190,10 @@ chosen by sample, which includes our test patients.
 - Embedding: the posterior mean.
 - Input: `tpm_unstranded` + `log1p`, per-gene `StandardScaler` fit on
   training samples. log1p is natural log; z-scoring removes the base.
+  *Note added 2026-09-13:* val and test z-scores are clipped to each
+  gene's training range. Genes expressed in a few training samples have a
+  near-zero SD, and on fold 0 put held-out values at |z| up to 238, against
+  91 in training; see `README.md`.
 
 **Incidental**, standardized:
 

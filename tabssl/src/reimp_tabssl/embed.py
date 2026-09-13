@@ -5,8 +5,10 @@ Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 Each objective has its own directory; by default the file lands at
 `out/tabssl_<objective>/fold<k>.parquet`:
 
-  tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/last.ckpt
-  tabssl-embed --ckpt <ckpt> --out out/tabssl_debug/scarf/fold0.parquet
+  tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/best.ckpt
+  tabssl-embed --ckpt runs/tabssl_none/fold0/checkpoints/last.ckpt
+  tabssl-embed --ckpt runs/tabssl_debug/scarf/fold0/checkpoints/last.ckpt \
+    --out out/tabssl_debug/scarf/fold0.parquet
 """
 
 from __future__ import annotations
@@ -35,8 +37,8 @@ def embed(
 ) -> Path:
     """Embed every sample the checkpoint's DataModule selects, with its own settings.
 
-    The inputs are scaled by the checkpoint's training-set scaler and not
-    corrupted; the encoder runs in eval mode.
+    The inputs are scaled by the checkpoint's training-set scaler, clipped
+    to its training range and not corrupted; the encoder runs in eval mode.
     """
     model = LitTabSSL.load_from_checkpoint(ckpt_path, map_location="cpu")
     overrides = {} if batch_size is None else {"batch_size": batch_size}

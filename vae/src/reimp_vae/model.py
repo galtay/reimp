@@ -11,7 +11,8 @@
   MMD-AE (Pande et al. 2026, Flexynesis `supervised_vae`)
     encoder   genes -> hidden (Linear, LeakyReLU(0.2), BatchNorm) -> linear
               mean and log-variance heads.
-    decoder   latent -> hidden (the same block) -> genes, linear output.
+    decoder   latent -> hidden (the same block) -> genes, linear output;
+              Xavier-uniform encoder and decoder weights.
     loss      MSE averaged over genes + MMD(z, N(0, I) draws), plus, when
               supervised, the cross-entropy of a classifier head on the
               sampled z: an unweighted sum.
@@ -184,16 +185,24 @@ class Autoencoder(nn.Module):
         class_hidden: int = 32,
         class_dropout: float = 0.1,
         glorot_init: bool = False,
+        xavier_init: bool = False,
         logvar_max: float | None = None,
     ) -> None:
-        """`logvar_max` caps the log-variance before it is exponentiated.
+        """`glorot_init` is Keras's Dense default, which Tybalt kept: Glorot-uniform
+        weights and zero biases in every linear layer. `xavier_init` is
+        Flexynesis's: Xavier-uniform (the same distribution) weights in the
+        encoder and decoder only, PyTorch's default biases, and PyTorch's
+        default init in the classifier head. Neither leaves PyTorch's default.
 
+        `logvar_max` caps the log-variance before it is exponentiated.
         Without a KL term nothing holds the log-variance down: under the MMD
         and a decoder that BatchNorm makes blind to one sample's scale, it
         drifts past 100 within a few dozen steps and exp(logvar / 2)
         overflows. A KL term's equilibrium for an uninformative dimension is
         logvar = 0, the prior's width.
         """
+        if glorot_init and xavier_init:
+            raise ValueError("choose one of glorot_init (Tybalt) and xavier_init (MMD-AE)")
         super().__init__()
         self.logvar_max = logvar_max
         self.encoder = Encoder(n_genes, latent_dim, hidden_dim, heads)
@@ -209,6 +218,11 @@ class Autoencoder(nn.Module):
                 if isinstance(module, nn.Linear):
                     nn.init.xavier_uniform_(module.weight)
                     nn.init.zeros_(module.bias)
+        if xavier_init:
+            # Flexynesis's Encoder and Decoder: Xavier-uniform weights only.
+            for module in [*self.encoder.modules(), *self.decoder.modules()]:
+                if isinstance(module, nn.Linear):
+                    nn.init.xavier_uniform_(module.weight)
 
     def forward(self, x: Tensor, generator: torch.Generator | None = None) -> dict[str, Tensor]:
         """`mu`, `logvar`, the sample `z`, the decoder `output` and, if supervised, `logits`."""

@@ -16,15 +16,20 @@ are written as a second embedding.
 ```bash
 uv run compass fit --config compass/configs/debug.yaml      # ~10 s on real data
 uv run compass fit --config compass/configs/tcga.yaml --data.fold 0
-uv run compass-embed --ckpt <fold 0 best checkpoint> \
+uv run compass-embed --ckpt runs/compass/fold0/checkpoints/best.ckpt \
     --out out/compass/fold0.parquet --sets-out out/compass_sets/fold0.parquet
 uv run reimp-shared probe out/compass out/compass_sets out/pca256 --against pca256
 ```
 
-Train once per fold (`--data.fold 0` … `4`) and embed each fold's best
-checkpoint (lowest `val/loss`) into `fold{k}.parquet` in both directories.
+Train once per fold (`--data.fold 0` … `4`). Fold k's run lands in
+`runs/compass/fold{k}/`, with its config, `metrics.csv` and TensorBoard
+events. Its checkpoints go in `checkpoints/`: `best.ckpt` (lowest
+`val/loss`) and `last.ckpt`. Rerunning a fold replaces its run. Embed each
+fold's `best.ckpt` into `fold{k}.parquet` in both directories.
 `--model.negatives same_project` trains the same-project-negatives variant.
-Write that variant to its own directories, e.g. `out/compass_sameproj`.
+Give that variant its own run root and output directories, e.g.
+`--trainer.default_root_dir runs/compass_sameproj` and
+`out/compass_sameproj`. `debug.yaml` runs in `runs/compass_debug/fold{k}/`.
 
 [`paper.md`](paper.md) records what the paper did and which of its choices
 are kept. The rest of this file covers what is implemented and how it
@@ -46,9 +51,13 @@ departs from the paper.
   are identical.
 - **Scaling.** Per-gene (x − min) / (max − min), like scikit-learn's
   `MinMaxScaler`, which COMPASS uses. It is fit on the fold's training
-  samples only (`LitCompass.prepare`) and stored in the checkpoint. A gene
-  that is constant on the training samples gets scale 1. Values outside
-  the training range are not clipped.
+  samples only (`LitCompass.prepare`) and stored in the checkpoint, so
+  embedding reuses it. A gene that is constant on the training samples
+  gets scale 1. Values outside the training range are not clipped, as in
+  COMPASS. They stay close to it: on fold 0, 1.9 × 10⁻⁴ of held-out values
+  fall outside [0, 1], all within −0.23 … 5.6 over protein-coding genes
+  (smallest non-zero training span 0.022) and −0.13 … 1.83 over the 916
+  concept genes.
 - **Gene tokens.** token_g = ReLU(x_g · W_g + P_g), with a per-gene W_g and
   P_g in R^32 (U(±1/√32) initialization, as in COMPASS). There is no CLS
   token and no cancer-type token.
@@ -111,7 +120,10 @@ departs from the paper.
 `quantification: tpm_unstranded` and `transform: log1p`; the full config
 adds `batch_size: 128`. `debug.yaml` sets `gene_ids_path` to the concept
 genes. `trainer` in `tcga.yaml` has early stopping with patience 10 on
-`val/loss`, at most 500 epochs, and keeps the best and last checkpoints.
+`val/loss`, at most 500 epochs, CSV and TensorBoard loggers, and keeps
+`best.ckpt` and `last.ckpt`. `debug.yaml` has no logger and keeps only
+`best.ckpt`. Both name a run root in `trainer.default_root_dir`, and
+`compass` (a `FoldCLI`) runs fold k in `<root>/fold{k}/`.
 
 ## Deviations from the paper, and why
 

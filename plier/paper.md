@@ -293,6 +293,9 @@ differential tests on single chosen LVs.
   SDs, then projected. MultiPLIER instead z-scores each target dataset on
   itself. That is a cohort statistic, and on our splits it would recentre
   every test fold, so it must not be copied.
+  *2026-09-13:* each value is first clipped to its gene's training range.
+  Genes nearly constant over training gave held-out z-scores up to 1,398
+  on fold 0, against at most 91 in training (README, "Deviations").
 - **Exclude the C2:CGP prior** (`chemgenPathways`, which PLIER's DGN
   analysis used). It contains TCGA-derived signatures:
   `TCGA_GLIOBLASTOMA_{COPY_NUMBER_UP,DN,MUTATED}`,

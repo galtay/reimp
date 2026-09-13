@@ -17,14 +17,13 @@ trainer:
   log_every_n_steps: 10
   default_root_dir: runs/bulkrnabert_debug
   logger: false
-  # Just `<default_root_dir>/checkpoints/last.ckpt`, overwritten on a rerun,
-  # for `bulkrnabert-embed`.
+  # Just `runs/bulkrnabert_debug/fold<k>/checkpoints/last.ckpt`, replaced on a
+  # rerun of the fold, for `bulkrnabert-embed`.
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
         save_last: true
         save_top_k: 0
-        enable_version_counter: false
 
 model:
   # n_genes is linked from data; the tokenizer maximum is fit on the fold's

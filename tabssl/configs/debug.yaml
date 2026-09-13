@@ -1,10 +1,11 @@
 # About a minute on real data: the paper's encoder over a handful of batches,
 # to check the pipeline end to end before a long run. One config for every
-# objective; give each run its own directory so their checkpoints stay apart:
+# objective; give each run its own root so their checkpoints stay apart. Fold
+# k lands in <root>/fold<k>/, and a rerun replaces it:
 #
 #   tabssl fit --config tabssl/configs/debug.yaml --model.objective vime \
 #     --trainer.default_root_dir runs/tabssl_debug/vime
-#   tabssl-embed --ckpt runs/tabssl_debug/vime/checkpoints/last.ckpt \
+#   tabssl-embed --ckpt runs/tabssl_debug/vime/fold0/checkpoints/last.ckpt \
 #     --out out/tabssl_debug/vime/fold0.parquet
 #
 # No early stopping or best-checkpoint monitor here: `none` logs no loss.
