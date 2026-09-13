@@ -9,6 +9,7 @@ from reimp_compass.lit import LitCompass
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 
 CONFIGS = Path(__file__).parents[1] / "configs"
 
@@ -92,6 +93,20 @@ def _checkpoint(fold: int, hierarchy_path: str, tmp_path) -> Path:
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
     return ckpt
+
+
+@pytest.mark.parametrize("output", ["concepts", "sets"])
+def test_embedding_ignores_held_out_rows(
+    output, fake_dataset, hierarchy_path, monkeypatch, tmp_path
+) -> None:
+    # Embedding scales with the checkpoint's training-row min-max, never refit.
+    ckpt = _checkpoint(1, hierarchy_path, tmp_path)
+
+    def embed_one(out: Path) -> Path:
+        concepts, sets = embed(ckpt, out, out.with_name(f"sets-{out.name}"), accelerator="cpu")
+        return concepts if output == "concepts" else sets
+
+    assert_embedding_ignores_held_out(embed_one, 1, monkeypatch, tmp_path)
 
 
 @pytest.mark.parametrize("fold", [0, 2])

@@ -51,9 +51,13 @@ departs from the paper.
   are identical.
 - **Scaling.** Per-gene (x − min) / (max − min), like scikit-learn's
   `MinMaxScaler`, which COMPASS uses. It is fit on the fold's training
-  samples only (`LitCompass.prepare`) and stored in the checkpoint. A gene
-  that is constant on the training samples gets scale 1. Values outside
-  the training range are not clipped.
+  samples only (`LitCompass.prepare`) and stored in the checkpoint, so
+  embedding reuses it. A gene that is constant on the training samples
+  gets scale 1. Values outside the training range are not clipped, as in
+  COMPASS. They stay close to it: on fold 0, 1.9 × 10⁻⁴ of held-out values
+  fall outside [0, 1], all within −0.23 … 5.6 over protein-coding genes
+  (smallest non-zero training span 0.022) and −0.13 … 1.83 over the 916
+  concept genes.
 - **Gene tokens.** token_g = ReLU(x_g · W_g + P_g), with a per-gene W_g and
   P_g in R^32 (U(±1/√32) initialization, as in COMPASS). There is no CLS
   token and no cancer-type token.

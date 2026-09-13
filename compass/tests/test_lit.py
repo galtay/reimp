@@ -5,6 +5,7 @@ import torch
 
 from reimp_compass.lit import LitCompass
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.testing import scramble_held_out
 
 TINY = dict(d_model=8, n_heads=2, head_dim=4, dim_ff=16, dropout=0.0)
 
@@ -123,16 +124,23 @@ def test_raw_counts_are_rejected(fake_dataset, hierarchy_path) -> None:
 @pytest.mark.filterwarnings("ignore:.*concept genes")
 @pytest.mark.parametrize("negatives", ["any", "same_project"])
 def test_fit_logs_metrics_and_predicts_every_sample(
-    negatives, fake_dataset, hierarchy_path, tmp_path
+    negatives, fake_dataset, hierarchy_path, monkeypatch, tmp_path
 ) -> None:
-    dm = _datamodule()
+    # Scrambled val and test rows move any statistic a fit reads from them;
+    # fold 1's training minima also differ from the full cohort's.
+    scramble_held_out(monkeypatch, 1)
+    dm = _datamodule(fold=1)
     model = _model(dm, hierarchy_path, negatives=negatives)
     trainer = _trainer(tmp_path, max_epochs=2)
     trainer.fit(model, datamodule=dm)
     for name in ["train/loss", "val/loss", "val/d_pos", "val/d_neg", "val/active"]:
         assert torch.isfinite(trainer.callback_metrics[name])
-    train = dm.data.values[dm.data.rows("train")]
-    np.testing.assert_allclose(model.model.scaler.minimum.numpy(), train.min(0), rtol=1e-6)
+    values = dm.data.values
+    train = values[dm.data.rows("train")]
+    scaler = model.model.scaler
+    np.testing.assert_allclose(scaler.minimum.numpy(), train.min(0), rtol=1e-6)
+    np.testing.assert_allclose(scaler.scale.numpy(), train.max(0) - train.min(0), rtol=1e-5)
+    assert not np.allclose(scaler.scale.numpy(), values.max(0) - values.min(0))
 
     first = trainer.predict(model, datamodule=dm)
     second = trainer.predict(model, datamodule=dm)
