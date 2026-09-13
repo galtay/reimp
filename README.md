@@ -84,4 +84,15 @@ file scores that fold's test set.
    `reimp-shared probe out/<name> out/pca256 --against pca256`, which prints
    every score beside the PCA baseline with paired intervals.
 
+## License
+
+MIT ([`LICENSE`](LICENSE)). Two third-party pieces carry their own terms:
+
+- `compass/src/reimp_compass/data/conception_processed.tsv`, COMPASS's
+  gene-set table, copied under its MIT licence
+  ([`LICENSE-COMPASS`](compass/src/reimp_compass/data/LICENSE-COMPASS)).
+- MSigDB gene sets are not in the repository: `reimp_shared.genesets`
+  downloads them at run time, under MSigDB's terms (CC BY 4.0;
+  `kegg_medicus` CC BY-SA 4.0).
+
 [ds]: https://huggingface.co/datasets/gabrielaltay/tcga-gene-expression-quantification-open

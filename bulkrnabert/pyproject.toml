@@ -3,6 +3,7 @@ name = "reimp-bulkrnabert"
 version = "0.1.0"
 description = "Reimplementation of BulkRNABert (Gélard et al., ML4H 2024) on TCGA bulk RNA-seq."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },

@@ -3,6 +3,7 @@ name = "reimp-tabssl"
 version = "0.1.0"
 description = "Tabular self-supervised learning (SCARF, VIME, BYOL) on one MLP encoder, after Dradjat et al. (Bioinformatics 2025), on TCGA bulk RNA-seq."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },

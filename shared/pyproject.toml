@@ -3,6 +3,7 @@ name = "reimp-shared"
 version = "0.1.0"
 description = "Data access, patient-level splits, configurable data loaders and linear probes shared by the reimp models."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },

@@ -3,6 +3,7 @@ name = "reimp-bulkformer"
 version = "0.1.0"
 description = "Reimplementation of BulkFormer (Kang et al., Cell Systems 2026) on TCGA bulk RNA-seq."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },

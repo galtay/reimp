@@ -3,6 +3,7 @@ name = "reimp-plier"
 version = "0.1.0"
 description = "Reimplementation of PLIER (Mao et al., Nature Methods 2019) and MultiPLIER's projection (Taroni et al., Cell Systems 2019) on TCGA bulk RNA-seq."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.13"
 authors = [
     { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },
