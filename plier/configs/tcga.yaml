@@ -1,0 +1,37 @@
+# PLIER on TCGA protein-coding genes with the package's defaults: k = 2 x
+# num.pc from the training samples' singular values, λ2 = d_k, λ1 = λ2 / 2,
+# λ3 tuned so that 70% of LVs use a gene set, the prior entering at
+# iteration 20, up to 350 iterations. One model per fold (--data.fold 0-4);
+# every statistic is fit on that fold's training samples.
+#
+# Variants, each to its own out_dir:
+#   --model.k 64 / --model.k 256     fixed k, beside PCA at equal dimension
+#   --prior null                     the no-prior ablation (U = 0), same k
+#   --all_genes false                the package's allGenes = FALSE
+out_dir: runs/plier
+prior: plier/priors/recommended.gmt
+all_genes: true
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold
+
+model:
+  k: null # null: 2 x num.pc, capped at 0.9 x training samples
+  k_multiplier: 2.0
+  svd_rank: null # null: max(200, n/4), the package's rsvd rank
+  l1: null # null: lambda2 / 2
+  l2: null # null: d_k
+  l3: null # null: tuned to frac every 20 iterations
+  frac: 0.7
+  max_iter: 350
+  tol: 1.0e-06
+  prior_start: 20
+  max_path: 10
+  pathway_selection: complete
+  glm_alpha: 0.9
+  min_genes: 10
+  seed: 0

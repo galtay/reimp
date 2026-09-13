@@ -1,0 +1,20 @@
+# About a minute on real data: fold 0's whole training set with the prior,
+# but a fixed k = 32, the package's minimum SVD rank and 60 iterations —
+# enough for the prior to enter at iteration 20 and λ3 to be tuned at 20,
+# 40 and 60. Checks the pipeline end to end before a full run.
+out_dir: runs/plier_debug
+prior: plier/priors/recommended.gmt
+all_genes: true
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  fold: 0
+
+model:
+  k: 32
+  svd_rank: 200
+  max_iter: 60
+  seed: 0
