@@ -15,6 +15,7 @@ members = [
     "reimp-bulkformer",
     "reimp-bulkrnabert",
     "reimp-compass",
+    "reimp-plier",
     "reimp-shared",
     "reimp-tabssl",
     "reimp-tifbert",
@@ -1804,6 +1805,31 @@ requires-dist = [
     { name = "pandas" },
     { name = "reimp-shared", editable = "shared" },
     { name = "torch" },
+]
+
+[[package]]
+name = "reimp-plier"
+version = "0.1.0"
+source = { editable = "plier" }
+dependencies = [
+    { name = "jsonargparse" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyyaml" },
+    { name = "reimp-shared" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jsonargparse" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pyyaml" },
+    { name = "reimp-shared", editable = "shared" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
 ]
 
 [[package]]

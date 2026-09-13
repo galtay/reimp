@@ -1,0 +1,26 @@
+[project]
+name = "reimp-plier"
+version = "0.1.0"
+description = "Reimplementation of PLIER (Mao et al., Nature Methods 2019) and MultiPLIER's projection (Taroni et al., Cell Systems 2019) on TCGA bulk RNA-seq."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },
+]
+dependencies = [
+    "reimp-shared",
+    "jsonargparse",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "scikit-learn",
+    "scipy",
+]
+
+[project.scripts]
+plier = "reimp_plier.cli:main"
+plier-embed = "reimp_plier.embed:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"

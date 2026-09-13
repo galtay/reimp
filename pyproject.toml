@@ -11,12 +11,13 @@
 #   vae/          reimp-vae          Tybalt (Way and Greene, 2018) and a tissue-
 #                                    supervised MMD autoencoder (Pande et al., 2026).
 #   compass/      reimp-compass      COMPASS (Shen et al., 2026).
+#   plier/        reimp-plier        PLIER / MultiPLIER (Mao et al.; Taroni et al., 2019).
 #
 # A new reimplementation is a new directory with its own pyproject.toml,
 # listed in `members` and `[tool.uv.sources]` below.
 
 [tool.uv.workspace]
-members = ["shared", "txfm", "bulkrnabert", "tifbert", "bulkformer", "tabssl", "vae", "compass"]
+members = ["shared", "txfm", "bulkrnabert", "tifbert", "bulkformer", "tabssl", "vae", "compass", "plier"]
 
 [tool.uv.sources]
 reimp-shared = { workspace = true }
@@ -27,6 +28,7 @@ reimp-bulkformer = { workspace = true }
 reimp-tabssl = { workspace = true }
 reimp-vae = { workspace = true }
 reimp-compass = { workspace = true }
+reimp-plier = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -49,7 +51,7 @@ pythonpath = ["reports/build"]
 markers = [
     "network: downloads from the HF Hub (run with '-m network')",
 ]
-testpaths = ["shared/tests", "txfm/tests", "bulkrnabert/tests", "tifbert/tests", "bulkformer/tests", "tabssl/tests", "vae/tests", "compass/tests", "reports/build"]
+testpaths = ["shared/tests", "txfm/tests", "bulkrnabert/tests", "tifbert/tests", "bulkformer/tests", "tabssl/tests", "vae/tests", "compass/tests", "plier/tests", "reports/build"]
 
 [tool.ruff]
 line-length = 100
@@ -59,4 +61,4 @@ target-version = "py313"
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["reimp_shared", "reimp_txfm", "reimp_bulkrnabert", "reimp_tifbert", "reimp_bulkformer", "reimp_tabssl", "reimp_vae", "reimp_compass"]
+known-first-party = ["reimp_shared", "reimp_txfm", "reimp_bulkrnabert", "reimp_tifbert", "reimp_bulkformer", "reimp_tabssl", "reimp_vae", "reimp_compass", "reimp_plier"]
