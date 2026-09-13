@@ -15,6 +15,7 @@ across epochs and accelerators. Embeddings read unmasked tokens.
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from typing import Literal
 
 import lightning as L
@@ -42,14 +43,31 @@ def genome_order(genes: pd.DataFrame) -> np.ndarray:
     return np.lexsort((np.nan_to_num(start, nan=np.inf), rank))
 
 
+def warmup_cosine(total_steps: int, warmup_frac: float) -> Callable[[int], float]:
+    """LR multiplier per step: linear warmup to 1 over `warmup_frac` of the steps, then cosine.
+
+    The decay stops one step short of zero, so the last step still trains;
+    any run of at least one step gets a valid schedule.
+    """
+    warmup = max(1, round(warmup_frac * total_steps))
+
+    def factor(step: int) -> float:
+        if step < warmup:
+            return (step + 1) / warmup
+        progress = (step - warmup + 1) / (total_steps - warmup + 1)
+        return 0.5 * (1 + math.cos(math.pi * progress))
+
+    return factor
+
+
 class LitMOJO(L.LightningModule):
     """MOJO's RNA half with BulkRNABert's tokens and objective.
 
     Defaults are sized for ~8,000 training samples per fold: a 128-d token
     and gene embedding, channels rising from 128 to 256 over 8 halving
     blocks (19,944 genes -> 78 pooled positions), 4 transformer layers of 8
-    heads with a 512-wide SwiGLU, trained by AdamW under a one-cycle cosine
-    schedule.
+    heads with a 512-wide SwiGLU, trained by AdamW with linear warmup then
+    cosine decay.
     """
 
     def __init__(
@@ -179,13 +197,8 @@ class LitMOJO(L.LightningModule):
             {"params": [p for p in params if p.ndim < 2], "weight_decay": 0.0},
         ]
         optimizer = torch.optim.AdamW(groups, lr=hp.lr, betas=tuple(hp.betas))
-        scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer,
-            max_lr=hp.lr,
-            total_steps=int(total_steps),
-            pct_start=hp.warmup_frac,
-            anneal_strategy="cos",
-            cycle_momentum=False,
+        scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer, warmup_cosine(int(total_steps), hp.warmup_frac)
         )
         return {
             "optimizer": optimizer,

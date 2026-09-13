@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 import torch
 
-from reimp_mojo.lit import LitMOJO, genome_order
+from reimp_mojo.lit import LitMOJO, genome_order, warmup_cosine
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.tokens import IGNORE_INDEX
 
@@ -164,6 +164,17 @@ def test_fit_logs_metrics(fake_dataset, tmp_path) -> None:
     decay, no_decay = trainer.optimizers[0].param_groups
     assert decay["weight_decay"] == model.hparams.weight_decay
     assert no_decay["weight_decay"] == 0.0
+
+
+@pytest.mark.parametrize("total_steps", [1, 2, 20, 1000])
+def test_warmup_cosine_peaks_after_warmup_and_decays_without_reaching_zero(total_steps) -> None:
+    factor = warmup_cosine(total_steps, 0.05)
+    values = [factor(step) for step in range(total_steps)]
+    warmup = max(1, round(0.05 * total_steps))
+    assert values[warmup - 1] == 1.0
+    assert values[:warmup] == sorted(values[:warmup])
+    assert values[warmup - 1 :] == sorted(values[warmup - 1 :], reverse=True)
+    assert all(0 < v <= 1 for v in values)
 
 
 def test_validation_masks_repeat_across_loops(fake_dataset, tmp_path) -> None:
