@@ -256,6 +256,32 @@ differential tests on single chosen LVs.
 - A prior of curated gene sets that includes cell-type markers, chosen
   as below.
 
+*2026-09-13: rewritten from the paper.* For licensing reasons (reimp is
+to be published under a permissive licence), the solver was rewritten from
+the PLIER and MultiPLIER papers alone. It no longer follows the R package;
+the earlier numpy port of it was deleted unread. Kept from the papers: the
+objective, block coordinate descent from the SVD, Z clipped at 0, λ1 =
+d_k/2 and λ2 = d_k, λ3 set for `frac` = 0.7, k = 2 × a count of principal
+components, 5e-6 stopping, per-gene z-scoring, the held-out fifth with AUC
+> 0.7 and FDR < 0.05, and the projection. Several items in the list above
+came from the package's code, not the papers, and are now reimp's own
+decisions (plier/README.md, "Our decisions"):
+- **U**: a pure non-negative lasso over every gene set, as the paper
+  writes it. The package's elastic net (α = 0.9) and its `maxPath`
+  candidate preselection are gone.
+- **When the prior enters**: once the U = 0 factorization stops by the
+  stopping rule, not at iteration 20.
+- **k**: the chord elbow of the training singular values, × 2, not
+  `num.pc`. It gives k = 492 on fold 0. A Gavish–Donoho threshold is the
+  option standing in for significance.
+- **λ3**: the closed-form value that meets `frac`, re-set every 10
+  iterations, not a search along glmnet's path.
+- **Gene sets** with fewer than 5 genes are left out of C, not 10.
+- **Annotation negatives** are the genes not in the set, as the paper
+  says, not the genes in none of the LV's sets.
+- **Stopping**: ‖ΔB‖/‖B‖ (not squared) below 5e-6, or no new low in 20
+  iterations.
+
 **Incidental**, standardized:
 - **Input transform**: z-score log1p library-normalized unstranded counts
   on the 19,944 protein-coding genes (the PCA baseline's input). Their
@@ -295,7 +321,7 @@ differential tests on single chosen LVs.
   every test fold, so it must not be copied.
   *2026-09-13:* each value is first clipped to its gene's training range.
   Genes nearly constant over training gave held-out z-scores up to 1,398
-  on fold 0, against at most 91 in training (README, "Deviations").
+  on fold 0, against at most 91 in training (README, "Ours, for reimp").
 - **Exclude the C2:CGP prior** (`chemgenPathways`, which PLIER's DGN
   analysis used). It contains TCGA-derived signatures:
   `TCGA_GLIOBLASTOMA_{COPY_NUMBER_UP,DN,MUTATED}`,

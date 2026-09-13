@@ -1,13 +1,14 @@
-# PLIER on TCGA protein-coding genes with the package's defaults: k = 2 x
-# num.pc from the training samples' singular values, λ2 = d_k, λ1 = λ2 / 2,
-# λ3 tuned so that 70% of LVs use a gene set, the prior entering at
-# iteration 20, up to 350 iterations. One model per fold (--data.fold 0-4);
-# every statistic is fit on that fold's training samples.
+# PLIER on TCGA protein-coding genes with the paper's defaults where it gives
+# them (lambda2 = d_k, lambda1 = d_k / 2, 70% of LVs with a gene set, a fifth
+# of each set's genes held out, stopping at ||dB|| / ||B|| < 5e-6) and ours
+# where it does not (k = 2 x the components before the elbow of the training
+# singular values; plier/README.md lists the rest). One model per fold
+# (--data.fold 0-4); every statistic is fit on that fold's training samples.
 #
 # Variants, each to its own out_dir:
 #   --model.k 64 / --model.k 256     fixed k, beside PCA at equal dimension
 #   --prior null                     the no-prior ablation (U = 0), same k
-#   --all_genes false                the package's allGenes = FALSE
+#   --all_genes false                the prior's genes only
 out_dir: runs/plier
 # Gene sets as reimp_shared.genesets reads them: MSigDB collections by name,
 # GMT files by path. MultiPLIER's canonical pathways and cell-type markers,
@@ -23,18 +24,17 @@ data:
   fold: 0 # cross-validation fold, 0-4: train one model per fold
 
 model:
-  k: null # null: 2 x num.pc, capped at 0.9 x training samples
-  k_multiplier: 2.0
-  svd_rank: null # null: max(200, n/4), the package's rsvd rank
+  k: null # null: k_factor x the principal components k_rule keeps
+  k_rule: elbow # or gavish_donoho: the singular values above its noise threshold
+  k_factor: 2.0
   l1: null # null: lambda2 / 2
   l2: null # null: d_k
-  l3: null # null: tuned to frac every 20 iterations
+  l3: null # null: set so that frac of the LVs use a gene set
   frac: 0.7
-  max_iter: 350
-  tol: 1.0e-06
-  prior_start: 20
-  max_path: 10
-  pathway_selection: complete
-  glm_alpha: 0.9
-  min_genes: 10
+  l3_every: 10 # lambda3 is set again every 10 iterations with the prior
+  holdout: 0.2 # share of each set's genes held out, for the annotations
+  min_genes: 5 # smaller gene sets are left out of C
+  max_iter: 300 # per phase: U = 0, then with the prior
+  tol: 5.0e-06
+  patience: 20
   seed: 0

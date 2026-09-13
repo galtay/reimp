@@ -5,22 +5,23 @@ plier fit --config plier/configs/tcga.yaml --data.fold 3
 plier fit --config plier/configs/tcga.yaml --prior null --out_dir runs/plier_noprior
 
 Each run writes `<out_dir>/fold<k>/`: `model.npz` (the genes, their
-training means, SDs and ranges, Z, U, B, the λs and the prior), `annotations.tsv`
-(held-out-gene AUCs for U's gene sets) and `config.yaml`, from which
-`plier-embed` reloads the same data.
+training means, SDs and ranges, Z, U, B, the λs, the prior and the
+iteration trace), `annotations.tsv` (held-out-gene AUCs for U's gene sets)
+and `config.yaml`, from which `plier-embed` reloads the same data.
 """
 
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 import yaml
 from jsonargparse import ActionConfigFile, ArgumentParser, Namespace
 
-from reimp_plier.model import PLIER
 from reimp_plier.pipeline import CONFIG_FILE, FoldModel, fit_fold
+from reimp_plier.solver import PLIER
 from reimp_shared.data import load_expression
 from reimp_shared.genesets import load_gene_sets
 from reimp_shared.preprocess import DEFAULT_GENE_TYPES, DEFAULT_LIBRARY_SIZE, Transform
@@ -73,7 +74,9 @@ def fit(config: Namespace) -> Path:
     data_config = DataConfig(**config.data.as_dict())
     data = load_expression(**asdict(data_config))
     gene_sets = None if config.prior is None else load_gene_sets(config.prior)
+    start = time.perf_counter()
     fold = fit_fold(data, PLIER(**config.model.as_dict()), gene_sets, config.all_genes)
+    seconds = time.perf_counter() - start
     out = fold.save(Path(config.out_dir) / f"fold{data_config.fold}")
     record = {
         "out_dir": config.out_dir,
@@ -83,23 +86,27 @@ def fit(config: Namespace) -> Path:
         "model": fold.model.params(),
     }
     (out / CONFIG_FILE).write_text(yaml.safe_dump(record, sort_keys=False))
-    _report(fold, gene_sets is not None, out)
+    _report(fold, gene_sets is not None, seconds, out)
     return out
 
 
-def _report(fold: FoldModel, has_prior: bool, out: Path) -> None:
+def _report(fold: FoldModel, has_prior: bool, seconds: float, out: Path) -> None:
     m = fold.model
     l3 = "none" if m.l3_ is None else f"{m.l3_:.4g}"
+    entered = "" if m.prior_iter_ is None else f", the prior from iteration {m.prior_iter_ + 1}"
+    rule = "" if m.n_pc_ is None else f" ({m.k_factor:g} x {m.n_pc_} components, {m.k_rule})"
     print(
-        f"k = {m.k_}, lambda1 = {m.l1_:.4g}, lambda2 = {m.l2_:.4g}, lambda3 = {l3}; "
-        f"{m.n_iter_} iterations; {len(fold.gene_ids)} genes"
+        f"k = {m.k_}{rule}, lambda1 = {m.l1_:.4g}, lambda2 = {m.l2_:.4g}, lambda3 = {l3}; "
+        f"{m.n_iter_} iterations{entered}; {len(fold.gene_ids)} genes; fit in {seconds:.1f} s"
     )
     if has_prior:
+        used = int((m.prior_cv_.sum(axis=0) > 0).sum())
         with_set = int((m.u_.sum(axis=0) > 0).sum())
+        annotated = m.annotated()["lv"].nunique()
         print(
-            f"prior: {len(m.names_)} gene sets, {len(fold.unmapped)} symbols unmapped; "
-            f"LVs with a gene set {with_set} of {m.k_}, "
-            f"annotated (held-out AUC > 0.7, FDR < 0.05) {len(m.annotated())}"
+            f"prior: {len(m.names_)} gene sets ({used} with at least {m.min_genes} genes), "
+            f"{len(fold.unmapped)} symbols unmapped; LVs with a gene set {with_set} of {m.k_}, "
+            f"annotated (held-out AUC > 0.7, FDR < 0.05) {annotated}"
         )
     print(f"wrote {out}")
 

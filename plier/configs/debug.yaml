@@ -1,7 +1,7 @@
-# About a minute on real data: fold 0's whole training set with the prior,
-# but a fixed k = 32, the package's minimum SVD rank and 60 iterations —
-# enough for the prior to enter at iteration 20 and λ3 to be tuned at 20,
-# 40 and 60. Checks the pipeline end to end before a full run.
+# About a minute on real data: fold 0's whole training set with the default
+# prior, but a fixed k = 32 and at most 30 iterations per phase (U = 0, then
+# with the prior), so the prior enters and lambda3 is set three times.
+# Checks the pipeline end to end before a full run.
 out_dir: runs/plier_debug
 # Gene sets as reimp_shared.genesets reads them: MSigDB collections by name,
 # GMT files by path (plier/README.md, "Prior").
@@ -17,6 +17,5 @@ data:
 
 model:
   k: 32
-  svd_rank: 200
-  max_iter: 60
+  max_iter: 30
   seed: 0
