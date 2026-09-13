@@ -324,7 +324,21 @@ Notes on the table:
   Reactome's and 53% of PID's. Some gene overlap is unavoidable for any
   pathway prior.
 
-Recommendation:
+**Decision (2026-09-13), replacing the recommendation below.** The prior is
+whole MSigDB 2026.1 collections, fetched by name through
+`reimp_shared.genesets`, and nothing is left out for overlap with the
+probes. PLIER is a baseline in reimp, not a model to pursue, so the
+circularity is reported beside its pathway scores rather than engineered
+away, and whole collections keep the code free of per-set special cases.
+The default is MultiPLIER's recipe within MSigDB's licences: C2:CP's
+REACTOME, PID, WIKIPATHWAYS and KEGG_MEDICUS, plus C8 cell-type
+signatures in place of IRIS/DMAP and LM22. Left out for their licences:
+KEGG_LEGACY and BioCarta (KEGG and BioCarta license them to the Broad
+Institute alone), LM22 (free to academic users on registration) and
+IRIS/DMAP (journal supplements with no stated licence). C2:CGP stays out
+for the leak above. Any GMT file can be added to the prior by path.
+
+Recommendation (superseded by the decision above):
 - **Prior**: IRIS/DMAP (61) + LM22 (22) + canonicalPathways without
   REACTOME and PID (122 KEGG, 25 BioCarta, 30 other). That is 260 sets on
   4,932 member genes; 257 have ≥ 10 genes.

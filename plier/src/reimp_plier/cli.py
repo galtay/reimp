@@ -21,8 +21,8 @@ from jsonargparse import ActionConfigFile, ArgumentParser, Namespace
 
 from reimp_plier.model import PLIER
 from reimp_plier.pipeline import CONFIG_FILE, FoldModel, fit_fold
-from reimp_plier.prior import read_gmt
 from reimp_shared.data import load_expression
+from reimp_shared.genesets import load_gene_sets
 from reimp_shared.preprocess import DEFAULT_GENE_TYPES, DEFAULT_LIBRARY_SIZE, Transform
 
 
@@ -47,9 +47,12 @@ def build_parser() -> ArgumentParser:
     )
     fit.add_argument(
         "--prior",
-        type=str | None,
+        type=list[str] | None,
         default=None,
-        help="GMT file of gene sets; null for the no-prior ablation (U = 0)",
+        help=(
+            "gene sets: MSigDB collections by name (reimp_shared.genesets.MSIGDB) "
+            "and GMT files by path; null for the no-prior ablation (U = 0)"
+        ),
     )
     fit.add_argument(
         "--all_genes",
@@ -69,7 +72,7 @@ def fit(config: Namespace) -> Path:
     """Load the data, fit the fold's model, and write it with the config that made it."""
     data_config = DataConfig(**config.data.as_dict())
     data = load_expression(**asdict(data_config))
-    gene_sets = None if config.prior is None else read_gmt(config.prior)
+    gene_sets = None if config.prior is None else load_gene_sets(config.prior)
     fold = fit_fold(data, PLIER(**config.model.as_dict()), gene_sets, config.all_genes)
     out = fold.save(Path(config.out_dir) / f"fold{data_config.fold}")
     record = {

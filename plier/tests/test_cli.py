@@ -10,6 +10,7 @@ from reimp_plier.embed import main as embed_main
 from reimp_plier.pipeline import CONFIG_FILE, FoldModel
 from reimp_shared import hub
 from reimp_shared.eval import read_embeddings
+from reimp_shared.genesets import MSIGDB
 
 CONFIGS = Path(__file__).parents[1] / "configs"
 # The miniature dataset has 16 protein-coding genes and tiny gene sets.
@@ -21,12 +22,18 @@ def _fit(tmp_path: Path, *args: str, config: str = "debug.yaml") -> None:
 
 
 @pytest.mark.parametrize("config", sorted(p.name for p in CONFIGS.glob("*.yaml")))
+def test_every_config_names_msigdb_collections_reimp_knows(config) -> None:
+    prior = yaml.safe_load((CONFIGS / config).read_text())["prior"]
+    assert prior and set(prior) <= set(MSIGDB)
+
+
+@pytest.mark.parametrize("config", sorted(p.name for p in CONFIGS.glob("*.yaml")))
 def test_every_config_fits_and_embeds(config, fake_dataset, fake_prior, tmp_path) -> None:
-    _fit(tmp_path, f"--prior={fake_prior}", *SMALL, config=config)
+    _fit(tmp_path, f"--prior=[{fake_prior}]", *SMALL, config=config)
     model_dir = tmp_path / "runs" / "fold0"
     recorded = yaml.safe_load((model_dir / CONFIG_FILE).read_text())
     assert recorded["model"]["k"] == 3
-    assert recorded["prior"] == str(fake_prior)
+    assert recorded["prior"] == [str(fake_prior)]
 
     sample_index, embeddings, folds = read_embeddings(embed(model_dir, tmp_path / "fold0.parquet"))
     assert sample_index.tolist() == hub.load_samples()["sample_index"].tolist()
@@ -36,7 +43,7 @@ def test_every_config_fits_and_embeds(config, fake_dataset, fake_prior, tmp_path
 
 
 def test_fold_flag_picks_the_fold(fake_dataset, fake_prior, tmp_path) -> None:
-    _fit(tmp_path, f"--prior={fake_prior}", "--data.fold=2", *SMALL)
+    _fit(tmp_path, f"--prior=[{fake_prior}]", "--data.fold=2", *SMALL)
     out = tmp_path / "fold2.parquet"
     embed_main(["--model", str(tmp_path / "runs" / "fold2"), "--out", str(out)])
     _, _, folds = read_embeddings(out)

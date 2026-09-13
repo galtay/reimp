@@ -23,10 +23,9 @@ uv run plier-embed --model runs/plier/fold0 --out out/plier/fold0.parquet
 uv run plier fit --config plier/configs/tcga.yaml --prior null --out_dir runs/plier_noprior
 ```
 
-Run from the repository root: the configs name the prior as
-`plier/priors/recommended.gmt`. [`paper.md`](paper.md) records what the
-papers did and, under "For reimp", which of their choices are kept. Below
-is how this reimplementation follows it.
+[`paper.md`](paper.md) records what the papers did and, under "For
+reimp", which of their choices are kept. Below is how this
+reimplementation follows it.
 
 ## From the paper and the package
 
@@ -81,57 +80,66 @@ Following paper.md's "For reimp":
 
 ### Prior
 
-`priors/recommended.gmt` holds 260 sets on 4,932 HGNC symbols. It is
-exported by `scripts/export_prior.R` (`Rscript plier/scripts/export_prior.R`,
-base R and a network connection) from three matrices bundled with the
-PLIER package at `wgmao/PLIER@fe4e9b2`, md5-checked:
+`prior` lists gene sets as `reimp_shared.genesets.load_gene_sets` reads
+them: MSigDB 2026.1 collections by name, each downloaded once into
+`$REIMP_CACHE/msigdb/` and md5-checked, and GMT files of your own by path.
+Whole collections, with no per-set filtering. The default is MultiPLIER's
+recipe, canonical pathways plus cell-type markers, as far as MSigDB's
+licences allow:
 
-| source object | sets |
-|---|---|
-| `bloodCellMarkersIRISDMAP`, IRIS and DMAP cell types | 61 |
-| `svmMarkers`, CIBERSORT LM22 | 22 |
-| `canonicalPathways` (MSigDB C2:CP) without the 252 REACTOME and 116 PID sets: 122 KEGG, 25 BioCarta, 30 others | 177 |
+| name | MSigDB collection | licence |
+|---|---|---|
+| `reactome` | C2:CP:REACTOME | CC BY 4.0 |
+| `pid` | C2:CP:PID | CC BY 4.0 |
+| `wikipathways` | C2:CP:WIKIPATHWAYS | CC BY 4.0 |
+| `kegg_medicus` | C2:CP:KEGG_MEDICUS | CC BY-SA 4.0 |
+| `cell_type` | C8, cell type signatures from single-cell studies | CC BY 4.0 |
 
-What the prior leaves out, and why:
-- **Every collection the pathway probe scores**: Reactome, PID, oncogenic
-  (C6), Hallmark and Cancer Cell Atlas. The probe then scores held-out
-  collections, as MultiPLIER held out C6.
-- **MSigDB's chemical and genetic perturbation sets (C2:CGP)**, some of
-  which were derived from TCGA patients.
+Left out, and why:
+- **KEGG_LEGACY and BioCarta**, the rest of C2:CP: KEGG and BioCarta
+  license them to the Broad Institute alone, so `genesets` does not offer
+  them. MultiPLIER's prior had 122 KEGG and 25 BioCarta sets.
+- **The PLIER package's cell-type sets.** CIBERSORT's LM22 is free to
+  academic users on registration, and the IRIS and DMAP marker sets are
+  journal supplements with no stated licence. C8 stands in for them.
+  Anyone with LM22 can add it by path:
+  `--prior '[reactome, pid, wikipathways, kegg_medicus, cell_type, lm22.gmt]'`.
+- **C2:CGP**, chemical and genetic perturbations: some of its sets were
+  defined on TCGA patients, test patients included (paper.md).
 
-Some gene overlap with the probed collections remains. The prior's genes
-cover 43% of Hallmark's, 30% of Reactome's and 53% of PID's (paper.md), so
-say so beside pathway scores.
+**Overlap with the pathway probe is accepted, and must be reported.**
+PLIER is a baseline here, not a model to pursue, so the prior is not
+trimmed around the probes. `reactome` and `pid` are two of the collections
+the pathway probe scores, and WikiPathways shares much of their content:
+PLIER's Reactome and PID pathway scores are circular, and Hallmark,
+oncogenic and Cancer Cell Atlas are the collections it did not read.
 
-The canonical pathways are MSigDB content, KEGG included, redistributed by
-the GPL package under MSigDB's terms.
+`kegg_medicus` and `cell_type` have no md5 pin yet: the Broad's release
+server answered 503 when they were added (2026-09-13). The first download
+warns with each file's md5, to be recorded in `reimp_shared.genesets`.
 
 **Mapping symbols to genes.** Symbols are matched exactly to GENCODE v36
-`gene_name`, with no alias rescue. Of the 4,932 symbols:
-- 231 name no protein-coding gene. 204 of those name no gene at all,
-  mostly symbols renamed since the package was built (e.g. `ATP5A1`, now
-  `ATP5F1A`).
-- On fold 0, 5 more name genes that are constant over the training
-  samples.
-
-So 236 symbols are unmapped. After mapping, 256 of the 260 sets keep at
-least 10 genes. The count is logged on every fit and saved in `model.npz`
-as `unmapped`.
+`gene_name`, with no alias rescue. The symbols that name none of the
+modelled genes — renamed symbols, non-coding genes, genes constant over
+the training samples — are counted in the log on every fit and saved in
+`model.npz` as `unmapped`.
 
 ## Configs
 
 | field | |
 |---|---|
 | `out_dir` | fold k's model is written to `<out_dir>/fold<k>/` |
-| `prior` | a GMT file, relative to the repo root; `null` for the no-prior ablation |
+| `prior` | a list of MSigDB collection names and GMT file paths; `null` for the no-prior ablation |
 | `all_genes` | `true`: every varying gene; `false`: the prior's genes only |
 | `data.*` | `load_expression` arguments: `quantification`, `gene_types`, `transform`, `library_size`, `projects`, `fold`, `revision` |
 | `model.*` | `PLIER` arguments: `k` (null: the rule), `k_multiplier`, `svd_rank` (null: the package's), `l1`, `l2`, `l3` (null: the rules above), `frac`, `max_iter`, `tol`, `prior_start`, `max_path`, `pathway_selection`, `glm_alpha`, `min_genes`, `seed` |
 
 - **`debug.yaml`** uses fold 0's whole training set with the prior, but k = 32,
   SVD rank 200 and 60 iterations. That is enough for λ3 to be tuned at
-  iterations 20, 40 and 60. It fits in ~12 s on an M4 Max. On fold 0,
-  22 of 32 LVs use a gene set and 16 are annotated.
+  iterations 20, 40 and 60. With the three pinned collections alone
+  (`--prior '[reactome, pid, wikipathways]'`, 2,960 sets) it fits in
+  ~18 s on an M4 Max; on fold 0, 22 of 32 LVs use a gene set, 12 are
+  annotated, and 611 symbols are unmapped.
 - **`tcga.yaml`** uses the package's defaults. Its full-length runtime is
   unmeasured. After iteration 20 every iteration fits 646 elastic nets, and
   every 20th iteration fits them along a 65-value path, so expect tens of
@@ -200,13 +208,14 @@ A fit writes three files:
   - the no-prior ablation at the same k and λs;
   - the projection formula.
 - **R reference values** (`test_smooth.py`): R's smoother and `num.pc`.
-- **Prior** (`test_prior.py`): GMT I/O, symbol mapping and the unmapped
-  count, and the exported prior's composition.
+- **Prior** (`test_prior.py`): symbol mapping and the unmapped count. GMT
+  reading and MSigDB fetching are tested in `shared/tests/test_genesets.py`.
 - **Pipeline** (`test_pipeline.py`), on the miniature dataset:
   - the fitted statistics are unchanged when validation and test values
     are replaced;
   - genes constant over the training rows are dropped;
   - one projection embeds every split;
   - a save/load round trip.
-- **CLI** (`test_cli.py`): every config fits and embeds to a file
-  `read_embeddings` accepts; `--data.fold`; the no-prior variant.
+- **CLI** (`test_cli.py`): every config names only MSigDB collections
+  `genesets` knows, and fits and embeds to a file `read_embeddings`
+  accepts; `--data.fold`; the no-prior variant.

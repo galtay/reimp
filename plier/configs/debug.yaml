@@ -3,7 +3,9 @@
 # enough for the prior to enter at iteration 20 and λ3 to be tuned at 20,
 # 40 and 60. Checks the pipeline end to end before a full run.
 out_dir: runs/plier_debug
-prior: plier/priors/recommended.gmt
+# Gene sets as reimp_shared.genesets reads them: MSigDB collections by name,
+# GMT files by path (plier/README.md, "Prior").
+prior: [reactome, pid, wikipathways, kegg_medicus, cell_type]
 all_genes: true
 
 data:

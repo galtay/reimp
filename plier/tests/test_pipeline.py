@@ -3,8 +3,8 @@ import pytest
 
 from reimp_plier.model import PLIER, b_step
 from reimp_plier.pipeline import FoldModel, fit_fold
-from reimp_plier.prior import read_gmt
 from reimp_shared.data import ExpressionData, load_expression
+from reimp_shared.genesets import read_gmt
 
 
 def _model() -> PLIER:

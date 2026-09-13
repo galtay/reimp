@@ -9,7 +9,10 @@
 #   --prior null                     the no-prior ablation (U = 0), same k
 #   --all_genes false                the package's allGenes = FALSE
 out_dir: runs/plier
-prior: plier/priors/recommended.gmt
+# Gene sets as reimp_shared.genesets reads them: MSigDB collections by name,
+# GMT files by path. MultiPLIER's canonical pathways and cell-type markers,
+# as far as MSigDB's licences allow (plier/README.md, "Prior").
+prior: [reactome, pid, wikipathways, kegg_medicus, cell_type]
 all_genes: true
 
 data:

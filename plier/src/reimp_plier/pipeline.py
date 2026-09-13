@@ -19,8 +19,9 @@ import numpy as np
 import pandas as pd
 
 from reimp_plier.model import PLIER, GeneScaler
-from reimp_plier.prior import GeneSets, prior_matrix
+from reimp_plier.prior import prior_matrix
 from reimp_shared.data import ExpressionData
+from reimp_shared.genesets import GeneSets
 
 log = logging.getLogger(__name__)
 

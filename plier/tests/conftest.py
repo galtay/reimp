@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from reimp_plier.prior import GeneSets, write_gmt
+from reimp_shared.genesets import GeneSets, write_gmt
 from reimp_shared.testing import use_fake_dataset, write_fake_dataset
 
 # The miniature dataset's protein-coding genes: every third of 48, less the _PAR_Y copy.
