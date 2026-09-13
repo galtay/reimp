@@ -16,10 +16,9 @@ from reimp_shared.genesets import MSIGDB
 from reimp_shared.testing import assert_embedding_ignores_held_out
 
 CONFIGS = Path(__file__).parents[1] / "configs"
-# The miniature dataset has 16 protein-coding genes and tiny gene sets. With
-# tol = 0 the fit runs past iteration 20, where the prior enters; it would
-# otherwise converge first.
-SMALL = ["--model.k=3", "--model.min_genes=3", "--model.max_iter=25", "--model.tol=0"]
+# The miniature dataset has 16 protein-coding genes and gene sets of 5-6 of
+# them. The prior enters once the U = 0 phase converges, which it does here.
+SMALL = ["--model.k=3"]
 
 
 def _fit(tmp_path: Path, *args: str, config: str = "debug.yaml") -> None:

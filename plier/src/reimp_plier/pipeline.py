@@ -2,10 +2,10 @@
 
 `fit_fold` fits the per-gene means, SDs and ranges on the fold's training
 samples, drops the genes constant there, maps the prior onto the rest and
-fits PLIER — its SVD, k, λ1, λ2 and λ3 — on those samples alone.
-`FoldModel.embed` clips any sample to the training ranges, z-scores it
-with the training statistics and projects it with the trained Z and λ2,
-so training, validation and test samples are embedded by one map.
+fits PLIER — its SVD, k, λ1, λ2 and λ3, and the held-out genes — on those
+samples alone. `FoldModel.embed` clips any sample to the training ranges,
+z-scores it with the training statistics and projects it with the trained
+Z and λ2, so training, validation and test samples are embedded by one map.
 """
 
 from __future__ import annotations
@@ -18,14 +18,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from reimp_plier.model import PLIER, GeneScaler
 from reimp_plier.prior import prior_matrix
+from reimp_plier.scaler import GeneScaler
+from reimp_plier.solver import PLIER
 from reimp_shared.data import ExpressionData
 from reimp_shared.genesets import GeneSets
 
 log = logging.getLogger(__name__)
 
 MODEL_FILE, ANNOTATIONS_FILE, CONFIG_FILE = "model.npz", "annotations.tsv", "config.yaml"
+# model.npz keys that are the fold's own, beside PLIER.state()'s.
+_FOLD_KEYS = ("params", "gene_id", "gene_name", "unmapped", "mean", "sd", "low", "high")
 
 
 @dataclass
@@ -47,16 +50,15 @@ class FoldModel:
         if (columns < 0).any():
             raise ValueError(f"{int((columns < 0).sum())} of the model's genes are not in the data")
         y = self.scaler.transform(data.values[:, columns])
-        return self.model.project(y).T.astype(np.float32)
+        return self.model.project(y.T).T.astype(np.float32)
 
     def save(self, directory: Path | str) -> Path:
         """`model.npz` (arrays and hyperparameters) and `annotations.tsv` under `directory`."""
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)
-        m = self.model
         np.savez_compressed(
             directory / MODEL_FILE,
-            params=np.array(json.dumps(m.params())),
+            params=np.array(json.dumps(self.model.params())),
             gene_id=self.gene_ids.astype(str),
             gene_name=self.gene_names.astype(str),
             unmapped=np.array(self.unmapped, dtype=str),
@@ -64,45 +66,25 @@ class FoldModel:
             sd=self.scaler.sd,
             low=self.scaler.low,
             high=self.scaler.high,
-            z=m.z_,
-            b=m.b_,
-            u=m.u_,
-            prior=m.prior_.astype(bool),
-            prior_cv=m.prior_cv_.astype(bool),
-            gene_set=np.array(m.names_, dtype=str),
-            singular_values=m.singular_values_,
-            bdiff=m.bdiff_,
-            k=m.k_,
-            l1=m.l1_,
-            l2=m.l2_,
-            l3=np.nan if m.l3_ is None else m.l3_,
-            n_iter=m.n_iter_,
+            **self.model.state(),
         )
-        m.annotations_.to_csv(directory / ANNOTATIONS_FILE, sep="\t", index=False)
+        self.model.annotations_.to_csv(directory / ANNOTATIONS_FILE, sep="\t", index=False)
         return directory
 
     @classmethod
     def load(cls, directory: Path | str) -> FoldModel:
         directory = Path(directory)
+        annotations = pd.read_csv(directory / ANNOTATIONS_FILE, sep="\t")
         with np.load(directory / MODEL_FILE, allow_pickle=False) as f:
-            model = PLIER(**json.loads(str(f["params"])))
-            model.z_, model.b_, model.u_ = f["z"], f["b"], f["u"]
-            model.prior_ = f["prior"].astype(np.float64)
-            model.prior_cv_ = f["prior_cv"].astype(np.float64)
-            model.names_ = f["gene_set"].tolist()
-            model.singular_values_, model.bdiff_ = f["singular_values"], f["bdiff"]
-            model.k_, model.n_iter_ = int(f["k"]), int(f["n_iter"])
-            model.l1_, model.l2_ = float(f["l1"]), float(f["l2"])
-            model.l3_ = None if np.isnan(f["l3"]) else float(f["l3"])
-            fold = cls(
+            state = {key: f[key] for key in f.files if key not in _FOLD_KEYS}
+            model = PLIER.from_state(json.loads(str(f["params"])), state, annotations)
+            return cls(
                 gene_ids=f["gene_id"],
                 gene_names=f["gene_name"],
                 scaler=GeneScaler(mean=f["mean"], sd=f["sd"], low=f["low"], high=f["high"]),
                 model=model,
                 unmapped=f["unmapped"].tolist(),
             )
-        model.annotations_ = pd.read_csv(directory / ANNOTATIONS_FILE, sep="\t")
-        return fold
 
 
 def fit_fold(
@@ -113,11 +95,10 @@ def fit_fold(
 ) -> FoldModel:
     """Fit `model` on the training samples of `data`'s fold.
 
-    Only `data.rows("train")` is read. With `all_genes` (reimp's default,
-    the package's `allGenes = TRUE`) every gene that varies over the
-    training samples is modelled, genes in no set having empty rows of C;
-    without it only the prior's genes are. No `gene_sets`: the no-prior
-    ablation, U = 0.
+    Only `data.rows("train")` is read. With `all_genes` (reimp's default)
+    every gene that varies over the training samples is modelled, genes in
+    no set having empty rows of C; without it only the prior's genes are.
+    No `gene_sets`: the no-prior ablation, U = 0.
     """
     train = data.values[data.rows("train")]
     scaler = GeneScaler.fit(train)
@@ -148,7 +129,7 @@ def fit_fold(
     scaler = scaler.subset(genes)
     y = scaler.transform(train[:, genes])
     del train
-    model.fit(y, prior, None if gene_sets is None else list(gene_sets.names))
+    model.fit(y.T, prior, None if gene_sets is None else list(gene_sets.names))
     return FoldModel(
         gene_ids=data.genes["gene_id"].to_numpy()[genes],
         gene_names=names[genes],

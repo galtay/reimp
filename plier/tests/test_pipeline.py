@@ -2,17 +2,17 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from reimp_plier.model import PLIER, b_step
 from reimp_plier.pipeline import FoldModel, fit_fold
+from reimp_plier.solver import PLIER, b_step
 from reimp_shared.data import ExpressionData, load_expression
 from reimp_shared.genesets import read_gmt
 from reimp_shared.testing import scramble_held_out
 
 
 def _model() -> PLIER:
-    # tol = 0 runs all 30 iterations: the miniature problem would otherwise
-    # converge before iteration 20, and U, λ3 and the annotations never enter.
-    return PLIER(k=3, min_genes=3, max_iter=30, tol=0.0)
+    # The prior enters once the U = 0 phase converges, so U, λ3, the
+    # held-out genes and the annotations are all fit on the miniature data.
+    return PLIER(k=3)
 
 
 def _load(fold: int = 0) -> ExpressionData:
@@ -35,13 +35,14 @@ def test_fitted_statistics_come_from_training_rows_only(
     np.testing.assert_array_equal(fitted.scaler.low, train.min(axis=0))
     np.testing.assert_array_equal(fitted.scaler.high, train.max(axis=0))
     # The prior entered, so U, λ3, the held-out genes and the annotations are checked too.
-    assert fitted.model.n_iter_ > fitted.model.prior_start
+    assert fitted.model.prior_iter_ is not None
+    assert fitted.model.n_iter_ > fitted.model.prior_iter_
     assert fitted.model.u_.any() and fitted.model.l3_ is not None
     assert not fitted.model.annotations_.empty
 
     # Rewritten validation and test rows change nothing that is fit: means,
     # SDs, ranges, gene drops, the SVD, k, the lambdas, the held-out genes,
-    # Z, U, B and the annotations.
+    # Z, U, B, the iteration trace and the annotations.
     scramble_held_out(monkeypatch, 0)
     scrambled = _load()
     assert not np.array_equal(scrambled.values, data.values)
@@ -49,9 +50,9 @@ def test_fitted_statistics_come_from_training_rows_only(
     np.testing.assert_array_equal(again.gene_ids, fitted.gene_ids)
     for name in ("mean", "sd", "low", "high"):
         np.testing.assert_array_equal(getattr(again.scaler, name), getattr(fitted.scaler, name))
-    for name in ("singular_values_", "z_", "u_", "b_", "prior_cv_"):
+    for name in ("singular_values_", "z_", "u_", "b_", "prior_cv_", "objective_"):
         np.testing.assert_array_equal(getattr(again.model, name), getattr(fitted.model, name))
-    for name in ("k_", "l1_", "l2_", "l3_", "n_iter_"):
+    for name in ("k_", "l1_", "l2_", "l3_", "n_iter_", "prior_iter_"):
         assert getattr(again.model, name) == getattr(fitted.model, name)
     pd.testing.assert_frame_equal(again.model.annotations_, fitted.model.annotations_)
 
@@ -93,7 +94,7 @@ def test_held_out_values_are_clipped_to_the_training_range(fake_dataset, fake_pr
     wild[test] = 1e6
     embeddings = fitted.embed(_with_values(data, wild))
     # Every gene of a test sample is taken at its training maximum ...
-    at_max = fitted.model.project(fitted.scaler.transform(fitted.scaler.high[None, :])).T
+    at_max = fitted.model.project(fitted.scaler.transform(fitted.scaler.high[None, :]).T).T
     np.testing.assert_allclose(embeddings[test], np.repeat(at_max, len(test), axis=0), rtol=1e-5)
     # ... and training samples, within range by definition, are unchanged.
     train = data.rows("train")
