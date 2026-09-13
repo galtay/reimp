@@ -34,14 +34,22 @@ def test_minmax_maps_training_rows_onto_the_unit_interval_and_clips_the_rest() -
     assert scaler.transform(train).dtype == np.float32
 
 
-def test_zscore_uses_the_training_mean_and_sd_and_does_not_clip() -> None:
+def test_zscore_uses_the_training_mean_and_sd_and_clips_to_the_training_range() -> None:
     train = np.random.default_rng(0).normal(3.0, 2.0, (500, 4))
     scaler = GeneScaler("zscore").fit(train)
-    z = scaler.transform(train).astype(np.float64)
-    np.testing.assert_allclose(z.mean(axis=0), 0.0, atol=1e-5)
-    np.testing.assert_allclose(z.std(axis=0), 1.0, atol=1e-5)
-    far = train.mean(axis=0, keepdims=True) + 10 * train.std(axis=0)
-    np.testing.assert_allclose(scaler.transform(far), 10.0, rtol=1e-5)
+    z = scaler.transform(train)
+    np.testing.assert_allclose(z.astype(np.float64).mean(axis=0), 0.0, atol=1e-5)
+    np.testing.assert_allclose(z.astype(np.float64).std(axis=0), 1.0, atol=1e-5)
+    near = train.mean(axis=0, keepdims=True) + 0.5 * train.std(axis=0)
+    np.testing.assert_allclose(scaler.transform(near), 0.5, rtol=1e-5)
+    # Beyond the training range, clipped to it; no training value moves.
+    sd = train.std(axis=0)
+    far = train.mean(axis=0) + np.stack([10 * sd, -10 * sd])
+    np.testing.assert_array_equal(scaler.transform(far), [z.max(axis=0), z.min(axis=0)])
+    unclipped = GeneScaler("zscore").fit(train)
+    unclipped.low_ = unclipped.high_ = None
+    np.testing.assert_array_equal(unclipped.transform(train), z)
+    assert (unclipped.transform(far)[0] > z.max(axis=0)).all()
 
 
 def test_genes_and_statistics_come_from_the_rows_fit() -> None:

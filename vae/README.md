@@ -38,7 +38,7 @@ uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ -
 |---|---|---|
 | input | `unstranded` counts, `lognorm` (the PCA baseline's input) | `tpm_unstranded`, log1p |
 | genes | the 5,000 protein-coding genes with the largest median absolute deviation | all 19,944 protein-coding genes |
-| scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score |
+| scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score; val and test clipped to the gene's training range |
 | encoder | genes → 100; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
 | decoder | 100 → genes, sigmoid | 121 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
 | sampling | z = μ + exp(logvar / 2) · ε | the same, with logvar capped at 0 |
@@ -76,7 +76,7 @@ Every statistic comes from the fold's training samples (`shared/EVALS.md`,
 rule 3):
 
 - the gene ranking by median absolute deviation, and the per-gene minimum
-  and maximum or mean and SD: `GeneScaler.fit` on `data.rows("train")` in
+  and maximum, or mean, SD and range: `GeneScaler.fit` on `data.rows("train")` in
   `VAEDataModule.setup`. The fitted scaler is the DataModule's state, so it
   is saved in every checkpoint, and `vae-embed` restores it rather than
   refitting;
@@ -107,7 +107,7 @@ selection (and `top_genes`) and its `supervision`.
 |---|---|
 | every `ExpressionDataModule` field | `quantification`, `gene_types`, `transform`, `fold`, `batch_size`, ... |
 | `top_genes` | keep this many genes by median absolute deviation over the training rows; `null` keeps all |
-| `scaling` | `minmax`, `zscore` or `none`, fit on the training rows |
+| `scaling` | `minmax` or `zscore`, fit on the training rows, each clipping val and test values to the training range; or `none` |
 | `supervision` | `none`, `organ` or `project`; adds `label` to every batch |
 | `project_organ` | replaces the committed project → organ map |
 
@@ -157,6 +157,19 @@ MMD-AE:
   run the head passed 100 on some samples within 40 steps, exp overflowed,
   and the val loss was inf, so early stopping chose nothing. 0 is where a
   KL term holds an uninformative dimension. The embedding, μ, is untouched.
+- **Val and test z-scores are clipped to each gene's training range**
+  (`GeneScaler`, `zscore`); training values never are. Flexynesis's
+  `StandardScaler` does not clip. Over 19,944 protein-coding genes, a gene
+  expressed in a handful of training samples has a near-zero training SD,
+  and a held-out sample expressing it lands far outside anything the model
+  saw. Measured on fold 0 (8,304 training, 3,201 val and test samples): max
+  |z| 91 over the training rows, 238 over the held-out ones (`USP17L23`,
+  training SD 0.0015, nonzero in 3 training samples); 13 held-out samples
+  have a gene past |z| 100, which no training sample has. 1,771 held-out
+  samples have some value outside the training range, mostly by less than
+  one SD; 109 go more than 10 SDs past it, 17 more than 50. In the worst
+  sample the excess is a third of its squared norm. Tybalt's min-max
+  already clips to [0, 1].
 - **No 121 → 121 "fusion" layer** after each head. Flexynesis adds one for
   a single omics layer; two linear maps in a row are one linear map, so it
   changes only the optimization.
@@ -184,11 +197,14 @@ patients.
   `torch.distributions`; the KL warm-up schedule; the MMD kernel is
   exp(−‖x − y‖² / d²), MMD is 0 for one sample and pulls a shifted sample
   towards the prior; σ = exp(logvar / 2); Tybalt's heads are non-negative;
-  the hidden layer and mirrored decoder; Glorot init.
+  the hidden layer and mirrored decoder; Glorot init, and Flexynesis's
+  Xavier init touching only encoder and decoder weights.
 - `test_scaling`: median (not mean) absolute deviation, top-gene order and
-  ties, min-max with clipping, z-score, statistics from the rows fit.
-- `test_data`: the scaler is fit on training rows only (rescaling every val
-  and test value leaves it unchanged, and it equals a fit on the training
+  ties, min-max with clipping, z-score clipped to the training range with
+  no training value moved, statistics from the rows fit.
+- `test_data`: for both scalings, the scaler is fit on training rows only
+  (`scramble_held_out` rewriting every val and test value of fold 3 leaves
+  it and the training rows unchanged, and it equals a fit on the training
   rows alone), labels for tumours and normals, and a checkpoint restores the
   scaler without refitting.
 - `test_organs`: all 33 projects mapped; each within-organ probe group
