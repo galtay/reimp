@@ -5,8 +5,10 @@ Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 Each objective has its own directory; by default the file lands at
 `out/tabssl_<objective>/fold<k>.parquet`:
 
-  tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/last.ckpt
-  tabssl-embed --ckpt <ckpt> --out out/tabssl_debug/scarf/fold0.parquet
+  tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/best.ckpt
+  tabssl-embed --ckpt runs/tabssl_none/fold0/checkpoints/last.ckpt
+  tabssl-embed --ckpt runs/tabssl_debug/scarf/fold0/checkpoints/last.ckpt \
+    --out out/tabssl_debug/scarf/fold0.parquet
 """
 
 from __future__ import annotations

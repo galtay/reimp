@@ -1,7 +1,8 @@
 # The untrained-encoder control: the same 4 x 256 MLP at its random
 # initialization (seed_everything fixes it), on the same scaled inputs. One
 # pass over the training samples sets the BatchNorm statistics and nothing
-# else; there is no loss, so no validation and no early stopping.
+# else; there is no loss, so no validation and no early stopping. Embed from
+# runs/tabssl_none/fold<k>/checkpoints/last.ckpt.
 seed_everything: 0
 
 trainer:
@@ -14,7 +15,6 @@ trainer:
     - class_path: lightning.pytorch.loggers.CSVLogger
       init_args:
         save_dir: runs/tabssl_none
-        name: ""
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:

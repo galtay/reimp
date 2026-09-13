@@ -2,7 +2,8 @@
 # protein-coding genes: clean vs. VIME-corrupted view, 4096-hidden projector
 # and predictor, EMA target with a fixed decay of 0.9, symmetric 2 - 2 cos,
 # Adam 1e-4 (the code's; Table S3 says SGD), batch 32, up to 50 epochs. Early
-# stopping on val patients; embed from the best checkpoint.
+# stopping on val patients; embed from the best checkpoint,
+# runs/tabssl_byol/fold<k>/checkpoints/best.ckpt.
 seed_everything: 0
 
 trainer:
@@ -15,11 +16,9 @@ trainer:
     - class_path: lightning.pytorch.loggers.CSVLogger
       init_args:
         save_dir: runs/tabssl_byol
-        name: ""
     - class_path: lightning.pytorch.loggers.TensorBoardLogger
       init_args:
         save_dir: runs/tabssl_byol
-        name: ""
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
@@ -27,8 +26,7 @@ trainer:
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "best-epoch{epoch:04d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        filename: best
     - class_path: lightning.pytorch.callbacks.EarlyStopping
       init_args:
         monitor: val/loss

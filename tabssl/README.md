@@ -22,22 +22,25 @@ what differs is the objective alone.
 # ~20 s per objective on real data: the pipeline end to end, fold 0
 uv run tabssl fit --config tabssl/configs/debug.yaml --model.objective vime \
   --trainer.default_root_dir runs/tabssl_debug/vime
-uv run tabssl-embed --ckpt runs/tabssl_debug/vime/checkpoints/last.ckpt \
+uv run tabssl-embed --ckpt runs/tabssl_debug/vime/fold0/checkpoints/last.ckpt \
   --out out/tabssl_debug/vime/fold0.parquet
 
 # The paper's settings, one run per fold and objective (scarf, vime, byol, none)
 uv run tabssl fit --config tabssl/configs/tcga_scarf.yaml --data.fold 0  # and so on for folds 1-4
-uv run tabssl-embed --ckpt runs/tabssl_scarf/version_0/checkpoints/best-<...>.ckpt
+uv run tabssl-embed --ckpt runs/tabssl_scarf/fold0/checkpoints/best.ckpt
 uv run reimp-shared probe out/tabssl_scarf out/pca256 --against pca256
 ```
 
 `tabssl-embed` reads the fold, the data settings and the objective from the
 checkpoint and, without `--out`, writes `out/tabssl_<objective>/fold<k>.parquet`:
 each objective is its own set of embeddings for `reimp-shared probe`, one
-file per fold. Each full config early-stops on the validation patients'
-loss and keeps the best checkpoint (`best-epoch<e>-val<loss>.ckpt`) beside
-`last.ckpt`; embed from the best. The `none` config makes one pass over the
-training samples and writes only `last.ckpt`.
+file per fold. Fold k of a run lands in `<trainer.default_root_dir>/fold<k>/`
+— `runs/tabssl_scarf/fold0/` holds the config, metrics and TensorBoard
+events, and `checkpoints/` below it — and rerunning a fold replaces it.
+Each full config early-stops on the validation patients' loss and keeps the
+best checkpoint, `best.ckpt`, beside `last.ckpt`; embed from `best.ckpt`.
+The `none` config makes one pass over the training samples and writes only
+`last.ckpt`: embed from `runs/tabssl_none/fold<k>/checkpoints/last.ckpt`.
 
 [`paper.md`](paper.md) records what the paper did, including its
 evaluations; below is how this reimplementation follows it.
