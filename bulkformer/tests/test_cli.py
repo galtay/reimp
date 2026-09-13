@@ -9,6 +9,7 @@ from reimp_bulkformer.lit import LitBulkFormer
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 
 CONFIGS = Path(__file__).parents[1] / "configs"
 
@@ -108,6 +109,14 @@ def _checkpoint(tmp_path: Path, fold: int) -> Path:
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
     return ckpt
+
+
+def test_embedding_ignores_held_out_rows(fake_dataset, monkeypatch, tmp_path) -> None:
+    """Embedding reads held-out samples but fits nothing on them: the graph is the checkpoint's."""
+    ckpt = _checkpoint(tmp_path, fold=1)
+    assert_embedding_ignores_held_out(
+        lambda out: embed(ckpt, out, accelerator="cpu"), 1, monkeypatch, tmp_path
+    )
 
 
 @pytest.mark.parametrize(("fold", "pooling"), [(0, None), (2, "mean")])

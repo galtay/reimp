@@ -105,8 +105,12 @@ All in `LitBulkFormer.fit_statistics`, from `data.rows("train")` only
 - the head's output bias, started at the training mean log1p TPM.
 
 `tests/test_lit.py::test_fitted_statistics_come_from_training_rows_only`
-scrambles every validation and test sample and checks that none of them
+scrambles every validation and test sample as loaded
+(`reimp_shared.testing.scramble_held_out`) and checks that none of them
 moves; scrambling the training samples does.
+`tests/test_cli.py::test_embedding_ignores_held_out_rows` does the same at
+embed time: after scrambling, `bulkformer-embed` gives every training
+sample of the checkpoint's fold the same embedding as before.
 
 ## Configs and fields
 
