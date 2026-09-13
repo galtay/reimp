@@ -7,6 +7,7 @@ import torch
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule, load_expression
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 from reimp_tabssl.cli import build_cli
 from reimp_tabssl.embed import embed
 from reimp_tabssl.lit import OBJECTIVES, LitTabSSL
@@ -92,6 +93,15 @@ def _checkpoint(tmp_path: Path, fold: int, objective: str = "byol") -> Path:
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
     return ckpt
+
+
+@pytest.mark.parametrize("objective", OBJECTIVES)
+def test_embedding_ignores_held_out_rows(objective, fake_dataset, monkeypatch, tmp_path) -> None:
+    """Embedding reuses the checkpoint's scaler and ranges: no refit on held-out samples."""
+    ckpt = _checkpoint(tmp_path, fold=1, objective=objective)
+    assert_embedding_ignores_held_out(
+        lambda out: embed(ckpt, out, accelerator="cpu"), 1, monkeypatch, tmp_path
+    )
 
 
 @pytest.mark.parametrize("fold", [0, 2])

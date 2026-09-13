@@ -3,8 +3,9 @@ import numpy as np
 import pytest
 import torch
 
-from reimp_shared.data import ExpressionDataModule
+from reimp_shared.data import ExpressionDataModule, load_expression
 from reimp_shared.preprocess import log_normalize
+from reimp_shared.testing import scramble_held_out
 from reimp_tabssl.lit import LitTabSSL
 
 TINY = dict(hidden_dim=16, byol_hidden_dim=32, dropout=0.0)
@@ -134,19 +135,23 @@ def test_invalid_settings_are_rejected() -> None:
 
 
 @pytest.mark.parametrize("objective", ["scarf", "vime"])
-def test_fitted_statistics_come_from_training_rows_only(objective, fake_dataset, tmp_path) -> None:
-    dm = ExpressionDataModule(transform="lognorm", batch_size=8)
-    dm.setup()
-    train = dm.data.rows("train")
-    others = np.setdiff1d(np.arange(len(dm.data.values)), train)
-    clean_train = dm.data.values[train].copy()
-    # Poison every validation and test sample: any statistic that saw one would show it.
-    dm.data.values[others] = 1e4
+def test_fitted_statistics_come_from_training_rows_only(
+    objective, fake_dataset, monkeypatch, tmp_path
+) -> None:
+    fold = 1
+    clean = load_expression(transform="lognorm", fold=fold)
+    train = clean.rows("train")
+    others = np.setdiff1d(np.arange(len(clean.values)), train)
+    clean_train = clean.values[train]
+    # Rewrite every validation and test sample: any statistic that saw one would move.
+    scramble_held_out(monkeypatch, fold)
 
+    dm = ExpressionDataModule(transform="lognorm", batch_size=8, fold=fold)
     model = LitTabSSL(n_genes=dm.n_genes, objective=objective, **TINY)
     _trainer(tmp_path, max_epochs=1, limit_train_batches=2, limit_val_batches=1).fit(
         model, datamodule=dm
     )
+    assert not np.allclose(dm.data.values[others], clean.values[others])  # the scramble took
 
     torch.testing.assert_close(model.scaler.mean, torch.from_numpy(clean_train.mean(axis=0)))
     torch.testing.assert_close(model.scaler.std, torch.from_numpy(clean_train.std(axis=0)))
