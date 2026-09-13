@@ -5,7 +5,7 @@ plier fit --config plier/configs/tcga.yaml --data.fold 3
 plier fit --config plier/configs/tcga.yaml --prior null --out_dir runs/plier_noprior
 
 Each run writes `<out_dir>/fold<k>/`: `model.npz` (the genes, their
-training means and SDs, Z, U, B, the λs and the prior), `annotations.tsv`
+training means, SDs and ranges, Z, U, B, the λs and the prior), `annotations.tsv`
 (held-out-gene AUCs for U's gene sets) and `config.yaml`, from which
 `plier-embed` reloads the same data.
 """

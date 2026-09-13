@@ -58,15 +58,16 @@ Following paper.md's "For reimp":
 - **One model per fold, trained on that fold's training samples** (8,304 on
   fold 0), not on recount2. Every statistic is fit on those samples alone
   (`shared/EVALS.md`, rule 3), and a test checks it:
-  - per-gene means and SDs (n − 1, as R's `sd`);
+  - per-gene means and SDs (n − 1, as R's `sd`), and each gene's range;
   - which genes are dropped as constant (367 on fold 0);
   - the SVD, `num.pc` and k;
   - λ1, λ2 and λ3;
   - which genes are held out.
 
-  Validation and test samples are z-scored with the training means and SDs,
-  then projected. MultiPLIER instead z-scores each target dataset on itself,
-  which would recentre every test fold.
+  Validation and test samples are clipped to each gene's training range
+  (see the deviations below), z-scored with the training means and SDs,
+  then projected. MultiPLIER instead z-scores each target dataset on
+  itself, which would recentre every test fold.
 - **`allGenes = TRUE`**: every protein-coding gene that varies over the
   training samples is modelled. Genes in no set get empty rows of C.
   `--all_genes false` is the package default, prior genes only.
@@ -148,7 +149,7 @@ the training samples — are counted in the log on every fit and saved in
 Any field can be overridden on the command line, e.g. `--data.fold 3`.
 
 A fit writes three files:
-- `model.npz`: gene IDs and names, the training means and SDs, Z, B, U,
+- `model.npz`: gene IDs and names, the training means, SDs and ranges, Z, B, U,
   C with and without the held-out genes, the singular values, the λs, the
   ‖ΔB‖²/‖B‖² trace, the unmapped symbols and the hyperparameters.
 - `annotations.tsv`: `gene_set`, `lv`, `u`, `auc`, `p_value`, `fdr`.
@@ -178,6 +179,18 @@ A fit writes three files:
   - k is capped at the rank of Y.
   - A fixed k raises the SVD rank to at least k, and a rule-chosen k above
     the SVD's rank triggers a recomputed SVD. R indexes past `d` and fails.
+- **Held-out values are clipped to the training range.** Before z-scoring,
+  each value is clipped to its gene's minimum and maximum over the
+  training samples, so no held-out z-score leaves the range the training
+  ones span. Training samples are unchanged, and so is the fit. Without
+  the clip, genes nearly constant over training dominate some held-out
+  projections. Measured on fold 0 (2026-09-13):
+  - training z-scores reach at most 91 (√(n − 1)), held-out ones 1,398
+    (KRTAP20-1, SD 8e-4);
+  - 57% of test and 62% of validation samples have a gene outside its
+    training range, though only 0.02% of values are;
+  - for the worst 1% of samples, the excess beyond the range is over 11%
+    (test) and 26% (validation) of ‖z‖², and at most 89%.
 - **Not ported**:
   - `doCrossval = FALSE`'s pseudo-cross-validation (`getAUC`): annotations
     always use held-out genes, the package default.
@@ -219,6 +232,7 @@ A fit writes three files:
     (`scramble_held_out`);
   - genes constant over the training rows are dropped;
   - one projection embeds every split;
+  - held-out values are clipped to the training range;
   - a save/load round trip, U and the annotations included.
 - **CLI** (`test_cli.py`):
   - every config names only MSigDB collections `genesets` knows, fits with

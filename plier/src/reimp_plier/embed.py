@@ -1,10 +1,10 @@
 """`plier-embed` — every sample's embedding from a fitted fold.
 
-Each sample is z-scored with the fold's training means and SDs and
-projected, B = (ZᵀZ + λ2 I)⁻¹Zᵀy — the same map for training, validation
-and test samples. Writes the shared embeddings parquet (`sample_index`,
-`embedding`, and the `fold` the model was trained for) that
-`reimp-shared probe` scores:
+Each sample is clipped to each gene's training range, z-scored with the
+fold's training means and SDs and projected, B = (ZᵀZ + λ2 I)⁻¹Zᵀy — the
+same map for training, validation and test samples. Writes the shared
+embeddings parquet (`sample_index`, `embedding`, and the `fold` the model
+was trained for) that `reimp-shared probe` scores:
 
   plier-embed --model runs/plier/fold0 --out out/plier/fold0.parquet
 """

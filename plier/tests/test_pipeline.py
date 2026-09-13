@@ -32,20 +32,22 @@ def test_fitted_statistics_come_from_training_rows_only(
     train = data.values[data.rows("train")]
     np.testing.assert_allclose(fitted.scaler.mean, train.mean(axis=0, dtype=np.float64))
     np.testing.assert_allclose(fitted.scaler.sd, train.std(axis=0, ddof=1, dtype=np.float64))
+    np.testing.assert_array_equal(fitted.scaler.low, train.min(axis=0))
+    np.testing.assert_array_equal(fitted.scaler.high, train.max(axis=0))
     # The prior entered, so U, λ3, the held-out genes and the annotations are checked too.
     assert fitted.model.n_iter_ > fitted.model.prior_start
     assert fitted.model.u_.any() and fitted.model.l3_ is not None
     assert not fitted.model.annotations_.empty
 
     # Rewritten validation and test rows change nothing that is fit: means,
-    # SDs, gene drops, the SVD, k, the lambdas, the held-out genes, Z, U, B
-    # and the annotations.
+    # SDs, ranges, gene drops, the SVD, k, the lambdas, the held-out genes,
+    # Z, U, B and the annotations.
     scramble_held_out(monkeypatch, 0)
     scrambled = _load()
     assert not np.array_equal(scrambled.values, data.values)
     again = fit_fold(scrambled, _model(), gene_sets)
     np.testing.assert_array_equal(again.gene_ids, fitted.gene_ids)
-    for name in ("mean", "sd"):
+    for name in ("mean", "sd", "low", "high"):
         np.testing.assert_array_equal(getattr(again.scaler, name), getattr(fitted.scaler, name))
     for name in ("singular_values_", "z_", "u_", "b_", "prior_cv_"):
         np.testing.assert_array_equal(getattr(again.model, name), getattr(fitted.model, name))
@@ -72,13 +74,30 @@ def test_embedding_is_one_projection_for_every_split(fake_dataset, fake_prior) -
     # Training samples get the fit's own B ...
     train = data.rows("train")
     np.testing.assert_allclose(embeddings[train], fitted.model.b_.T, rtol=1e-5, atol=1e-5)
-    # ... and every sample the same map, z-scored with the training statistics.
+    # ... and every sample the same map, clipped to the training ranges and
+    # z-scored with the training statistics.
     columns = np.flatnonzero(np.isin(data.genes["gene_id"], fitted.gene_ids))
-    y = ((data.values[:, columns] - fitted.scaler.mean) / fitted.scaler.sd).T
+    s = fitted.scaler
+    y = ((np.clip(data.values[:, columns], s.low, s.high) - s.mean) / s.sd).T
     z, l2 = fitted.model.z_, fitted.model.l2_
     expected = np.linalg.inv(z.T @ z + l2 * np.eye(z.shape[1])) @ z.T @ y
     np.testing.assert_allclose(embeddings, expected.T, rtol=1e-5, atol=1e-5)
     np.testing.assert_allclose(b_step(y, z, l2).T, expected.T)
+
+
+def test_held_out_values_are_clipped_to_the_training_range(fake_dataset, fake_prior) -> None:
+    data = _load()
+    fitted = fit_fold(data, _model(), read_gmt(fake_prior))
+    test = data.rows("test")
+    wild = data.values.copy()
+    wild[test] = 1e6
+    embeddings = fitted.embed(_with_values(data, wild))
+    # Every gene of a test sample is taken at its training maximum ...
+    at_max = fitted.model.project(fitted.scaler.transform(fitted.scaler.high[None, :])).T
+    np.testing.assert_allclose(embeddings[test], np.repeat(at_max, len(test), axis=0), rtol=1e-5)
+    # ... and training samples, within range by definition, are unchanged.
+    train = data.rows("train")
+    np.testing.assert_array_equal(embeddings[train], fitted.embed(data)[train])
 
 
 def test_prior_symbols_that_name_no_gene_are_counted(fake_dataset, fake_prior) -> None:
@@ -105,7 +124,7 @@ def test_save_and_load_round_trip(fake_dataset, fake_prior, tmp_path) -> None:
     assert loaded.model.params() == fitted.model.params()
     assert loaded.unmapped == fitted.unmapped
     assert loaded.model.names_ == fitted.model.names_
-    for name in ("mean", "sd"):
+    for name in ("mean", "sd", "low", "high"):
         np.testing.assert_array_equal(getattr(loaded.scaler, name), getattr(fitted.scaler, name))
     assert fitted.model.u_.any()
     for name in ("u_", "prior_", "prior_cv_"):
