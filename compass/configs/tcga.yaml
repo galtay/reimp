@@ -1,0 +1,65 @@
+# COMPASS pretraining on one fold's training patients: every protein-coding
+# gene (19,944) as a token, the released model's shape and optimizer, and
+# early stopping on the fold's val patients (the paper's patience of 10,
+# under the released run's cap of 500 epochs).
+#
+# Exact attention over 19,944 genes needs a fused SDPA kernel (CUDA flash
+# attention). On MPS or CPU, SDPA materializes genes² scores per head:
+# add `--model.attention_chunk_size 64` and a smaller batch, and expect
+# about a second per training sample on an M4 Max.
+seed_everything: 0
+
+trainer:
+  max_epochs: 500
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 10
+  default_root_dir: runs/compass
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/compass
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/compass
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 10
+
+model:
+  # n_genes is linked from data; hierarchy_path null reads COMPASS's table.
+  d_model: 32
+  n_heads: 2
+  head_dim: 32
+  dim_ff: 64
+  n_layers: 1
+  dropout: 0.2
+  attention_chunk_size: null
+  margin: 1.0
+  mask_prob: 0.1
+  jitter_std: 0.1
+  no_augment_prob: 0.1
+  negatives: any # same_project: the paper's negatives, a variant
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 128
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

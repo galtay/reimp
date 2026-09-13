@@ -1,0 +1,42 @@
+# About a minute on real data: COMPASS over its 916 concept genes only (the
+# full config attends over all 19,944 protein-coding genes), a handful of
+# batches, early stopping and a checkpoint to embed from.
+seed_everything: 0
+
+trainer:
+  max_epochs: 2
+  limit_train_batches: 20
+  limit_val_batches: 5
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 5
+  default_root_dir: runs/compass_debug
+  logger: false
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_top_k: 1
+        filename: best
+        enable_version_counter: false
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 1
+
+model:
+  # n_genes is linked from data; hierarchy_path null reads COMPASS's table.
+  d_model: 32
+  n_heads: 2
+  head_dim: 32
+  dim_ff: 64
+  dropout: 0.2
+
+data:
+  quantification: tpm_unstranded
+  transform: log1p
+  gene_ids_path: compass/configs/concept_genes.txt
+  batch_size: 64
+  fold: 0
