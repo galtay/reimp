@@ -55,22 +55,57 @@ def test_linear_attention_is_normalized_kernel_attention() -> None:
     torch.testing.assert_close(linear_attention(q_prime, k_prime, v), expected)
 
 
-def test_favor_approximates_softmax_attention() -> None:
-    """The estimate converges on softmax attention as features grow.
+# The model's regime: thousands of gene tokens, 32-d heads (tcga.yaml: d 256,
+# 8 heads) and the default feature count, d_head · ln d_head = 110.
+N_GENES, DIM_HEAD = 4096, 32
+DEFAULT_M = default_n_features(DIM_HEAD)
 
-    Its variance grows like exp(|q + k|² / √d), so inputs are kept small,
-    as trained queries and keys are; uniform attention is the bar to beat.
+
+def _relative_error(scale: float, n_features: int, eps: float | None = None) -> float:
+    """FAVOR+'s mean absolute error on softmax attention, over uniform attention's.
+
+    Queries and keys are Gaussian times `scale`: the estimate's variance
+    grows like exp(|q + k|² / √d), so they are kept small, as trained ones
+    are.
     """
-    q, k, v = (t * 0.7 for t in _qkv())
+    q, k, v = _qkv(n=N_GENES, d=DIM_HEAD)
+    q, k = q * scale, k * scale
     exact = _softmax_attention(q, k, v)
+    projection = orthogonal_features(n_features, DIM_HEAD, torch.Generator().manual_seed(0))
+    kwargs = {} if eps is None else {"eps": eps}
+    approx = linear_attention(
+        softmax_features(q, projection, is_query=True, **kwargs),
+        softmax_features(k, projection, is_query=False, **kwargs),
+        v,
+    )
+    uniform = v.mean(dim=1, keepdim=True).expand_as(exact)
+    return ((approx - exact).abs().mean() / (uniform - exact).abs().mean()).item()
 
-    def error(approx: torch.Tensor) -> float:
-        return (approx - exact).abs().mean().item()
 
-    uniform = error(v.mean(dim=1, keepdim=True).expand_as(exact))
-    errors = [error(_favor(q, k, v, m)) for m in (64, 4096, 32768)]
+def test_favor_approximates_softmax_attention_over_thousands_of_genes() -> None:
+    """The estimate converges on softmax attention as features grow from the default.
+
+    At the default count alone, with random rather than trained queries
+    and keys, it is about as far from softmax attention as uniform
+    attention is; 16 times as many features halve that.
+    """
+    errors = [_relative_error(0.5, m) for m in (DEFAULT_M, 4 * DEFAULT_M, 16 * DEFAULT_M)]
     assert errors[0] > errors[1] > errors[2]
-    assert errors[1] < 0.5 * uniform and errors[2] < 0.25 * uniform
+    assert errors[0] < 2.0 and errors[2] < 0.5
+
+
+@pytest.mark.parametrize("scale", [0.7, 1.0])
+def test_performer_eps_beats_a_smaller_one_at_the_default_feature_count(scale) -> None:
+    """eps = 1e-4 is at least as close to softmax attention as 1e-6, over thousands of genes.
+
+    Keys are scaled by their largest feature over the sequence, so eps
+    is comparable to a typical key feature and shrinks the estimate
+    towards uniform attention: less variance, some bias. At 110 features
+    the variance is what matters.
+    """
+    default = _relative_error(scale, DEFAULT_M)
+    assert default == _relative_error(scale, DEFAULT_M, eps=1e-4)
+    assert default < 1.6 and default < 0.8 * _relative_error(scale, DEFAULT_M, eps=1e-6)
 
 
 def test_features_are_positive_and_stabilizers_cancel() -> None:

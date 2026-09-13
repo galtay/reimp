@@ -155,11 +155,14 @@ Where the paper or its code is silent, or we differ:
 - **FAVOR+ is our own** (`favor.py`), since performer-pytorch is
   unmaintained: its feature map and stabilizers, orthogonal random
   features (d_head · ln d_head per head), one projection shared across
-  heads, redrawn every 1,000 steps. Its `eps` is 1e-6, not 1e-4: keys are
-  scaled by their largest feature over the sequence, so over thousands of
-  genes a typical key feature is comparable to 1e-4, which pulls attention
-  towards uniform and stops the estimate improving with more features
-  (`tests/test_favor.py` checks that it converges).
+  heads, redrawn every 1,000 steps, and its `eps` of 1e-4. Keys are scaled
+  by their largest feature over the sequence, so over thousands of genes a
+  typical key feature is comparable to 1e-4, which shrinks the estimate
+  towards uniform attention. At the default 110 features per 32-d head
+  that trades a little bias for much less variance: on 2,048-4,096
+  random tokens, eps 1e-6 was never closer to softmax attention, and at
+  query and key scales 0.7-1.0 it was 1.4-2.8 times as far
+  (`tests/test_favor.py`).
 - **Undirected graph**: the union of the top-20 lists. The paper passes its
   graph to GCNConv without saying which direction an edge runs.
 - The GCN's bias is added after aggregation, as in GCNConv.

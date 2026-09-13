@@ -49,17 +49,18 @@ def orthogonal_features(
     return directions * norms
 
 
-def softmax_features(x: Tensor, projection: Tensor, is_query: bool, eps: float = 1e-6) -> Tensor:
+def softmax_features(x: Tensor, projection: Tensor, is_query: bool, eps: float = 1e-4) -> Tensor:
     """Positive random features of (..., N, d) queries or keys -> (..., N, m).
 
     Subtracting a maximum keeps exp from overflowing. It cancels between
     attention's numerator and denominator as long as it is shared by
     everything one normalization divides: per row for queries, over all
-    keys of a head for keys. `eps` keeps every feature positive. Keys are
-    scaled by their largest feature over the whole sequence, so a typical
-    key feature can be ~1e-4 of it; performer-pytorch's eps of 1e-4 then
-    pulls attention towards uniform, and the estimate stops improving with
-    more features. 1e-6 does not (tests/test_favor.py).
+    keys of a head for keys. `eps` keeps every feature positive, and is
+    performer-pytorch's 1e-4. Keys are scaled by their largest feature over
+    the whole sequence, so over thousands of genes a typical key feature is
+    comparable to eps, which shrinks the estimate towards uniform attention:
+    at the default feature count that cuts its variance by more than it
+    adds bias, and a smaller eps is worse (tests/test_favor.py).
     """
     dim, n_features = x.shape[-1], projection.shape[0]
     x = x * dim**-0.25
