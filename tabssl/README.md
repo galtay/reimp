@@ -1,21 +1,147 @@
-# tabssl (stub)
+# reimp-tabssl
 
 Self-supervised objectives for tabular data — SCARF, VIME and BYOL — as
-Dradjat et al. (Bioinformatics 2025) adapt them to bulk expression:
-[kdradjat/SSRL_RNAseq](https://github.com/kdradjat/SSRL_RNAseq). The link
-printed in the paper is dead, and the released code does not run as is.
+Dradjat, Hamidi, Bartet and Hanczar adapt them to bulk expression:
+*Self-supervised representation learning on gene expression data*,
+Bioinformatics 41(11):btaf533, 2025
+([doi](https://doi.org/10.1093/bioinformatics/btaf533),
+[kdradjat/SSRL_RNAseq](https://github.com/kdradjat/SSRL_RNAseq); the link
+printed in the paper is dead, and the released code does not run as is).
 
-Not yet reimplemented. [`paper.md`](paper.md) records what the paper did —
-model, data, evaluations and published numbers — as the reference for the
-reimplementation and for which evaluations `reimp_shared.eval` adopts.
-When code lands, this directory becomes a workspace member like `txfm/`.
+One encoder, four objectives. A 4 × [Linear 256 → BatchNorm → ReLU →
+Dropout 0.2] MLP reads a sample's z-scored log expression; its 256-d output
+is the embedding. It is trained to match a corrupted copy of each sample
+(SCARF), to recover corrupted genes and the corruption mask (VIME), or to
+predict an averaged teacher network across a clean and a corrupted view
+(BYOL). `none` keeps the same encoder at its random initialization — the
+control without which "SSL helps" cannot be told from "random ReLU
+features of 20k genes probe well". With the architecture and inputs fixed,
+what differs is the objective alone.
 
-One encoder, three objectives: a 4 × 256 MLP whose output is the
-embedding, trained to match a corrupted copy of each sample (SCARF), to
-recover corrupted genes and the corruption mask (VIME), or to predict an
-averaged teacher network (BYOL). With the architecture fixed, what differs
-is the objective alone. Planned beside them: the same encoder untrained,
-since random features of 20k genes can already probe well.
+```bash
+# ~20 s per objective on real data: the pipeline end to end, fold 0
+uv run tabssl fit --config tabssl/configs/debug.yaml --model.objective vime \
+  --trainer.default_root_dir runs/tabssl_debug/vime
+uv run tabssl-embed --ckpt runs/tabssl_debug/vime/checkpoints/last.ckpt \
+  --out out/tabssl_debug/vime/fold0.parquet
 
-In the paper, frozen embeddings — the setting reimp scores — trailed a
-supervised MLP trained from scratch, and PCA was never tried.
+# The paper's settings, one run per fold and objective (scarf, vime, byol, none)
+uv run tabssl fit --config tabssl/configs/tcga_scarf.yaml --data.fold 0  # and so on for folds 1-4
+uv run tabssl-embed --ckpt runs/tabssl_scarf/version_0/checkpoints/best-<...>.ckpt
+uv run reimp-shared probe out/tabssl_scarf out/pca256 --against pca256
+```
+
+`tabssl-embed` reads the fold, the data settings and the objective from the
+checkpoint and, without `--out`, writes `out/tabssl_<objective>/fold<k>.parquet`:
+each objective is its own set of embeddings for `reimp-shared probe`, one
+file per fold. Each full config early-stops on the validation patients'
+loss and keeps the best checkpoint (`best-epoch<e>-val<loss>.ckpt`) beside
+`last.ckpt`; embed from the best. The `none` config makes one pass over the
+training samples and writes only `last.ckpt`.
+
+[`paper.md`](paper.md) records what the paper did, including its
+evaluations; below is how this reimplementation follows it.
+
+## Objectives
+
+| | SCARF | VIME | BYOL | none |
+|---|---|---|---|---|
+| corruption | exactly ⌊0.3 · G⌋ genes per sample | each gene with probability 0.3 | as VIME, on the second view | — |
+| replacement | Uniform[min_j, max_j] of the training samples (or their empirical marginal) | the gene's value in a random training sample | as VIME | — |
+| views | clean anchor + one corrupted copy | one corrupted copy | clean + corrupted | — |
+| head | Linear-BN-ReLU-Linear, 256 → 256 → 256 | mask and feature decoders, 4 × [Linear 256, ReLU] → G each | projector and predictor, 256 → 4096 → 256; EMA target of encoder + projector | — |
+| loss | NT-Xent, cosine, τ = 1.0, symmetric over 2N views | BCE(mask) + 2.0 · MSE(all genes) | 2 − 2·cos, symmetric | — |
+| optimizer | Adam 1e-4 | RMSprop 1e-3 | Adam 1e-4; EMA decay 0.9, fixed | none; one pass sets BatchNorm statistics |
+| batch, max epochs | 256, 1,000 | 32, 500 | 32, 50 | 256, 1 |
+| config | `tcga_scarf.yaml` | `tcga_vime.yaml` | `tcga_byol.yaml` | `tcga_none.yaml` |
+
+Embeddings are the encoder's output on clean, scaled inputs in eval mode:
+no corruption, no head, no dropout.
+
+## Inputs and fitted statistics
+
+Batches come from the shared `ExpressionDataModule`: protein-coding
+`unstranded` counts, `lognorm` (library size 1e5, then log1p) by default,
+or `log1p` of `tpm_unstranded`. At the start of `fit`, on the fold's
+**training samples only**, the model fits:
+
+- a per-gene z-score (`GeneScaler`: mean and standard deviation; a gene
+  constant over training gets std 1), saved in the checkpoint and applied
+  to every input, at training and at embedding;
+- each gene's scaled [min, max] over the training samples, SCARF's
+  uniform replacement range, also saved;
+- the pool of scaled training samples every marginal replacement (VIME,
+  BYOL, SCARF's `marginal` option) is drawn from — rebuilt from the data
+  at each fit rather than saved;
+- BatchNorm running statistics, from training batches as usual (and for
+  `none`, an exact average over one pass).
+
+Validation samples are scaled by the training scaler and corrupted from the
+training pool; they are used for the loss, early stopping and the best
+checkpoint, nothing else. Test samples are touched only at embedding.
+`tests/test_lit.py` poisons every validation and test sample and checks
+that no statistic moves.
+
+Training corruptions are redrawn every batch from the global RNG
+(`seed_everything`); validation corruptions come from a generator reset to
+`seed` before each validation pass, so the validation loss compares like
+with like across epochs.
+
+## Config fields
+
+`model:` (`LitTabSSL`); `n_genes` is linked from the DataModule.
+
+| field | default | |
+|---|---|---|
+| `objective` | `scarf` | `scarf`, `vime`, `byol` or `none` (the untrained encoder) |
+| `hidden_dim`, `n_layers`, `dropout` | 256, 4, 0.2 | the encoder (paper Table S4) |
+| `corruption_rate` | 0.3 | every objective (Table S3) |
+| `scarf_replacement` | `uniform` | `uniform` on [min, max], or `marginal`: the original SCARF, which the paper's Fig. S6 finds no better than training from scratch |
+| `temperature` | 1.0 | SCARF's NT-Xent τ |
+| `decoder_layers`, `vime_alpha` | 4, 2.0 | VIME's decoders and reconstruction weight |
+| `byol_hidden_dim`, `byol_ema` | 4096, 0.9 | BYOL's projector / predictor width and target decay |
+| `lr` | `null` | `null` takes the objective's rate: SCARF 1e-4, VIME 1e-3, BYOL 1e-4 |
+| `seed` | 0 | validation corruptions |
+
+`data:` takes every `ExpressionDataModule` argument (`quantification`,
+`gene_types`, `transform`, `batch_size`, …); `data.fold` picks the
+cross-validation fold. `trainer:` holds epochs, early stopping and
+checkpoints.
+
+## Deviations from the paper
+
+The *For reimp* section of [`paper.md`](paper.md) sets these out; in brief:
+
+- **Data.** TCGA only (no ARCHS4), the shared patient-level folds instead
+  of a split by sample, and pretraining on training patients only. 19,944
+  protein-coding genes instead of all 56,902. `lognorm` input and one
+  z-score per fold fit on training samples, saved with the model; the
+  paper quantile-normalized the whole cohort before splitting and refit a
+  `StandardScaler` on each file it loaded, test samples included.
+- **Early stopping** on the validation patients' pretext loss (patience 30,
+  the paper's only stated patience), embedding the best checkpoint. The
+  paper trains for a fixed number of epochs, and the epoch it reports is
+  not stated.
+- **VIME's corruption is redrawn every batch.** The paper's code, like the
+  original VIME's, draws it once before training and reuses it every
+  epoch — an artefact of the reference code, not of the method.
+- **VIME's replacement** is drawn per entry, with replacement, from the
+  training samples: each gene's empirical marginal, as a column-wise
+  permutation gives, but not tied to a batch or a fixed shuffle.
+- **VIME's decoders end in a linear layer.** The paper's end in a sigmoid;
+  the mask decoder's is folded into `BCEWithLogits` (the same loss), and
+  the feature decoder drops it, since a sigmoid cannot output the
+  negative half of its z-scored targets (a wrinkle in the paper's code).
+  RMSprop takes Keras's defaults (ρ 0.9, ε 1e-7), as the paper's VIME is
+  Keras.
+- **BYOL's second view** replaces genes from the training pool, as VIME
+  does, instead of a permutation within the mini-batch (their loader does
+  not shuffle, so a batch's marginal depended on file order). Adam 1e-4 as
+  in the code, not SGD at 1e-4 as in Table S3, which is implausibly slow.
+  The code's Dropout 0.2 in the projector and predictor is left out: the
+  paper's text gives Linear 4096 → BN → ReLU → Linear. The EMA moves
+  parameters only; each network keeps its own BatchNorm statistics.
+- **Frozen embeddings only.** reimp scores embeddings with the shared
+  linear probes — the paper's "frozen" setting, where all three methods did
+  worst. Unfrozen fine-tuning is out of scope.
+- **`none`** is ours: the untrained-encoder control the paper lacks.
