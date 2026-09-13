@@ -47,7 +47,7 @@ uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ -
 | supervision | none | `none`; `organ` (26 classes) or `project` (33): a 121 → 32 → classes head (BatchNorm, ReLU, dropout 0.1) on the sampled z, cross-entropy at weight 1 |
 | optimizer | Adam 5e-4, batch 50, at most 50 epochs | Adam 1.72e-3, batch 32, at most 500 epochs |
 | stopping | early stopping on the fold's val loss (patience 10), best checkpoint kept | the same |
-| init | Glorot-uniform weights, zero biases (Keras's default) | PyTorch's default |
+| init | Glorot-uniform weights, zero biases (Keras's default) | Xavier-uniform encoder and decoder weights; PyTorch's default biases and classifier head (Flexynesis's) |
 | parameters | 1.5M | 160M |
 | embedding | μ, 100-d and non-negative (the ReLU'd head) | μ, 121-d |
 
@@ -99,7 +99,8 @@ selection (and `top_genes`) and its `supervision`.
 | `regularizer` | `kl` (warmed up by `kappa` per epoch) or `mmd` (against `mmd_prior_samples` N(0, I) draws) |
 | `logvar_max` | cap on the log-variance before exp; 0.0 for the MMD-AE, `null` (none) for Tybalt, whose KL restrains it |
 | `class_hidden`, `class_dropout` | the classifier head, when `n_classes` > 0 |
-| `glorot_init` | Glorot-uniform weights and zero biases |
+| `glorot_init` | Tybalt's (Keras's): Glorot-uniform weights and zero biases in every linear layer |
+| `xavier_init` | the MMD-AE's (Flexynesis's): Xavier-uniform encoder and decoder weights only; biases and the classifier head keep PyTorch's default. At most one of the two; neither is PyTorch's default |
 | `lr`, `seed` | Adam's learning rate; the seed of the validation noise |
 
 | `data.` | |

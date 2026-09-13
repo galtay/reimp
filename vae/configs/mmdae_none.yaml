@@ -42,6 +42,7 @@ model:
   mmd_prior_samples: 200
   logvar_max: 0.0 # posterior no wider than the prior; see README
   glorot_init: false
+  xavier_init: true # Flexynesis's: encoder and decoder weights; default biases
   lr: 1.72e-3
 
 data:

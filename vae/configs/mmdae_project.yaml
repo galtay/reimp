@@ -40,6 +40,7 @@ model:
   class_hidden: 32
   class_dropout: 0.1
   glorot_init: false
+  xavier_init: true # Flexynesis's: encoder and decoder weights; default biases and head
   lr: 1.72e-3
 
 data:

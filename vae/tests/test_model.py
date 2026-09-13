@@ -132,6 +132,31 @@ def test_glorot_init() -> None:
     assert (model.decoder.net.bias == 0).all()
 
 
+def test_xavier_init_is_flexynesis_encoder_and_decoder_weights_only() -> None:
+    torch.manual_seed(0)
+    default = Autoencoder(400, 10, hidden_dim=60, n_classes=3)
+    torch.manual_seed(0)
+    xavier = Autoencoder(400, 10, hidden_dim=60, n_classes=3, xavier_init=True)
+    # The same draws built both, so what the init left alone is identical.
+    reinit = {
+        f"{part}.{name}"
+        for part in ("encoder", "decoder")
+        for name, p in getattr(xavier, part).named_parameters()
+        if name.endswith("weight") and p.ndim == 2
+    }
+    assert len(reinit) == 5  # hidden, mean, logvar; hidden, output
+    for name, value in xavier.state_dict().items():
+        if name in reinit:
+            fan_out, fan_in = value.shape
+            bound = math.sqrt(6 / (fan_in + fan_out))
+            assert 0.9 * bound < value.abs().max() <= bound
+            assert not torch.equal(value, default.state_dict()[name])
+        else:  # biases, BatchNorm and the classifier head
+            assert torch.equal(value, default.state_dict()[name]), name
+    with pytest.raises(ValueError, match="one of"):
+        Autoencoder(40, 6, glorot_init=True, xavier_init=True)
+
+
 def test_logvar_max_caps_the_sampling_width_but_not_the_mean() -> None:
     torch.manual_seed(0)
     x = torch.randn(8, 20) * 50
