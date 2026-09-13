@@ -6,6 +6,9 @@
 #
 # An epoch here is one random window per training sample (~8,300 windows),
 # so 200 epochs see each sample's 39 windows about five times over.
+#
+# Fold k runs in runs/tifbert_base/fold<k>/: logs there, and
+# checkpoints/best.ckpt (lowest val loss, for tifbert-embed) and last.ckpt.
 seed_everything: 0
 
 trainer:
@@ -31,8 +34,7 @@ trainer:
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        filename: best
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
         logging_interval: step

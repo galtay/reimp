@@ -12,18 +12,23 @@ modelling over them. A sample's embedding is the mean over its windows of
 each window's mean-pooled hidden states.
 
 ```bash
-uv run tifbert fit --config tifbert/configs/debug.yaml                 # ~1 minute, on real data
+uv run tifbert fit --config tifbert/configs/debug.yaml                    # ~1 minute, on real data
 uv run tifbert fit --config tifbert/configs/tcga_base.yaml --data.fold 0  # and so on for folds 1-4
-uv run tifbert-embed --ckpt runs/tifbert_base/checkpoints/last.ckpt --out out/tifbert/fold0.parquet
+uv run tifbert-embed --ckpt runs/tifbert_base/fold0/checkpoints/best.ckpt --out out/tifbert/fold0.parquet
 uv run reimp-shared probe out/tifbert out/pca256 --against pca256
 ```
 
-Train one model per fold (`--data.fold k`, each into its own
-`default_root_dir`, or its `last.ckpt` is overwritten) and embed each from
-its own checkpoint to `out/tifbert/fold{k}.parquet`. The checkpoint carries
-its fold, its data settings and its gene ranker, so `tifbert-embed` needs
-nothing else; `--batch-size` and `--embed-chunk` (windows encoded at once)
-trade speed for memory.
+Train one model per fold (`--data.fold k`) and embed each from its own
+checkpoint to `out/tifbert/fold{k}.parquet`. Fold k runs in
+`<trainer.default_root_dir>/fold<k>/` — for the full config
+`runs/tifbert_base/fold<k>/`, holding `config.yaml`, `metrics.csv`, the
+TensorBoard events and `checkpoints/best.ckpt` (lowest val loss) and
+`checkpoints/last.ckpt`. Rerunning a fold replaces its run. The debug
+config keeps only `runs/tifbert_debug/fold0/checkpoints/last.ckpt`. The
+checkpoint carries its fold, its data settings, its gene ranker and the
+genes expressed in its training samples, so `tifbert-embed` needs nothing
+else; `--batch-size` and `--embed-chunk` (windows encoded at once) trade
+speed for memory.
 
 [`paper.md`](paper.md) records what the paper did, including its
 evaluations and the decisions below ("For reimp").
@@ -93,7 +98,7 @@ Choices the paper leaves open, each a constructor argument:
 | file | what |
 |---|---|
 | `configs/debug.yaml` | 2-layer, 64-d BERT over 128-token windows of the top 2,048 genes, 2 × 30 batches; ~15 s to fit and ~30 s to embed all 11,505 samples on an M4 Max (MPS) |
-| `configs/tcga_base.yaml` | BERT-base as above, batch 32, 200 epochs, CSV and TensorBoard logs, best and last checkpoints |
+| `configs/tcga_base.yaml` | BERT-base as above, batch 32, 200 epochs, CSV and TensorBoard logs, `best.ckpt` (val loss) and `last.ckpt` |
 
 Model fields (`model.*`; `n_genes` is linked from the data):
 

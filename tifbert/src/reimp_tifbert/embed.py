@@ -6,7 +6,8 @@ its windows of their mean-pooled hidden states. Writes the shared
 embeddings parquet (`sample_index`, `embedding`, and the `fold` the
 checkpoint was trained for) that `reimp-shared probe` scores:
 
-  tifbert-embed --ckpt runs/tifbert_base/checkpoints/last.ckpt --out out/tifbert/fold0.parquet
+  tifbert-embed --ckpt runs/tifbert_base/fold0/checkpoints/best.ckpt \
+      --out out/tifbert/fold0.parquet
 """
 
 from __future__ import annotations

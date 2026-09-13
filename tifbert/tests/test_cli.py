@@ -7,6 +7,7 @@ import pytest
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 from reimp_tifbert.cli import build_cli
 from reimp_tifbert.embed import embed
 from reimp_tifbert.lit import LitTifBERT
@@ -42,8 +43,42 @@ def test_every_config_runs_a_batch(config, fake_dataset, tmp_path) -> None:
     )
 
 
-@pytest.mark.parametrize("fold", [0, 2])
-def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+@pytest.mark.parametrize(
+    ("config", "checkpoint"), [("debug.yaml", "last.ckpt"), ("tcga_base.yaml", "best.ckpt")]
+)
+def test_a_fold_runs_in_its_own_directory(config, checkpoint, fake_dataset, tmp_path) -> None:
+    root = tmp_path / "runs"
+    args = [
+        "fit",
+        "--config",
+        str(CONFIGS / config),
+        "--data.fold=2",
+        f"--trainer.default_root_dir={root}",
+        "--trainer.accelerator=cpu",
+        "--trainer.max_epochs=1",
+        "--trainer.enable_progress_bar=false",
+        "--data.batch_size=8",
+        "--model.window=16",
+        "--model.stride=8",
+        "--model.d_model=16",
+        "--model.n_layers=1",
+        "--model.n_heads=2",
+    ]
+    build_cli(args)
+    build_cli(args)  # a rerun replaces the fold's run
+    run = root / "fold2"
+    assert [p.name for p in root.iterdir()] == ["fold2"]
+    assert (run / "config.yaml").is_file()
+    ckpt = run / "checkpoints" / checkpoint
+    assert ckpt.is_file()
+    assert not list(run.rglob("version_*")) and not list(run.rglob("*-v1.ckpt"))
+    # The documented path is the one to embed from, and it knows its fold.
+    _, _, folds = read_embeddings(embed(ckpt, tmp_path / "fold2.parquet", accelerator="cpu"))
+    assert set(folds.tolist()) == {2}
+
+
+def _checkpoint(tmp_path: Path, fold: int) -> Path:
+    """A tiny TifBERT fit on fold `fold` of the fake dataset, saved."""
     dm = ExpressionDataModule(quantification="tpm_unstranded", batch_size=8, fold=fold)
     model = LitTifBERT(n_genes=dm.n_genes, window=8, stride=4, d_model=16, n_layers=1, n_heads=2)
     trainer = L.Trainer(
@@ -58,7 +93,19 @@ def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
     trainer.fit(model, datamodule=dm)
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
+    return ckpt
 
+
+def test_embedding_ignores_held_out_rows(fake_dataset, monkeypatch, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold=1)
+    assert_embedding_ignores_held_out(
+        lambda out: embed(ckpt, out, accelerator="cpu"), 1, monkeypatch, tmp_path
+    )
+
+
+@pytest.mark.parametrize("fold", [0, 2])
+def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold)
     sample_index, embeddings, folds = read_embeddings(
         embed(ckpt, tmp_path / "embeddings.parquet", accelerator="cpu")
     )
