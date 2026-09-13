@@ -115,15 +115,13 @@ the pathway probe scores, and WikiPathways shares much of their content:
 PLIER's Reactome and PID pathway scores are circular, and Hallmark,
 oncogenic and Cancer Cell Atlas are the collections it did not read.
 
-`kegg_medicus` and `cell_type` have no md5 pin yet: the Broad's release
-server answered 503 when they were added (2026-09-13). The first download
-warns with each file's md5, to be recorded in `reimp_shared.genesets`.
-
 **Mapping symbols to genes.** Symbols are matched exactly to GENCODE v36
 `gene_name`, with no alias rescue. The symbols that name none of the
 modelled genes — renamed symbols, non-coding genes, genes constant over
 the training samples — are counted in the log on every fit and saved in
-`model.npz` as `unmapped`.
+`model.npz` as `unmapped`. The default prior leaves 4,876 unmapped on
+fold 0: `cell_type` (C8) alone names 20,573 genes, more than the 19,577
+protein-coding genes modelled.
 
 ## Configs
 
@@ -135,12 +133,10 @@ the training samples — are counted in the log on every fit and saved in
 | `data.*` | `load_expression` arguments: `quantification`, `gene_types`, `transform`, `library_size`, `projects`, `fold`, `revision` |
 | `model.*` | `PLIER` arguments: `k` (null: the rule), `k_multiplier`, `svd_rank` (null: the package's), `l1`, `l2`, `l3` (null: the rules above), `frac`, `max_iter`, `tol`, `prior_start`, `max_path`, `pathway_selection`, `glm_alpha`, `min_genes`, `seed` |
 
-- **`debug.yaml`** uses fold 0's whole training set with the prior, but k = 32,
-  SVD rank 200 and 60 iterations. That is enough for λ3 to be tuned at
-  iterations 20, 40 and 60. With the three pinned collections alone
-  (`--prior '[reactome, pid, wikipathways]'`, 2,960 sets) it fits in
-  ~18 s on an M4 Max; on fold 0, 22 of 32 LVs use a gene set, 12 are
-  annotated, and 611 symbols are unmapped.
+- **`debug.yaml`** uses fold 0's whole training set with the default prior
+  (4,484 sets), but k = 32, SVD rank 200 and 60 iterations. That is enough
+  for λ3 to be tuned at iterations 20, 40 and 60. It fits in ~23 s on an
+  M4 Max; on fold 0, 23 of 32 LVs use a gene set and 16 are annotated.
 - **`tcga.yaml`** uses the package's defaults. Its full-length runtime is
   unmeasured. After iteration 20 every iteration fits 646 elastic nets, and
   every 20th iteration fits them along a 65-value path, so expect tens of

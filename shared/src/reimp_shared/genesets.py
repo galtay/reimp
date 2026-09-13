@@ -10,9 +10,7 @@ MSigDB collections come from release 2026.1, the release the ssGSEA
 labels in `reimp_shared.labels` were scored on. Each is downloaded once
 from the Broad's release server into `$REIMP_CACHE/msigdb/` (default
 `~/.cache/reimp`) and checked against the md5 of the file reimp was built
-with, so a re-release is refused rather than silently used. A collection
-with no pin yet is kept with a warning that names its md5, to be recorded
-in `MSIGDB`.
+with, so a re-release is refused rather than silently used.
 
 Licences (https://www.gsea-msigdb.org/gsea/msigdb_license_terms.jsp):
 MSigDB is CC BY 4.0, and `kegg_medicus` is CC BY-SA 4.0. C2:CP's
@@ -24,7 +22,6 @@ from __future__ import annotations
 
 import hashlib
 import urllib.request
-import warnings
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -81,7 +78,7 @@ class Collection:
     """One MSigDB collection: its file stem, the md5 it is pinned to, what it holds."""
 
     stem: str
-    md5: str | None
+    md5: str
     description: str
 
     @property
@@ -102,11 +99,14 @@ MSIGDB: dict[str, Collection] = {
     "wikipathways": Collection(
         "c2.cp.wikipathways", "8e8a38972816a3997a557d6dd625138a", "C2:CP:WIKIPATHWAYS: 925 pathways"
     ),
-    # Not pinned yet: the release server answered 503 when these two were added.
     "kegg_medicus": Collection(
-        "c2.cp.kegg_medicus", None, "C2:CP:KEGG_MEDICUS: KEGG's openly licensed MEDICUS pathways"
+        "c2.cp.kegg_medicus",
+        "a62ed196ae91134ea5509a4318ad51df",
+        "C2:CP:KEGG_MEDICUS: 658 pathways from KEGG's openly licensed MEDICUS subset",
     ),
-    "cell_type": Collection("c8.all", None, "C8: cell type signatures from single-cell studies"),
+    "cell_type": Collection(
+        "c8.all", "affa40110a0396057acd174037bb7bd8", "C8: 866 single-cell cell type signatures"
+    ),
     "oncogenic": Collection(
         "c6.all", "aba0e2214ff63327ae3fb0ce4bcd11c2", "C6: 189 oncogenic signatures"
     ),
@@ -140,9 +140,7 @@ def msigdb_path(name: str) -> Path:
 
 def _check(path: Path, collection: Collection, advice: str) -> None:
     digest = hashlib.md5(path.read_bytes()).hexdigest()
-    if collection.md5 is None:
-        warnings.warn(f"{collection.file_name} is not pinned; its md5 is {digest}", stacklevel=3)
-    elif digest != collection.md5:
+    if digest != collection.md5:
         raise ValueError(f"{path}: md5 {digest}, pinned {collection.md5}; {advice}")
 
 

@@ -19,7 +19,7 @@ TOY = GeneSets(["TOY_A", "TOY_B"], ["a", "b"], [["X", "Y"], ["Y", "Z"]])
 @pytest.fixture
 def served(tmp_path, monkeypatch):
     """One collection, `toy`, pinned and served from a local directory; the cache in tmp_path."""
-    file_name = Collection("c9.toy", None, "").file_name
+    file_name = Collection("c9.toy", "", "").file_name
     path = write_gmt(tmp_path / "server" / genesets.MSIGDB_VERSION / file_name, TOY)
     md5 = hashlib.md5(path.read_bytes()).hexdigest()
     monkeypatch.setattr(genesets, "MSIGDB", {"toy": Collection("c9.toy", md5, "toy")})
@@ -55,13 +55,6 @@ def test_a_download_that_misses_its_pin_is_refused_and_not_cached(served, tmp_pa
     with pytest.raises(ValueError, match="md5"):
         msigdb_path("toy")
     assert not any((tmp_path / "cache" / "msigdb").iterdir())
-
-
-def test_an_unpinned_collection_is_kept_with_its_md5_in_a_warning(served, monkeypatch) -> None:
-    monkeypatch.setattr(genesets, "MSIGDB", {"toy": Collection("c9.toy", None, "toy")})
-    md5 = hashlib.md5(served.read_bytes()).hexdigest()
-    with pytest.warns(UserWarning, match=f"not pinned; its md5 is {md5}"):
-        assert read_gmt(msigdb_path("toy")) == TOY
 
 
 def test_load_gene_sets_reads_collections_and_files_in_order(served, tmp_path) -> None:
