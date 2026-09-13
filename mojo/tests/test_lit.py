@@ -6,6 +6,7 @@ import torch
 
 from reimp_mojo.lit import LitMOJO, genome_order, warmup_cosine
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.testing import scramble_held_out
 from reimp_shared.tokens import IGNORE_INDEX
 
 TINY = dict(
@@ -140,13 +141,17 @@ def test_unknown_gene_order_is_rejected() -> None:
 
 
 @pytest.mark.parametrize("fold", [0, 3])
-def test_tokenizer_maximum_comes_from_training_rows_only(fold, fake_dataset, tmp_path) -> None:
+def test_tokenizer_maximum_comes_from_training_rows_only(
+    fold, fake_dataset, monkeypatch, tmp_path
+) -> None:
+    clean = _datamodule(fold=fold)
+    clean.setup()
+    expected = float(clean.data.values[clean.data.rows("train")].max())
+    # Scrambled val and test rows would set the maximum if they counted.
+    scramble_held_out(monkeypatch, fold)
     dm = _datamodule(fold=fold)
     dm.setup()
-    expected = float(dm.data.values[dm.data.rows("train")].max())
-    # An outlier in every held-out sample would set the maximum if they counted.
-    for split in ("val", "test"):
-        dm.data.values[dm.data.rows(split), 0] = 1e3
+    assert dm.data.values.max() > expected
     model = LitMOJO(n_genes=dm.n_genes, **TINY)
     trainer = _trainer(tmp_path, max_epochs=1, limit_train_batches=1, limit_val_batches=1)
     trainer.fit(model, datamodule=dm)

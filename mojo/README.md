@@ -93,6 +93,8 @@ restores it from the checkpoint, so val and test samples are binned by a
 maximum they did not help set (values above it fall in the top bin).
 Pretraining sees only the fold's training rows; val rows only score the
 validation loss. Gene embeddings and the genome order depend on no sample.
+The tests scramble a fold's val and test rows and check that neither the
+fitted maximum nor any training sample's embedding moves.
 
 ## Deviations from the paper
 
