@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reimp Baselines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..650;1,8..60,400&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f2f4f3;
+  --surface: #fbfcfb;
+  --ink: #131719;
+  --ink-2: #454e52;
+  --muted: #6d777a;
+  --rule: #d9dfdd;
+  --grid: #e4e8e6;
+  --axis: #b7bfbd;
+  --accent: #1c5cab;
+  --code-bg: #e6ebe9;
+  --case-bg: #d8e6f7;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --quiet-mark: #bcc4c2;
+  --band: rgba(42, 120, 214, 0.1);
+  --tip-bg: #131719;
+  --tip-ink: #f4f6f5;
+  --tip-ink-2: #aeb7b5;
+  --train: var(--series-1);
+  --val: var(--series-3);
+  --test: var(--series-2);
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1112;
+    --surface: #161a1b;
+    --ink: #ecf0ef;
+    --ink-2: #b3bcba;
+    --muted: #87918f;
+    --rule: #273031;
+    --grid: #20282a;
+    --axis: #3b4547;
+    --accent: #86b6ef;
+    --code-bg: #1f2628;
+    --case-bg: #1d3350;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --quiet-mark: #48525a;
+    --band: rgba(57, 135, 229, 0.16);
+    --tip-bg: #ecf0ef;
+    --tip-ink: #131719;
+    --tip-ink-2: #4d575a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1112;
+  --surface: #161a1b;
+  --ink: #ecf0ef;
+  --ink-2: #b3bcba;
+  --muted: #87918f;
+  --rule: #273031;
+  --grid: #20282a;
+  --axis: #3b4547;
+  --accent: #86b6ef;
+  --code-bg: #1f2628;
+  --case-bg: #1d3350;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --quiet-mark: #48525a;
+  --band: rgba(57, 135, 229, 0.16);
+  --tip-bg: #ecf0ef;
+  --tip-ink: #131719;
+  --tip-ink-2: #4d575a;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 17px/1.62 var(--serif);
+  font-optical-sizing: auto;
+}
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code {
+  font-family: var(--mono);
+  font-size: 0.84em;
+  background: var(--code-bg);
+  padding: 0.08em 0.36em;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+
+.page { max-width: 1320px; margin-inline: auto; padding-inline: 20px; padding-block: 44px 72px; }
+
+/* ---------- masthead ---------- */
+.masthead { padding-block-end: 8px; }
+.eyebrow { font: 500 0.78rem/1.5 var(--mono); color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+h1 {
+  font-family: var(--sans);
+  font-weight: 720;
+  font-stretch: 112%;
+  font-size: clamp(2.1rem, 1.25rem + 3.1vw, 3.35rem);
+  line-height: 1.04;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+  max-width: 19ch;
+  margin: 0.4em 0 0.45em;
+}
+.lede { font-size: 1.14rem; color: var(--ink-2); max-width: none; margin: 0; }
+.specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  margin: 30px 0 0;
+  border-block: 1px solid var(--rule);
+}
+.spec { padding: 14px 16px 14px 0; }
+.spec dt {
+  font: 600 0.7rem/1.3 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.spec dd { margin: 5px 0 0; font: 660 1.6rem/1.1 var(--sans); font-stretch: 104%; }
+.spec dd small { display: block; margin-top: 3px; font: 400 0.8rem/1.3 var(--sans); color: var(--ink-2); font-stretch: 100%; }
+
+/* ---------- layout ---------- */
+.layout { display: grid; gap: 0 56px; margin-top: 34px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.toc a { font: 500 0.88rem/1.4 var(--sans); color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+.toc .mod { display: block; font: 400 0.72rem/1.4 var(--mono); color: var(--muted); }
+@media (min-width: 1040px) {
+  .layout { grid-template-columns: 190px minmax(0, 1fr); }
+  .toc { position: sticky; top: 28px; align-self: start; padding-top: 58px; }
+  .toc ol { flex-direction: column; gap: 14px; }
+}
+
+/* ---------- sections ---------- */
+section { padding-block: 52px 8px; border-top: 1px solid var(--rule); }
+main > section:first-child { border-top: 0; padding-top: 26px; }
+.kicker { font: 500 0.78rem/1.4 var(--mono); color: var(--accent); margin: 0; }
+h2 {
+  font: 680 clamp(1.5rem, 1.15rem + 1.1vw, 2rem)/1.14 var(--sans);
+  font-stretch: 104%;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+  max-width: 44ch;
+  margin: 0.3em 0 0.65em;
+}
+h3 { font: 640 1.08rem/1.3 var(--sans); margin: 2.3em 0 0.5em; }
+/* Prose runs the full width of the column, like the figures beside it. */
+p, ul, ol.steps { max-width: none; }
+p { margin: 0 0 1em; }
+ul { padding-left: 1.2em; }
+li { margin-bottom: 0.45em; }
+.note { font-size: 0.92rem; color: var(--ink-2); }
+
+/* ---------- figures ---------- */
+figure.chart {
+  margin: 24px 0 28px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px 18px 14px;
+}
+.chart-head { margin-bottom: 12px; }
+.chart-title { font: 620 0.95rem/1.35 var(--sans); margin: 0; }
+.chart-sub { font: 400 0.84rem/1.45 var(--sans); color: var(--ink-2); margin: 3px 0 0; }
+.plot-box { width: 100%; }
+.plot-box svg { display: block; overflow: visible; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px 28px; }
+.multiples h4, .pair h4 { font: 600 0.8rem/1.35 var(--sans); color: var(--ink-2); margin: 0 0 6px; }
+.pair { display: grid; gap: 22px 32px; }
+@media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; font: 400 0.8rem/1.4 var(--sans); color: var(--ink-2); }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.key::before { content: ""; width: 11px; height: 11px; border-radius: 2px; background: var(--key); }
+.key.dot::before { border-radius: 50%; width: 9px; height: 9px; }
+.key.band::before { background: var(--band); outline: 1px solid color-mix(in srgb, var(--series-1) 45%, transparent); }
+.key.train { --key: var(--train); } .key.val { --key: var(--val); } .key.test { --key: var(--test); }
+.key.s1 { --key: var(--series-1); } .key.s2 { --key: var(--series-2); }
+
+/* chart text and marks */
+.plot text { font-family: var(--sans); }
+.tick { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; fill: var(--ink-2); }
+.value { font-size: 12px; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.annot { font-size: 11.5px; fill: var(--ink-2); pointer-events: none; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.baseline { stroke: var(--axis); stroke-width: 1; }
+.mark-1 { fill: var(--series-1); }
+.mark-2 { fill: var(--series-2); }
+.mark-quiet { fill: var(--quiet-mark); }
+.role-train { fill: var(--train); } .role-val { fill: var(--val); } .role-test { fill: var(--test); }
+.dot { stroke: var(--surface); stroke-width: 2; }
+.band { fill: var(--band); }
+.band-edge { fill: none; stroke: var(--series-1); stroke-opacity: 0.45; stroke-width: 1; }
+.ref-line, .marker-line { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
+.bracket { fill: none; stroke: var(--axis); stroke-width: 1; }
+.column-mark { fill: none; stroke: var(--ink); stroke-width: 1.5; pointer-events: none; }
+.pointer { fill: var(--ink); }
+.hit-area { fill: transparent; }
+.hit { cursor: default; }
+.hit:focus { outline: none; }
+.hit:focus-visible { stroke: var(--accent); stroke-width: 2; }
+.is-active { filter: brightness(1.14); }
+
+/* tables */
+details.table-view { margin-top: 12px; font: 400 0.84rem/1.4 var(--sans); }
+details.table-view summary { cursor: pointer; color: var(--accent); width: max-content; }
+.table-wrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font: 400 0.84rem/1.4 var(--sans); font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--axis); padding: 6px 14px 6px 0; white-space: nowrap; }
+td { border-bottom: 1px solid var(--grid); padding: 6px 14px 6px 0; vertical-align: top; }
+th.num, td.num { text-align: right; }
+td .sub { display: block; color: var(--muted); font-size: 0.78rem; }
+td.out { font-weight: 650; }
+.table-note { color: var(--muted); font-size: 0.78rem; margin: 8px 0 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 0.78rem/1.2 var(--sans); color: var(--ink); }
+.chip::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--key); }
+.chip.train { --key: var(--train); } .chip.val { --key: var(--val); } .chip.test { --key: var(--test); }
+
+/* barcode */
+.barcode { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 6px; }
+.barcode > code { font-size: 1.05rem; }
+.segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { display: grid; gap: 3px; padding: 8px 10px 7px; background: var(--code-bg); border-radius: 4px; min-width: 3.6em; }
+.case-group .seg { background: var(--case-bg); }
+.seg .code { font: 500 1.08rem/1.2 var(--mono); }
+.seg .what { font: 600 0.64rem/1.2 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
+.case-caption { font: 500 0.76rem/1.4 var(--mono); color: var(--accent); margin-top: 7px; }
+ol.steps { list-style: none; counter-reset: step; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
+ol.steps li { counter-increment: step; display: grid; grid-template-columns: 1.6em minmax(0, 1fr); gap: 0 8px; margin: 0; }
+ol.steps li::before { content: counter(step); font: 600 0.82rem/1.9 var(--mono); color: var(--muted); }
+ol.steps .formula { display: block; margin-top: 2px; }
+.step-head {
+  font: 600 0.72rem/1.4 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 22px 0 0;
+}
+.step-head + ol.steps { margin-top: 10px; }
+
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--rule); font: 400 0.84rem/1.55 var(--sans); color: var(--ink-2); }
+footer p { max-width: none; margin: 0 0 0.5em; }
+
+.tip {
+  position: fixed; z-index: 10; pointer-events: none;
+  background: var(--tip-bg); color: var(--tip-ink);
+  font: 400 0.8rem/1.4 var(--sans);
+  padding: 7px 10px; border-radius: 5px; max-width: 280px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.tip-title { font-weight: 600; margin-bottom: 2px; }
+.tip-row strong { font-weight: 650; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.tip-row span { color: var(--tip-ink-2); }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  figure.chart { padding: 12px 12px 10px; }
+}
+
+/* equations: MathML rendered at build time from the templates' TeX */
+math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math; font-size: 1.04em; }
+math[display="block"] { display: block math; margin: 0.9em 0; }
+.eq { overflow-x: auto; overflow-y: hidden; max-width: none; padding-block: 2px; }
+dl.defs { max-width: none; margin: 0 0 1em; }
+dl.defs dt { font: 600 0.92rem/1.4 var(--sans); margin-top: 0.9em; }
+dl.defs dd { margin: 0.25em 0 0; }
+.params td:first-child { white-space: nowrap; }
+</style>
+<style>
+  /* this page's marks */
+  .group-label { font-size: 12px; font-weight: 650; fill: var(--ink); }
+  .group-note { font-size: 11.5px; font-weight: 400; fill: var(--muted); }
+  .ci { stroke: var(--series-1); stroke-width: 2; stroke-linecap: round; }
+  .ci.ci-2 { stroke: var(--series-2); }
+  .ci-soft { stroke: var(--series-1); stroke-opacity: 0.55; stroke-width: 1.5; stroke-linecap: round; }
+  .series-line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; }
+  .hvg-line { stroke: var(--series-2); stroke-width: 1.5; }
+  .const-mark { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.5; }
+  .const-line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; }
+  .zero-line { stroke: var(--ink-2); stroke-width: 1; }
+  .key.const::before { width: 8px; height: 8px; border-radius: 0; background: var(--surface); border: 1.5px solid var(--ink-2); transform: rotate(45deg); }
+  .key.dash::before { width: 16px; height: 0; border-radius: 0; background: none; border-top: 1.5px dashed var(--ink-2); }
+  .key.line::before { width: 16px; height: 2px; border-radius: 1px; }
+  .key.whisker::before { width: 16px; height: 2px; border-radius: 1px; background: var(--ink-2); }
+  .multiples.sweeps { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  td.group { color: var(--muted); }
+  .constants td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">gabrielaltay/tcga-gene-expression-quantification-open@19785a6 · labels gabrielaltay/tcga-patients-open@0df7bb0</p>
+    <h1>Two model-free baselines on every probe</h1>
+    <p class="lede">
+      Scores of every shared probe on two embeddings that involve no trained
+      model: principal components of log-normalized counts (PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math>,
+      <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mn>4</mn><mo>&#x0002C;</mo><mn>16</mn><mo>&#x0002C;</mo><mn>64</mn><mo>&#x0002C;</mo><mn>256</mn><mo stretchy="false">&#x0007D;</mo></mrow></math>) and the 5,000 highest-variance
+      log-normalized genes, standardized (HVG-5000). Both are refit in each of
+      the 5 cross-validation folds from that fold's training samples only.
+      The definitions below are complete enough to recompute every number; each
+      names the function in <code>reimp_shared</code> that implements it.
+    </p>
+    <dl class="specs">
+      <div class="spec"><dt>Baselines</dt><dd>PCA-256<small>and HVG-5000</small></dd></div>
+      <div class="spec"><dt>Samples scored</dt><dd>11,505<small>each once, out of fold</small></dd></div>
+      <div class="spec"><dt>Folds</dt><dd>5<small>plus 4 redrawn assignments</small></dd></div>
+      <div class="spec"><dt>Intervals</dt><dd>95%<small>1,000 patient-bootstrap replicates</small></dd></div>
+      <div class="spec"><dt>Survival</dt><dd>PFI<small>10,049 patients, 3,322 events</small></dd></div>
+    </dl>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Sections">
+      <ol>
+        <li><a href="#scorecard">Summary<span class="mod">every score</span></a></li>
+        <li><a href="#data">Data and folds<span class="mod">data · splits</span></a></li>
+        <li><a href="#baseline">Baselines<span class="mod">eval.baselines</span></a></li>
+        <li><a href="#scoring">Scoring<span class="mod">protocol · bootstrap</span></a></li>
+        <li><a href="#genes">HVG against PCA<span class="mod">eval.compare</span></a></li>
+        <li><a href="#classification">Cancer type<span class="mod">classification</span></a></li>
+        <li><a href="#expression">Expression<span class="mod">invertibility · pathways</span></a></li>
+        <li><a href="#survival">Survival<span class="mod">survival</span></a></li>
+        <li><a href="#geometry">Geometry<span class="mod">geometry</span></a></li>
+        <li><a href="#confounders">Confounders<span class="mod">confounders</span></a></li>
+        <li><a href="#folds">One fold alone<span class="mod">protocol</span></a></li>
+        <li><a href="#redraw">Folds drawn again<span class="mod">splits</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="scorecard">
+        <p class="kicker">reimp-shared probe</p>
+        <h2>Every score of both baselines</h2>
+        <p>
+          One row per score, each computed once over the pooled out-of-fold
+          predictions (<a href="#scoring">Scoring</a>): blue PCA-256, orange
+          HVG-5000. Whiskers are 95% patient-bootstrap intervals; 12 of
+          PCA's 20 intervals are narrower than ±0.01 and hidden by the
+          dot. The diamond is the score of a predictor that ignores the embedding,
+          defined per score in the table under <a href="#scoring">Scoring</a>.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Every score of both baselines</p>
+            <p class="chart-sub">Hover a row for the intervals, the paired difference and the no-embedding value.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">PCA-256</span>
+            <span class="key dot s2">HVG-5000</span>
+            <span class="key whisker">95% interval</span>
+            <span class="key const">no embedding</span>
+          </div>
+          <div class="plot-box" id="chart-scorecard"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-scorecard"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="data">
+        <p class="kicker">reimp_shared.data.load_expression · reimp_shared.splits</p>
+        <h2>Data and folds</h2>
+        <p>
+          Samples <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi></mrow></math> are the 11,505 RNA-seq aliquots of
+          <code>gabrielaltay/tcga-gene-expression-quantification-open@19785a6</code>; <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>p</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> is the sample's patient
+          (<code>case_submitter_id</code>) and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> its TCGA project. Genes
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>g</mi></mrow></math> range over <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>G</mi></mrow></math>, the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>G</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow><mo>&#x0003D;</mo><mn>19</mn><mspace width="0.167em" /><mn>944</mn></mrow></math> protein-coding genes of
+          GENCODE v36 with the <code>_PAR_Y</code> rows removed, out of
+          60,660 in the dataset. <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub></mrow></math> is the unstranded STAR read count
+          (config <code>unstranded</code>). Both baselines and the invertibility target
+          start from the log-normalized value
+        </p>
+        <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>x</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x0003D;</mo><mi>ln</mi><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><mn>1</mn><mo>&#x0002B;</mo><mi>L</mi><mspace width="0.167em" /><mfrac><mrow><msub><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub></mrow><mrow><msub><mo>&#x02211;</mo><mrow><msup><mi>g</mi><mi>&#x02032;</mi></msup><mo>&#x02208;</mo><mi>G</mi></mrow></msub><msub><mi>c</mi><mrow><mi>i</mi><msup><mi>g</mi><mi>&#x02032;</mi></msup></mrow></msub></mrow></mfrac><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow><mo>&#x0002C;</mo><mspace width="2em" /><mi>L</mi><mo>&#x0003D;</mo><msup><mn>10</mn><mrow><mn>5</mn></mrow></msup><mo>&#x0002C;</mo></mrow></math></div>
+        <p>
+          which rescales every library to <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>L</mi></mrow></math> reads over the protein-coding genes
+          before the log (<code>load_expression(transform="lognorm")</code>).
+        </p>
+        <p>
+          The folds partition patients. Fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mn>0</mn><mo>&#x0002C;</mo><mo>&#x02026;</mo><mo>&#x0002C;</mo><mn>4</mn><mo stretchy="false">&#x0007D;</mo></mrow></math> assigns every
+          sample to a training set <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>T</mi><mi>k</mi></msub></mrow></math> (72% of patients), a validation
+          set <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>V</mi><mi>k</mi></msub></mrow></math> (8%) or a test set <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>E</mi><mi>k</mi></msub></mrow></math> (20%), all
+          samples of a patient together, stratified by project; every patient is in
+          exactly one <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>E</mi><mi>k</mi></msub></mrow></math>. The assignment is a deterministic function of the
+          salt <code>reimp-v1</code> and is described in the data report. Probes fit on
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub><mo>&#x0003D;</mo><msub><mi>T</mi><mi>k</mi></msub><mo>&#x0222A;</mo><msub><mi>V</mi><mi>k</mi></msub></mrow></math>, the fitting set of fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math>.
+        </p>
+      </section>
+
+      <section id="baseline">
+        <p class="kicker">reimp_shared.eval.baselines</p>
+        <h2>Two baselines, refit in every fold</h2>
+        <p>
+          Both baselines are fit in fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> on <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>T</mi><mi>k</mi></msub></mrow></math> alone. <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>V</mi><mi>k</mi></msub></mrow></math> is not used:
+          neither baseline has a hyperparameter to select or a point at which to stop.
+          Their training statistics are the per-gene mean and population variance
+        </p>
+        <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>&#x003BC;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msub><mi>T</mi><mi>k</mi></msub><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><msub><mi>T</mi><mi>k</mi></msub></mrow></munder><msub><mi>x</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x0002C;</mo><mspace width="2em" /><msup><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><msubsup><mi>&#x003C3;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow><mn>2</mn></msup><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msub><mi>T</mi><mi>k</mi></msub><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><msub><mi>T</mi><mi>k</mi></msub></mrow></munder><msup><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msubsup><mi>&#x003BC;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow><mn>2</mn></msup><mo>&#x0002E;</mo></mrow></math></div>
+        <dl class="defs">
+          <dt>PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> (<code>pca_embeddings</code>)</dt>
+          <dd>
+            Let <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>V</mi><mi>d</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>G</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow><mo>&#x000D7;</mo><mi>d</mi></mrow></msup></mrow></math> hold the leading <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> right
+            singular vectors of the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msub><mi>T</mi><mi>k</mi></msub><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow><mo>&#x000D7;</mo><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>G</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></math> matrix with entries
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>x</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msubsup><mi>&#x003BC;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow></math>, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi><mo>&#x02208;</mo><msub><mi>T</mi><mi>k</mi></msub></mrow></math>. Every sample is embedded as
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>z</mi><mi>i</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x0003D;</mo><msubsup><mi>V</mi><mi>d</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo><mo>&#x022A4;</mo></mrow></msubsup><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>&#x02212;</mo><msup><mi>&#x003BC;</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msup><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mi>d</mi></mrow></msup><mo>&#x0002C;</mo></mrow></math></div>
+            without whitening, by <code>sklearn.decomposition.PCA(n_components=d,
+            svd_solver="randomized", random_state=0)</code>. It is fit for
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mn>4</mn><mo>&#x0002C;</mo><mn>16</mn><mo>&#x0002C;</mo><mn>64</mn><mo>&#x0002C;</mo><mn>256</mn><mo stretchy="false">&#x0007D;</mo></mrow></math>; PCA without a subscript means PCA-256.
+          </dd>
+          <dt>HVG-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>n</mi></mrow></math> (<code>hvg_embeddings</code>)</dt>
+          <dd>
+            Let <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>H</mi><mi>n</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow></math> be the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>n</mi><mo>&#x0003D;</mo><mn>5000</mn></mrow></math> genes with the largest
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>&#x003C3;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow></math> (ties broken by gene order). Every sample is embedded as
+            the standardized values of those genes, in dataset gene order:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>h</mi><mrow><mi>i</mi><mi>g</mi></mrow><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x0003D;</mo><mfrac><mrow><msub><mi>x</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msubsup><mi>&#x003BC;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow><mrow><msubsup><mi>&#x003C3;</mi><mi>g</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><mi>g</mi><mo>&#x02208;</mo><msubsup><mi>H</mi><mi>n</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x0002C;</mo><mspace width="2em" /><msubsup><mi>h</mi><mi>i</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mi>n</mi></mrow></msup><mo>&#x0002E;</mo></mrow></math></div>
+            This is the "Identity" representation of Gross et al. (2024), their
+            strongest per-cohort survival representation, deep models included; they
+            ranked genes by the variance of TPM, while here ranking and scaling both
+            use <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>x</mi></mrow></math>. Against PCA it measures what projecting onto principal axes
+            gains or loses relative to the most variable genes themselves.
+          </dd>
+        </dl>
+        <p>
+          Each fold's baseline embeds all 11,505 samples, and the probes of fold
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> read fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math>'s embeddings of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math> and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>E</mi><mi>k</mi></msub></mrow></math>. The files are
+          <code>out/pca&lt;d&gt;/fold&lt;k&gt;.parquet</code> and
+          <code>out/hvg5000/fold&lt;k&gt;.parquet</code>, written by
+          <code>reimp-shared baseline-pca</code> and <code>baseline-hvg</code>.
+        </p>
+      </section>
+
+      <section id="scoring">
+        <p class="kicker">reimp_shared.eval.protocol · reimp_shared.eval.bootstrap</p>
+        <h2>Scoring: out of fold, pooled, patient bootstrap</h2>
+        <dl class="defs">
+          <dt>Out of fold</dt>
+          <dd>
+            For each probe and fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math>, everything the probe fits — standardization,
+            regression weights, penalty choice, cluster centroids — is fit on <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math>
+            and applied to <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>E</mi><mi>k</mi></msub></mrow></math>. Predictions are pooled over the five folds, so
+            each sample is predicted once, by the fold that held out its patient, and
+            each score is one statistic of the pooled predictions, not a mean over
+            folds. The exceptions are marked where they occur: scores of a whole
+            embedding space (effective rank, NMI, ARI) are computed per fold and
+            averaged, and C-index pairs never span two folds.
+          </dd>
+          <dt>Standardization</dt>
+          <dd>
+            Inside every regression probe, each embedding dimension is standardized
+            over the probe's fitting rows: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x0003D;</mo><mo stretchy="false">&#x00028;</mo><msub><mi>z</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo>&#x02212;</mo><msub><mi>m</mi><mi>j</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0002F;</mo><msub><mi>s</mi><mi>j</mi></msub></mrow></math>, with
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>m</mi><mi>j</mi></msub><mo>&#x0002C;</mo><msub><mi>s</mi><mi>j</mi></msub></mrow></math> the mean and standard deviation over those rows.
+          </dd>
+          <dt>Intervals (<code>bootstrap_weights</code>, <code>summarize</code>)</dt>
+          <dd>
+            Let <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>P</mi></mrow></math> be the scored patients. Replicate <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>b</mi><mo>&#x0003D;</mo><mn>1</mn><mo>&#x0002C;</mo><mo>&#x02026;</mo><mo>&#x0002C;</mo><mi>B</mi></mrow></math>,
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>B</mi><mo>&#x0003D;</mo><mn>1000</mn></mrow></math>, draws <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>P</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></math> patients uniformly with replacement
+            (<code>numpy.random.default_rng(0)</code>), and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>w</mi><mrow><mi>i</mi><mi>b</mi></mrow></msub></mrow></math> is the number of
+            times <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>p</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> was drawn. Every score is a ratio of sums over samples, or
+            over pairs of samples weighted by <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>w</mi><mrow><mi>i</mi><mi>b</mi></mrow></msub><msub><mi>w</mi><mrow><mi>j</mi><mi>b</mi></mrow></msub></mrow></math>, so the replicate
+            score <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>s</mi><mi>b</mi></msub></mrow></math> is recomputed from the same predictions without refitting.
+            The interval is the 2.5th to 97.5th percentile of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>s</mi><mn>1</mn></msub><mo>&#x0002C;</mo><mo>&#x02026;</mo><mo>&#x0002C;</mo><msub><mi>s</mi><mi>B</mi></msub></mrow></math>. It
+            is conditional on the fitted probes and on the fold assignment; the second
+            is measured under <a href="#redraw">Folds drawn again</a>.
+          </dd>
+          <dt>Paired differences (<code>paired_differences</code>)</dt>
+          <dd>
+            Two embeddings scored on the same samples receive identical weights
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>w</mi><mrow><mi>i</mi><mi>b</mi></mrow></msub></mrow></math>. Their difference <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi><mo>&#x0003D;</mo><msup><mi>s</mi><mrow><mi>A</mi></mrow></msup><mo>&#x02212;</mo><msup><mi>s</mi><mrow><mi>B</mi></mrow></msup></mrow></math> has replicates
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x00394;</mi><mi>b</mi></msub><mo>&#x0003D;</mo><msubsup><mi>s</mi><mi>b</mi><mrow><mi>A</mi></mrow></msubsup><mo>&#x02212;</mo><msubsup><mi>s</mi><mi>b</mi><mrow><mi>B</mi></mrow></msubsup></mrow></math>, from which the interval is taken, and
+            the share of replicates with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x00394;</mi><mi>b</mi></msub><mo>&#x0003E;</mo><mn>0</mn></mrow></math> is reported
+            (<code>reimp-shared probe A B --against B</code>).
+          </dd>
+        </dl>
+        <h3>Scores without an embedding</h3>
+        <p>
+          Each score is drawn beside the value it takes when the prediction ignores
+          the embedding. <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>K</mi></mrow></math> is the number of classes, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>n</mi><mi>c</mi></msub></mrow></math> the number of
+          samples of class <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>c</mi></mrow></math>, and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>n</mi></mrow></math> the total.
+        </p>
+        <div class="table-wrap">
+          <table class="constants">
+            <thead><tr><th scope="col">score</th><th scope="col" class="num">value</th><th scope="col">predictor that ignores the embedding</th></tr></thead>
+            <tbody>
+              <tr><td>balanced accuracy</td><td class="num"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x0002F;</mo><mi>K</mi></mrow></math></td><td>any constant class, or any label drawn independently of the sample</td></tr>
+              <tr><td>expression <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math></td><td class="num">0</td><td><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x0003D;</mo><msub><mover><mi>y</mi><mo stretchy="true">&#x000AF;</mo></mover><mi>g</mi></msub></mrow></math>, each gene's mean</td></tr>
+              <tr><td>per-sample Pearson</td><td class="num">0.887</td><td><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub></mrow></math> = the fitting set's mean profile, the same for every sample</td></tr>
+              <tr><td>pathway and covariate <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math></td><td class="num">0</td><td>each project's mean over its fitting samples</td></tr>
+              <tr><td>C-index</td><td class="num">0.5</td><td>any risk that is constant within a project</td></tr>
+              <tr><td>precision@<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math></td><td class="num">0.045</td><td><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mo>&#x02211;</mo><mi>c</mi></msub><mo stretchy="false">&#x00028;</mo><msub><mi>n</mi><mi>c</mi></msub><mo>&#x0002F;</mo><mi>n</mi><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow></math>: neighbours drawn at random</td></tr>
+              <tr><td>ARI, batch enrichment</td><td class="num">0</td><td>clusters independent of cancer type; neighbours independent of batch</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top: 1em">NMI, silhouette and effective rank have no such value and are drawn alone.</p>
+      </section>
+
+      <section id="genes">
+        <p class="kicker">reimp_shared.eval.compare</p>
+        <h2>HVG-5000 minus PCA-256</h2>
+        <p>
+          For every score with replicates, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi><mo>&#x0003D;</mo><msup><mi>s</mi><mrow><mtext>HVG</mtext></mrow></msup><mo>&#x02212;</mo><msup><mi>s</mi><mrow><mtext>PCA</mtext></mrow></msup></mrow></math>
+          with its paired interval. Of the 20 such scores, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi></mrow></math> is
+          positive with an interval excluding 0 for 10
+          (cancer type, 33 projects, tumour vs normal, colorectal: COAD / READ, expression R², pooled over genes, per-sample Pearson, pathway R², pooled, pathway R², per pathway, C-index, pairs pooled, log total reads R² and strand balance R²), negative for 4 (precision@10, silhouette, plate enrichment and tissue source site enrichment), and
+          the interval contains 0 for the other 6. For the four
+          confounder scores a negative <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi></mrow></math> means HVG carries less of the
+          technical covariate. HVG has 19.5 times PCA's dimensions, which
+          favours it on regression scores; the ridge penalty is chosen per fold for
+          each.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">HVG-5000 minus PCA-256</p>
+            <p class="chart-sub">Right of zero, HVG scores higher. The value at right is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi></mrow></math>.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s2"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x00394;</mi></mrow></math></span>
+            <span class="key whisker">paired 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-delta"></div>
+        </figure>
+      </section>
+
+      <section id="classification">
+        <p class="kicker">reimp_shared.eval.classification</p>
+        <h2>Cancer type: balanced accuracy 0.929 over 33 projects</h2>
+        <dl class="defs">
+          <dt>Tasks (<code>task_labels</code>)</dt>
+          <dd>
+            <code>project_id</code>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> on tumour samples (every sample
+            type except Solid Tissue Normal), <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>K</mi><mo>&#x0003D;</mo><mn>33</mn></mrow></math>.
+            <code>tumor_vs_normal</code>: all samples, normal versus tumour.
+            <code>lung</code>, <code>kidney</code>, <code>colorectal</code>,
+            <code>glioma</code>: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> on the tumour samples of LUAD/LUSC,
+            KICH/KIRC/KIRP, COAD/READ and GBM/LGG.
+          </dd>
+          <dt>Model (<code>fit_linear_probe</code>)</dt>
+          <dd>
+            Multinomial logistic regression on <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover></mrow></math>, fit on the task's samples in
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math>:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mo>min</mo><mrow><mi>W</mi><mo>&#x0002C;</mo><mspace width="0.167em" /><mi>b</mi></mrow></msub><mspace width="0.278em" /><mo>&#x02212;</mo><munder><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><msub><mi>F</mi><mi>k</mi></msub></mrow></munder><mi>log</mi><mfrac><mrow><mi>exp</mi><mo stretchy="false">&#x00028;</mo><msubsup><mi>w</mi><mrow><msub><mi>y</mi><mi>i</mi></msub></mrow><mo>&#x022A4;</mo></msubsup><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><mo>&#x0002B;</mo><msub><mi>b</mi><mrow><msub><mi>y</mi><mi>i</mi></msub></mrow></msub><mo stretchy="false">&#x00029;</mo></mrow><mrow><msub><mo>&#x02211;</mo><mrow><mi>c</mi></mrow></msub><mi>exp</mi><mo stretchy="false">&#x00028;</mo><msubsup><mi>w</mi><mi>c</mi><mo>&#x022A4;</mo></msubsup><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><mo>&#x0002B;</mo><msub><mi>b</mi><mi>c</mi></msub><mo stretchy="false">&#x00029;</mo></mrow></mfrac><mo>&#x0002B;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn><mi>C</mi></mrow></mfrac><mo fence="false" stretchy="false">&#x02016;</mo><mi>W</mi><msubsup><mo fence="false" stretchy="false">&#x02016;</mo><mi>F</mi><mn>2</mn></msubsup><mo>&#x0002C;</mo><mspace width="2em" /><mi>C</mi><mo>&#x0003D;</mo><mn>1</mn><mo>&#x0002C;</mo></mrow></math></div>
+            by L-BFGS with at most 2,000 iterations (<code>sklearn LogisticRegression</code>
+            defaults otherwise); <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub></mrow></math> is the most probable class.
+          </dd>
+          <dt>Scores (<code>classification_scores</code>)</dt>
+          <dd>
+            Over the pooled test predictions, with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>n</mi><mi>c</mi></msub></mrow></math> the test samples of class
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>c</mi></mrow></math> and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub><mo>&#x0002C;</mo><msub><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub><mo>&#x0002C;</mo><msub><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">N</mi></mrow><mi>c</mi></msub></mrow></math> the usual counts:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mrow><mi mathvariant="normal">B</mi><mi mathvariant="normal">A</mi></mrow><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>K</mi></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>c</mi></mrow></munder><mfrac><mrow><msub><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub></mrow><mrow><msub><mi>n</mi><mi>c</mi></msub></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><mi>F</mi><msub><mn>1</mn><mi>c</mi></msub><mo>&#x0003D;</mo><mfrac><mrow><mn>2</mn><mspace width="0.167em" /><msub><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub></mrow><mrow><mn>2</mn><mspace width="0.167em" /><msub><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub><mo>&#x0002B;</mo><msub><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub><mo>&#x0002B;</mo><msub><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">N</mi></mrow><mi>c</mi></msub></mrow></mfrac><mo>&#x0002C;</mo></mrow></math></div>
+            accuracy <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mfrac><mrow><mn>1</mn></mrow><mrow><mi>n</mi></mrow></mfrac><msub><mo>&#x02211;</mo><mi>c</mi></msub><msub><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow><mi>c</mi></msub></mrow></math>, macro-F1 the mean of
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>F</mi><msub><mn>1</mn><mi>c</mi></msub></mrow></math>, and weighted-F1 <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mo>&#x02211;</mo><mi>c</mi></msub><mo stretchy="false">&#x00028;</mo><msub><mi>n</mi><mi>c</mi></msub><mo>&#x0002F;</mo><mi>n</mi><mo stretchy="false">&#x00029;</mo><mspace width="0.167em" /><mi>F</mi><msub><mn>1</mn><mi>c</mi></msub></mrow></math>. Balanced accuracy
+            weights every class equally; its chance level is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x0002F;</mo><mi>K</mi></mrow></math>.
+          </dd>
+        </dl>
+        <p>
+          Over 10,765 tumour samples and 33 projects, PCA reaches
+          accuracy 0.947, weighted-F1 0.947 and balanced accuracy
+          0.929 [0.921, 0.936]; PCA-4 reaches
+          0.504 and HVG 0.938. 3 of the
+          6 tasks come within ±0.01 of their PCA-256 score at
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mn>64</mn></mrow></math>. COAD and READ, which TCGA's colorectal study analysed
+          as one disease, are the hardest pair: PCA reaches 0.652
+          [0.613, 0.694].
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Balanced accuracy of PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math></p>
+            <p class="chart-sub"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> on a log scale; whiskers are 95% intervals. The orange line is HVG-5000, the dashed line <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mn>1</mn><mo>&#x0002F;</mo><mi>K</mi></mrow></math>.</p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-5000</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-classification"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-classification"></table></div></details>
+        </figure>
+        <p>All four measures for PCA-256:</p>
+        <div class="table-wrap"><table id="table-classification"></table></div>
+        <p class="table-note">Beneath each score, its 95% interval. Majority is the accuracy of predicting the largest class, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mo>max</mo><mi>c</mi></msub><msub><mi>n</mi><mi>c</mi></msub><mo>&#x0002F;</mo><mi>n</mi></mrow></math>.</p>
+      </section>
+
+      <section id="expression">
+        <p class="kicker">reimp_shared.eval.invertibility · reimp_shared.eval.pathways</p>
+        <h2>Expression: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> 0.838 over genes, 0.930 over pathways</h2>
+        <dl class="defs">
+          <dt>Invertibility (<code>invertibility</code>)</dt>
+          <dd>
+            The target is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>&#x0003D;</mo><msub><mi>x</mi><mi>i</mi></msub><mo>&#x02208;</mo><msup><mi>&#x0211D;</mi><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>G</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></msup></mrow></math>, all 19,944
+            log-normalized genes, whatever the embedding was computed from. Ridge
+            regression from the standardized embedding,
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><mo>&#x0003D;</mo><mi>W</mi><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><mo>&#x0002B;</mo><mi>b</mi><mo>&#x0002C;</mo><mspace width="2em" /><msub><mo>min</mo><mrow><mi>W</mi><mo>&#x0002C;</mo><mspace width="0.167em" /><mi>b</mi></mrow></msub><munder><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><msub><mi>F</mi><mi>k</mi></msub></mrow></munder><mo fence="false" stretchy="false">&#x02016;</mo><msub><mi>y</mi><mi>i</mi></msub><mo>&#x02212;</mo><mi>W</mi><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><mo>&#x02212;</mo><mi>b</mi><msup><mo fence="false" stretchy="false">&#x02016;</mo><mn>2</mn></msup><mo>&#x0002B;</mo><mi>&#x003B1;</mi><mo fence="false" stretchy="false">&#x02016;</mo><mi>W</mi><msubsup><mo fence="false" stretchy="false">&#x02016;</mo><mi>F</mi><mn>2</mn></msubsup><mo>&#x0002C;</mo></mrow></math></div>
+            with one <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x003B1;</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><msup><mn>10</mn><mrow><mo>&#x02212;</mo><mn>2</mn></mrow></msup><mo>&#x0002C;</mo><mo>&#x02026;</mo><mo>&#x0002C;</mo><msup><mn>10</mn><mrow><mn>4</mn></mrow></msup><mo stretchy="false">&#x0007D;</mo></mrow></math>
+            (powers of ten) for all genes, chosen by leave-one-out squared error over
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math> (<code>sklearn RidgeCV</code>). Over the pooled test samples <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>E</mi></mrow></math>,
+            with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover><mi>y</mi><mo stretchy="true">&#x000AF;</mo></mover><mi>g</mi></msub></mrow></math> the mean of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub></mrow></math> over <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>E</mi></mrow></math>:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>R</mi><mrow><mtext>pooled</mtext></mrow><mn>2</mn></msubsup><mo>&#x0003D;</mo><mn>1</mn><mo>&#x02212;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></msub><msub><mo>&#x02211;</mo><mrow><mi>g</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>g</mi></mrow></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></msub><msub><mo>&#x02211;</mo><mrow><mi>g</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msub><mover><mi>y</mi><mo stretchy="true">&#x000AF;</mo></mover><mi>g</mi></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><msubsup><mi>R</mi><mrow><mtext>gene</mtext></mrow><mn>2</mn></msubsup><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msup><mi>G</mi><mi>&#x02032;</mi></msup><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>g</mi><mo>&#x02208;</mo><msup><mi>G</mi><mi>&#x02032;</mi></msup></mrow></munder><mrow><mo stretchy="true" fence="true" form="prefix">[</mo><mn>1</mn><mo>&#x02212;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>g</mi></mrow></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x02212;</mo><msub><mover><mi>y</mi><mo stretchy="true">&#x000AF;</mo></mover><mi>g</mi></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow></mfrac><mo stretchy="true" fence="true" form="postfix">]</mo></mrow><mo>&#x0002C;</mo></mrow></math></div>
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>G</mi><mi>&#x02032;</mi></msup></mrow></math> being the genes not constant over <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>E</mi></mrow></math>. <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>pooled</mtext></mrow><mn>2</mn></msubsup></mrow></math>
+            weights each gene by its variance; <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>gene</mtext></mrow><mn>2</mn></msubsup></mrow></math> weights genes
+            equally and has no interval, because a replicate that misses the few
+            samples carrying a gene's variance sends that gene's <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> far below 0.
+            Per-sample Pearson is the mean over <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></math> of
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">r</mi></mrow><mi>g</mi></msub><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo>&#x0002C;</mo><msub><mover accent="true"><mi>y</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>g</mi></mrow></msub><mo stretchy="false">&#x00029;</mo></mrow></math>.
+          </dd>
+          <dt>Pathways (<code>pathway_probe</code>)</dt>
+          <dd>
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>s</mi><mrow><mi>i</mi><mi>a</mi></mrow></msub></mrow></math> is the ssGSEA score of MSigDB 2026.1 Hallmark set <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>a</mi></mrow></math>
+            (<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>A</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow><mo>&#x0003D;</mo><mn>50</mn></mrow></math>) for tumour sample <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi></mrow></math>, computed by tcga2hf from
+            <code>tpm_unstranded</code> with GSVA's ssGSEA and published unnormalized
+            (<code>score_raw</code>). Scores and embeddings are centred on their
+            project's mean over the fitting tumour samples,
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mover><mi>s</mi><mo stretchy="false">&#x0007E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow></msub><mo>&#x0003D;</mo><msub><mi>s</mi><mrow><mi>i</mi><mi>a</mi></mrow></msub><mo>&#x02212;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msubsup><mi>F</mi><mi>k</mi><mrow><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><msubsup><mi>F</mi><mi>k</mi><mrow><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow></munder><msub><mi>s</mi><mrow><mi>j</mi><mi>a</mi></mrow></msub><mo>&#x0002C;</mo></mrow></math></div>
+            the embedding is then standardized, and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mover accent="true"><mi>s</mi><mo>&#x0005E;</mo></mover></mrow></math> is a ridge regression
+            fit as above. With every sum over tumour samples <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi><mo>&#x02208;</mo><mi>E</mi></mrow></math>:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>R</mi><mrow><mtext>pooled</mtext></mrow><mn>2</mn></msubsup><mo>&#x0003D;</mo><mn>1</mn><mo>&#x02212;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi></mrow></msub><msub><mo>&#x02211;</mo><mrow><mi>a</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mover><mi>s</mi><mo stretchy="false">&#x0007E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow></msub><mo>&#x02212;</mo><msub><mover accent="true"><mi>s</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi></mrow></msub><msub><mo>&#x02211;</mo><mrow><mi>a</mi></mrow></msub><msubsup><mover><mi>s</mi><mo stretchy="false">&#x0007E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow><mn>2</mn></msubsup></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><msubsup><mi>R</mi><mrow><mtext>pathway</mtext></mrow><mn>2</mn></msubsup><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>A</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>a</mi></mrow></munder><mrow><mo stretchy="true" fence="true" form="prefix">[</mo><mn>1</mn><mo>&#x02212;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi></mrow></msub><mo stretchy="false">&#x00028;</mo><msub><mover><mi>s</mi><mo stretchy="false">&#x0007E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow></msub><mo>&#x02212;</mo><msub><mover accent="true"><mi>s</mi><mo>&#x0005E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup></mrow><mrow><msub><mo>&#x02211;</mo><mrow><mi>i</mi></mrow></msub><msubsup><mover><mi>s</mi><mo stretchy="false">&#x0007E;</mo></mover><mrow><mi>i</mi><mi>a</mi></mrow><mn>2</mn></msubsup></mrow></mfrac><mo stretchy="true" fence="true" form="postfix">]</mo></mrow><mo>&#x0002E;</mo></mrow></math></div>
+            0 is what the project alone predicts. The scores derive from each sample's
+            own expression, so this probe is invertibility weighted by gene sets, not
+            an independent label.
+          </dd>
+        </dl>
+        <p>
+          PCA's <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>pooled</mtext></mrow><mn>2</mn></msubsup></mrow></math> is 0.838, from 0.309 at
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mn>4</mn></mrow></math>; HVG's is 0.929. PCA's <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>gene</mtext></mrow><mn>2</mn></msubsup></mrow></math> is
+          0.715, and its per-sample Pearson 0.982 against
+          0.887 for the mean profile. PCA of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>x</mi></mrow></math> is the rank-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> linear
+          code of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>x</mi></mrow></math> with least squared reconstruction error, so among
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math>-dimensional embeddings with a linear readout, PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> is near the
+          ceiling of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>pooled</mtext></mrow><mn>2</mn></msubsup></mrow></math>. HVG-5000 contains 5,000 of the
+          19,944 target genes exactly, up to scale; the ridge recovers the rest
+          from them. The Hallmark <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> is 0.930 pooled and
+          0.904 per pathway.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Expression and pathway scores of PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math></p>
+            <p class="chart-sub"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msubsup><mi>R</mi><mrow><mtext>gene</mtext></mrow><mn>2</mn></msubsup></mrow></math> has no interval (see above).</p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-5000</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-expression"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-expression"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="survival">
+        <p class="kicker">reimp_shared.eval.survival</p>
+        <h2>Survival: C-index 0.626 within projects</h2>
+        <dl class="defs">
+          <dt>Samples and endpoint (<code>survival_samples</code>)</dt>
+          <dd>
+            One sample per patient: the earliest (lowest <code>sample_index</code>) of
+            type Primary Tumor or Primary Blood Derived Cancer – Peripheral Blood.
+            The endpoint is PFI from <code>gabrielaltay/tcga-patients-open@0df7bb0</code>: time
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>t</mi><mi>p</mi></msub></mrow></math> in days from diagnosis and event indicator <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003B4;</mi><mi>p</mi></msub></mrow></math>. Patients
+            without a primary tumour sample or without the endpoint are not scored,
+            which leaves 10,049 patients and 3,322 events.
+          </dd>
+          <dt>Model (<code>fit_cox</code>, <code>select_alpha</code>)</dt>
+          <dd>
+            A Cox model stratified by project, with its own baseline hazard per
+            project, fit by L-BFGS on the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>n</mi></mrow></math> fitting patients of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math>:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>&#x02113;</mi><mo stretchy="false">&#x00028;</mo><mi>&#x003B2;</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mo>&#x02212;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>n</mi></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>p</mi><mi>:</mi><mspace width="0.167em" /><msub><mi>&#x003B4;</mi><mi>p</mi></msub><mo>&#x0003D;</mo><mn>1</mn></mrow></munder><mrow><mo stretchy="true" fence="true" form="prefix">[</mo><msup><mi>&#x003B2;</mi><mo>&#x022A4;</mo></msup><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>p</mi></msub><mo>&#x02212;</mo><mi>log</mi><msub><mo>&#x02211;</mo><mrow><mi>q</mi><mo>&#x02208;</mo><mi>R</mi><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo stretchy="false">&#x00029;</mo></mrow></msub><msup><mi>e</mi><mrow><msup><mi>&#x003B2;</mi><mo>&#x022A4;</mo></msup><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>q</mi></msub></mrow></msup><mo stretchy="true" fence="true" form="postfix">]</mo></mrow><mo>&#x0002B;</mo><mfrac><mrow><mi>&#x003B1;</mi></mrow><mrow><mn>2</mn></mrow></mfrac><mo fence="false" stretchy="false">&#x02016;</mo><mi>&#x003B2;</mi><msup><mo fence="false" stretchy="false">&#x02016;</mo><mn>2</mn></msup><mo>&#x0002C;</mo><mspace width="2em" /><mi>R</mi><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mo stretchy="false">&#x0007B;</mo><mi>q</mi><mi>:</mi><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>q</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><msub><mi>t</mi><mi>q</mi></msub><mo>&#x02265;</mo><msub><mi>t</mi><mi>p</mi></msub><mo stretchy="false">&#x0007D;</mo><mo>&#x0002C;</mo></mrow></math></div>
+            with Breslow's handling of ties. The penalty
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x003B1;</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mn>1</mn><mo>&#x0002C;</mo><msup><mn>10</mn><mrow><mo>&#x02212;</mo><mn>1</mn></mrow></msup><mo>&#x0002C;</mo><msup><mn>10</mn><mrow><mo>&#x02212;</mo><mn>2</mn></mrow></msup><mo>&#x0002C;</mo><msup><mn>10</mn><mrow><mo>&#x02212;</mo><mn>3</mn></mrow></msup><mo>&#x0002C;</mo><msup><mn>10</mn><mrow><mo>&#x02212;</mo><mn>4</mn></mrow></msup><mo stretchy="false">&#x0007D;</mo></mrow></math> is chosen by 5-fold
+            cross-validation over the fitting patients (shuffled, seed 0): fits run
+            from the strongest penalty down, each warm-started from the last, scored
+            by the within-project C-index pooled over the held-out folds, and the path
+            stops at the first <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x003B1;</mi></mrow></math> that does not improve it. The risk score is
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>r</mi><mi>p</mi></msub><mo>&#x0003D;</mo><msup><mover accent="true"><mi>&#x003B2;</mi><mo>&#x0005E;</mo></mover><mo>&#x022A4;</mo></msup><msub><mover accent="true"><mi>z</mi><mo>&#x0005E;</mo></mover><mi>p</mi></msub></mrow></math>.
+          </dd>
+          <dt>C-index (<code>survival_scores</code>)</dt>
+          <dd>
+            Harrell's C over comparable pairs from the same project and the same fold,
+            since each fold's model has its own risk scale:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><mi>C</mi><mo>&#x0003D;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo>&#x0002C;</mo><mi>q</mi><mo stretchy="false">&#x00029;</mo><mo>&#x02208;</mo><mi>&#x1D4AB;</mi></mrow></msub><mrow><mo stretchy="true" fence="true" form="prefix">[</mo><mrow><mn mathvariant="bold">1</mn></mrow><mo stretchy="false">&#x00028;</mo><msub><mi>r</mi><mi>p</mi></msub><mo>&#x0003E;</mo><msub><mi>r</mi><mi>q</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0002B;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac><mrow><mn mathvariant="bold">1</mn></mrow><mo stretchy="false">&#x00028;</mo><msub><mi>r</mi><mi>p</mi></msub><mo>&#x0003D;</mo><msub><mi>r</mi><mi>q</mi></msub><mo stretchy="false">&#x00029;</mo><mo stretchy="true" fence="true" form="postfix">]</mo></mrow></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><mi>&#x1D4AB;</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><mi>&#x1D4AB;</mi><mo>&#x0003D;</mo><mo stretchy="false">&#x0007B;</mo><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo>&#x0002C;</mo><mi>q</mi><mo stretchy="false">&#x00029;</mo><mi>:</mi><msub><mi>&#x003B4;</mi><mi>p</mi></msub><mo>&#x0003D;</mo><mn>1</mn><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><msub><mi>t</mi><mi>p</mi></msub><mo>&#x0003C;</mo><msub><mi>t</mi><mi>q</mi></msub><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>q</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0002C;</mo><mtext>&#x000A0;</mtext><mi>k</mi><mo stretchy="false">&#x00028;</mo><mi>p</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mi>k</mi><mo stretchy="false">&#x00028;</mo><mi>q</mi><mo stretchy="false">&#x00029;</mo><mo stretchy="false">&#x0007D;</mo><mo>&#x0002E;</mo></mrow></math></div>
+            A project's own C restricts <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>&#x1D4AB;</mi></mrow></math> to its pairs; the macro
+            C-index is the mean of those over projects with at least
+            10 events. Cancer type is constant within every pair, so
+            it contributes nothing, and 0.5 is chance.
+          </dd>
+        </dl>
+        <p>
+          PCA's C-index is 0.626 [0.614, 0.638], from 0.556 at
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mn>4</mn></mrow></math>; HVG's is 0.637. PCA's macro C-index over the
+          32 projects with at least 10 events is
+          0.621. The primary-tumour rule, which TCGA-CDR recommends, leaves out
+          the 366 patients sampled only at metastasis,
+          all of them in SKCM; SKCM keeps 102 scored patients and a
+          C-index of 0.695 [0.578, 0.799]. A metastasis is sampled after diagnosis,
+          so <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>t</mi><mi>p</mi></msub></mrow></math> measured from diagnosis would include time the patient was
+          guaranteed to survive, and for PFI the first progression can precede the
+          sample; <code>shared/EVALS.md</code> quantifies both in SKCM.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">C-index of PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math></p></div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-5000</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-survival"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-survival"></table></div></details>
+        </figure>
+        <p>
+          Per project, with intervals from the same replicates: for PCA,
+          21 of the 32 projects with comparable pairs have an
+          interval wholly above 0.5.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each project's C-index</p>
+            <p class="chart-sub">Sorted by PCA's C-index; the value at right is the project's number of events.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">PCA-256</span>
+            <span class="key dot s2">HVG-5000</span>
+            <span class="key whisker">95% interval</span>
+            <span class="key dash">0.5</span>
+          </div>
+          <div class="plot-box" id="chart-projects"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-projects"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="geometry">
+        <p class="kicker">reimp_shared.eval.geometry</p>
+        <h2>Geometry: 91% of nearest neighbours share the cancer type</h2>
+        <dl class="defs">
+          <dt>Embedding and labels</dt>
+          <dd>
+            Tumour samples, <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>y</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mi>&#x003C0;</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math>. In fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> the embedding is centred,
+            not scaled: <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>u</mi><mi>i</mi></msub><mo>&#x0003D;</mo><msub><mi>z</mi><mi>i</mi></msub><mo>&#x02212;</mo><msub><mi>m</mi><mi>k</mi></msub></mrow></math>, with <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>m</mi><mi>k</mi></msub></mrow></math> the mean over the fitting
+            tumour samples. Similarity is cosine,
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>cos</mi><mo stretchy="false">&#x00028;</mo><msub><mi>u</mi><mi>i</mi></msub><mo>&#x0002C;</mo><msub><mi>u</mi><mi>j</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><msubsup><mi>u</mi><mi>i</mi><mo>&#x022A4;</mo></msubsup><msub><mi>u</mi><mi>j</mi></msub><mo>&#x0002F;</mo><mo stretchy="false">&#x00028;</mo><mo fence="false" stretchy="false">&#x02016;</mo><msub><mi>u</mi><mi>i</mi></msub><mo fence="false" stretchy="false">&#x02016;</mo><mspace width="0.167em" /><mo fence="false" stretchy="false">&#x02016;</mo><msub><mi>u</mi><mi>j</mi></msub><mo fence="false" stretchy="false">&#x02016;</mo><mo stretchy="false">&#x00029;</mo></mrow></math>.
+          </dd>
+          <dt>Precision@<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> (<code>neighbour_precision</code>)</dt>
+          <dd>
+            With <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>N</mi><mi>k</mi></msub><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></math> the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math> fitting tumour samples most similar to test
+            sample <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi></mrow></math>,
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">@</mi></mrow><mi>k</mi><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>k</mi></mrow></mfrac><msub><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><msub><mi>N</mi><mi>k</mi></msub><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></msub><mrow><mn mathvariant="bold">1</mn></mrow><mo stretchy="false">&#x00028;</mo><msub><mi>y</mi><mi>j</mi></msub><mo>&#x0003D;</mo><msub><mi>y</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo></mrow></math>,
+            averaged over test samples, for <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi><mo>&#x02208;</mo><mo stretchy="false">&#x0007B;</mo><mn>1</mn><mo>&#x0002C;</mo><mn>10</mn><mo stretchy="false">&#x0007D;</mo></mrow></math>.
+          </dd>
+          <dt>Clusters (<code>clustering_agreement</code>)</dt>
+          <dd>
+            k-means with as many clusters as projects in <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math>, on
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>u</mi><mi>i</mi></msub><mo>&#x0002F;</mo><mo fence="false" stretchy="false">&#x02016;</mo><msub><mi>u</mi><mi>i</mi></msub><mo fence="false" stretchy="false">&#x02016;</mo></mrow></math> of the fitting samples (<code>sklearn KMeans</code>,
+            <code>n_init="auto"</code>, seed 0); test samples take their nearest
+            centroid <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mover accent="true"><mi>c</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub></mrow></math>.
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mrow><mi mathvariant="normal">N</mi><mi mathvariant="normal">M</mi><mi mathvariant="normal">I</mi></mrow><mo>&#x0003D;</mo><mi>I</mi><mo stretchy="false">&#x00028;</mo><mi>y</mi><mi>;</mi><mover accent="true"><mi>c</mi><mo>&#x0005E;</mo></mover><mo stretchy="false">&#x00029;</mo><mo>&#x0002F;</mo><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><mstyle displaystyle="false" scriptlevel="0"><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac></mstyle><mo stretchy="false">[</mo><mi>H</mi><mo stretchy="false">&#x00028;</mo><mi>y</mi><mo stretchy="false">&#x00029;</mo><mo>&#x0002B;</mo><mi>H</mi><mo stretchy="false">&#x00028;</mo><mover accent="true"><mi>c</mi><mo>&#x0005E;</mo></mover><mo stretchy="false">&#x00029;</mo><mo stretchy="false">]</mo><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow></mrow></math>
+            and the adjusted Rand index over the test samples, per fold, then averaged
+            over folds; neither has an interval, since a replicate's duplicated
+            patients form pairs that agree by construction.
+          </dd>
+          <dt>Silhouette and spectrum (<code>spectrum</code>)</dt>
+          <dd>
+            The cosine silhouette of the project labels among each fold's test
+            samples, averaged over all test samples. With <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003BB;</mi><mn>1</mn></msub><mo>&#x02265;</mo><msub><mi>&#x003BB;</mi><mn>2</mn></msub><mo>&#x02265;</mo><mo>&#x02026;</mo></mrow></math> the eigenvalues of the covariance of fold <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi></mrow></math>'s test
+            embeddings and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003C1;</mi><mi>j</mi></msub><mo>&#x0003D;</mo><msub><mi>&#x003BB;</mi><mi>j</mi></msub><mo>&#x0002F;</mo><msub><mo>&#x02211;</mo><mi>l</mi></msub><msub><mi>&#x003BB;</mi><mi>l</mi></msub></mrow></math>, the effective
+            rank is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>exp</mi><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><mo>&#x02212;</mo><msub><mo>&#x02211;</mo><mi>j</mi></msub><msub><mi>&#x003C1;</mi><mi>j</mi></msub><mi>ln</mi><msub><mi>&#x003C1;</mi><mi>j</mi></msub><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow></mrow></math> and the top share
+            <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>&#x003C1;</mi><mn>1</mn></msub></mrow></math>, each averaged over folds.
+          </dd>
+        </dl>
+        <p>
+          PCA's precision@1 is 91.1%, against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mo>&#x02211;</mo><mi>c</mi></msub><mo stretchy="false">&#x00028;</mo><msub><mi>n</mi><mi>c</mi></msub><mo>&#x0002F;</mo><mi>n</mi><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup><mo>&#x0003D;</mo></mrow></math>
+          4.5%; NMI 0.806, ARI 0.641. PCA-256's effective rank is
+          45.2 and its first component's share 15%: principal
+          components are ordered by variance, so a few dominate the spectrum.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Geometry scores of PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math></p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-5000</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-geometry"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-geometry"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="confounders">
+        <p class="kicker">reimp_shared.eval.confounders · reimp_shared.labels.technical_covariates</p>
+        <h2>Confounders: technical covariates within projects</h2>
+        <dl class="defs">
+          <dt>Covariates</dt>
+          <dd>
+            With <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>N</mi><mi>i</mi></msub></mrow></math> the library's total reads — the unstranded counts over all
+            60,660 genes plus STAR's unmapped, multimapping, no-feature and
+            ambiguous tallies — and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>c</mi><mrow><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></msup><mo>&#x0002C;</mo><msup><mi>c</mi><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo stretchy="false">&#x00029;</mo></mrow></msup></mrow></math> the first- and second-strand
+            counts:
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msubsup><mi>q</mi><mi>i</mi><mrow><mtext>reads</mtext></mrow></msubsup><mo>&#x0003D;</mo><msub><mi>log</mi><mrow><mn>10</mn></mrow></msub><msub><mi>N</mi><mi>i</mi></msub><mo>&#x0002C;</mo><mspace width="2em" /><msubsup><mi>q</mi><mi>i</mi><mrow><mtext>assigned</mtext></mrow></msubsup><mo>&#x0003D;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mrow><mi>g</mi></mrow></msub><msub><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow></msub></mrow><mrow><msub><mi>N</mi><mi>i</mi></msub></mrow></mfrac><mo>&#x0002C;</mo><mspace width="2em" /><msubsup><mi>q</mi><mi>i</mi><mrow><mtext>strand</mtext></mrow></msubsup><mo>&#x0003D;</mo><mfrac><mrow><msub><mo>&#x02211;</mo><mi>g</mi></msub><msubsup><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow><mrow><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></msubsup></mrow><mrow><msub><mo>&#x02211;</mo><mi>g</mi></msub><mrow><mo stretchy="true" fence="true" form="prefix">&#x00028;</mo><msubsup><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow><mrow><mo stretchy="false">&#x00028;</mo><mn>1</mn><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo>&#x0002B;</mo><msubsup><mi>c</mi><mrow><mi>i</mi><mi>g</mi></mrow><mrow><mo stretchy="false">&#x00028;</mo><mn>2</mn><mo stretchy="false">&#x00029;</mo></mrow></msubsup><mo stretchy="true" fence="true" form="postfix">&#x00029;</mo></mrow></mrow></mfrac><mo>&#x0002C;</mo></mrow></math></div>
+            each sum over all genes. The batches are the sequencing plate, the sixth
+            field of the aliquot barcode, and the tissue source site, the second.
+          </dd>
+          <dt>Covariate <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> (<code>within_project_r2</code>)</dt>
+          <dd>
+            On tumour samples, covariate and embedding are centred on their project's
+            mean over <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math> as for pathways, the embedding standardized, and a ridge
+            regression fit per covariate. <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup><mo>&#x0003D;</mo><mn>1</mn><mo>&#x02212;</mo><msub><mo>&#x02211;</mo><mi>i</mi></msub><mo stretchy="false">&#x00028;</mo><msub><mover><mi>q</mi><mo stretchy="false">&#x0007E;</mo></mover><mi>i</mi></msub><mo>&#x02212;</mo><msub><mover accent="true"><mi>q</mi><mo>&#x0005E;</mo></mover><mi>i</mi></msub><msup><mo stretchy="false">&#x00029;</mo><mn>2</mn></msup><mo>&#x0002F;</mo><msub><mo>&#x02211;</mo><mi>i</mi></msub><msubsup><mover><mi>q</mi><mo stretchy="false">&#x0007E;</mo></mover><mi>i</mi><mn>2</mn></msubsup></mrow></math> over the test samples: 0 means the
+            embedding predicts nothing about the covariate beyond the project.
+          </dd>
+          <dt>Batch enrichment (<code>batch_enrichment</code>)</dt>
+          <dd>
+            With <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>R</mi><mi>i</mi></msub></mrow></math> the fitting tumour samples of <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>i</mi></mrow></math>'s project with a known
+            batch, and <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>N</mi><mi>k</mi></msub><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo><mo>&#x02282;</mo><msub><mi>R</mi><mi>i</mi></msub></mrow></math> the <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>k</mi><mo>&#x0003D;</mo><mn>10</mn></mrow></math> most
+            similar by cosine on the project-centred embedding,
+            <div class="eq"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><mrow><msub><mi>e</mi><mi>i</mi></msub><mo>&#x0003D;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mi>k</mi></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><msub><mi>N</mi><mi>k</mi></msub><mo stretchy="false">&#x00028;</mo><mi>i</mi><mo stretchy="false">&#x00029;</mo></mrow></munder><mrow><mn mathvariant="bold">1</mn></mrow><mo stretchy="false">&#x00028;</mo><msub><mi>b</mi><mi>j</mi></msub><mo>&#x0003D;</mo><msub><mi>b</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x02212;</mo><mfrac><mrow><mn>1</mn></mrow><mrow><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msub><mi>R</mi><mi>i</mi></msub><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></mfrac><munder><mo>&#x02211;</mo><mrow><mi>j</mi><mo>&#x02208;</mo><msub><mi>R</mi><mi>i</mi></msub></mrow></munder><mrow><mn mathvariant="bold">1</mn></mrow><mo stretchy="false">&#x00028;</mo><msub><mi>b</mi><mi>j</mi></msub><mo>&#x0003D;</mo><msub><mi>b</mi><mi>i</mi></msub><mo stretchy="false">&#x00029;</mo><mo>&#x0002C;</mo></mrow></math></div>
+            averaged over test samples: how much more often a sample's neighbours
+            share its batch than its project's samples do.
+          </dd>
+        </dl>
+        <p>
+          Lower is more invariant, though not all of it is artefact: sites differ in
+          their patients, and plates in when and from where samples arrived. PCA's
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>q</mi><mrow><mtext>strand</mtext></mrow></msup></mrow></math> <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> is 0.078 at <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mn>4</mn></mrow></math>,
+          0.865 at <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi><mo>&#x0003D;</mo><mn>256</mn></mrow></math>, and 0.898 for HVG; its
+          <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>q</mi><mrow><mtext>reads</mtext></mrow></msup></mrow></math> <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>R</mi><mn>2</mn></msup></mrow></math> is 0.062 and 0.218. PCA's plate
+          enrichment is 7.4 percentage points and its site enrichment
+          5.9.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Confounder scores of PCA-<math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math> against <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><mi>d</mi></mrow></math></p></div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-5000</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-confounders"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-confounders"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="folds">
+        <p class="kicker">reimp_shared.eval.protocol</p>
+        <h2>One fold alone: up to 0.054 from the pooled score</h2>
+        <p>
+          A single fold is an ordinary train / validation / test split: its probes fit
+          on <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>F</mi><mi>k</mi></msub></mrow></math> and score only <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mi>E</mi><mi>k</mi></msub></mrow></math>, a fifth of the patients
+          (<code>reimp-shared probe out/pca256/fold&lt;k&gt;.parquet</code>). The
+          five single-fold scores <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>s</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msup></mrow></math> of PCA-256 differ from the pooled
+          score by up to 0.054 (strand balance R², fold 1), and
+          31 of 100 fall outside the pooled score's 95%
+          interval. Pooling uses every test patient and every project's full count of
+          events.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title"><math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msup><mi>s</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msup></mrow></math> minus the pooled score</p>
+            <p class="chart-sub">The band is the pooled score's 95% interval, centred the same way; the value at right is <math xmlns="http://www.w3.org/1998/Math/MathML" display="inline"><mrow><msub><mo>max</mo><mi>k</mi></msub><mrow><mo stretchy="true" fence="true" form="prefix">&#x0007C;</mo><msup><mi>s</mi><mrow><mo stretchy="false">&#x00028;</mo><mi>k</mi><mo stretchy="false">&#x00029;</mo></mrow></msup><mo>&#x02212;</mo><mi>s</mi><mo stretchy="true" fence="true" form="postfix">&#x0007C;</mo></mrow></mrow></math>.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">one fold</span>
+            <span class="key band">pooled 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-folds"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-folds"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="redraw">
+        <p class="kicker">reimp_shared.splits · reimp-shared --salt</p>
+        <h2>Folds drawn again</h2>
+        <p>
+          The bootstrap resamples patients under one fold assignment. To measure the
+          variation it leaves out, the assignment is redrawn with the same rule under
+          4 other salts (reimp-alt-1, reimp-alt-2, reimp-alt-3 and reimp-alt-4), and PCA-256 is refit and rescored
+          under each. For every score with an interval, the ratio of its standard
+          deviation over the 5 assignments to the half-width of its
+          original interval has median 0.17; the largest change is
+          0.014 (k-means ARI), and 0 of
+          80 redrawn scores fall outside the original interval. Gross et
+          al. (2024) show that a lead on one split often fails to hold on another; a
+          difference between two embeddings no larger than this spread should be
+          read as a tie.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each redrawn assignment's score minus the original</p>
+            <p class="chart-sub">The band is the original score's 95% interval, centred the same way; the value at right is the largest distance of any redraw.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">another salt</span>
+            <span class="key band">original 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-redraw"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-redraw"></table></div></details>
+        </figure>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>
+      Built by <code>reports/build/baselines.py</code> from <code>gabrielaltay/tcga-gene-expression-quantification-open@19785a6cc4575cce4c66514e424981dd184b1d9c</code> and
+      labels from <code>gabrielaltay/tcga-patients-open@0df7bb0039c83ae1308509c7fdf2a155ba56984e</code>; split salt <code>reimp-v1</code>, redrawn
+      under reimp-alt-1, reimp-alt-2, reimp-alt-3 and reimp-alt-4; 1,000 bootstrap replicates; Hallmark pathways.
+    </p>
+    <p>
+      Rebuild: <code>uv run python reports/build/baselines.py</code>. It fits and scores
+      whatever baseline is missing or stale under <code>out/</code> first (about 12
+      minutes from nothing), and <code>--rerun</code> recomputes all of them.
+    </p>
+  </footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+<script id="report-data" type="application/json">{"dims":[4,16,64,256],"head":256,"hvg_genes":5000,"level":0.01,"groups":[{"id":"classification","title":"Cancer type","note":""},{"id":"expression","title":"Expression","note":""},{"id":"survival","title":"Survival","note":""},{"id":"geometry","title":"Geometry","note":""},{"id":"confounders","title":"Confounders","note":"lower is more invariant"}],"metrics":[{"group":"classification","table":"classification","column":"balanced_accuracy","task":"project_id","label":"cancer type, 33 projects","scorecard":true,"constant":0.030303030303030304,"constant_note":"chance, 1 / 33: a constant guess recalls one class","value":0.9292561111658877,"lo":0.921485536760302,"hi":0.9362481333488677,"hvg":{"value":0.938090056306559,"lo":0.9311405430662806,"hi":0.9449710058316289},"delta":{"value":0.008833945140671262,"lo":0.003466098529513807,"hi":0.015002665905001197,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.5037498961665802,"lo":0.49429709018181517,"hi":0.5128141903557202},{"dim":16,"value":0.868477369661319,"lo":0.8598264921810138,"hi":0.8777485503687541},{"dim":64,"value":0.9138292728279822,"lo":0.9068166186881089,"hi":0.9214217717191877},{"dim":256,"value":0.9292561111658877,"lo":0.921485536760302,"hi":0.9362481333488677}],"folds":[{"label":"fold 0","value":0.9214609424406559},{"label":"fold 1","value":0.9257882554892525},{"label":"fold 2","value":0.9302641785107787},{"label":"fold 3","value":0.931902201931449},{"label":"fold 4","value":0.9385011198260569}],"salts":[{"label":"salt reimp-alt-1","value":0.9254061528163905},{"label":"salt reimp-alt-2","value":0.9291842592555648},{"label":"salt reimp-alt-3","value":0.9299105210170732},{"label":"salt reimp-alt-4","value":0.9297509553779201}]},{"group":"classification","table":"classification","column":"balanced_accuracy","task":"tumor_vs_normal","label":"tumour vs normal","scorecard":true,"constant":0.5,"constant_note":"chance, 1 / 2: a constant guess recalls one class","value":0.958746124201303,"lo":0.9483292014805216,"hi":0.9679503203513947,"hvg":{"value":0.9671793600381617,"lo":0.9585373808659788,"hi":0.975487783797863},"delta":{"value":0.008433235836858732,"lo":0.0017197959729475572,"hi":0.015914866961351932,"share_above":0.993},"levelled_at":64,"sweep":[{"dim":4,"value":0.5297805701660787,"lo":0.5214212877827434,"hi":0.5377948834738986},{"dim":16,"value":0.7821713259938992,"lo":0.7649382216589528,"hi":0.8009756185122244},{"dim":64,"value":0.9539909742533987,"lo":0.9436378935814554,"hi":0.9636549336455958},{"dim":256,"value":0.958746124201303,"lo":0.9483292014805216,"hi":0.9679503203513947}],"folds":[{"label":"fold 0","value":0.9441040711961215},{"label":"fold 1","value":0.9700133347317321},{"label":"fold 2","value":0.9542260208926876},{"label":"fold 3","value":0.9568251236386147},{"label":"fold 4","value":0.9675651789659744}],"salts":[{"label":"salt reimp-alt-1","value":0.9580704485256273},{"label":"salt reimp-alt-2","value":0.9621709493980743},{"label":"salt reimp-alt-3","value":0.9618668482695422},{"label":"salt reimp-alt-4","value":0.9590248051116607}]},{"group":"classification","table":"classification","column":"balanced_accuracy","task":"lung","label":"lung: LUAD / LUSC","scorecard":true,"constant":0.5,"constant_note":"chance, 1 / 2: a constant guess recalls one class","value":0.9474151688679313,"lo":0.9337541962361203,"hi":0.9606399713532847,"hvg":{"value":0.9500707678309659,"lo":0.9365799265450592,"hi":0.9632841395637268},"delta":{"value":0.0026555989630345778,"lo":-0.00798904824997781,"hi":0.014113725561363422,"share_above":0.685},"levelled_at":16,"sweep":[{"dim":4,"value":0.9191802485539533,"lo":0.9013007167271664,"hi":0.9355301658404787},{"dim":16,"value":0.9471913114434471,"lo":0.9333127300146089,"hi":0.9604033017281304},{"dim":64,"value":0.9482257493807815,"lo":0.934492174386287,"hi":0.9615196839592458},{"dim":256,"value":0.9474151688679313,"lo":0.9337541962361203,"hi":0.9606399713532847}],"folds":[{"label":"fold 0","value":0.9439586645468998},{"label":"fold 1","value":0.945949594959496},{"label":"fold 2","value":0.9343915343915343},{"label":"fold 3","value":0.9604761904761905},{"label":"fold 4","value":0.9523552678892484}],"salts":[{"label":"salt reimp-alt-1","value":0.93905662148598},{"label":"salt reimp-alt-2","value":0.9474711332240524},{"label":"salt reimp-alt-3","value":0.9504625183238133},{"label":"salt reimp-alt-4","value":0.9495400090987212}]},{"group":"classification","table":"classification","column":"balanced_accuracy","task":"kidney","label":"kidney: KICH / KIRC / KIRP","scorecard":true,"constant":0.3333333333333333,"constant_note":"chance, 1 / 3: a constant guess recalls one class","value":0.946117891356983,"lo":0.9239193975080147,"hi":0.9650621683141191,"hvg":{"value":0.9403451719615603,"lo":0.915548633036349,"hi":0.9617774492585384},"delta":{"value":-0.005772719395422676,"lo":-0.022670126668941405,"hi":0.007026825312899273,"share_above":0.234},"levelled_at":256,"sweep":[{"dim":4,"value":0.747954302410878,"lo":0.7027427721145826,"hi":0.7911633175432051},{"dim":16,"value":0.9224567737711116,"lo":0.8909559109627622,"hi":0.9486124403063273},{"dim":64,"value":0.9200194204378782,"lo":0.891987550545891,"hi":0.9451039833097539},{"dim":256,"value":0.946117891356983,"lo":0.9239193975080147,"hi":0.9650621683141191}],"folds":[{"label":"fold 0","value":0.9215275918850737},{"label":"fold 1","value":0.988060974309775},{"label":"fold 2","value":0.9501155506902633},{"label":"fold 3","value":0.9381651766709238},{"label":"fold 4","value":0.9333524505938299}],"salts":[{"label":"salt reimp-alt-1","value":0.9371623566282524},{"label":"salt reimp-alt-2","value":0.9405987827450909},{"label":"salt reimp-alt-3","value":0.9442042827176161},{"label":"salt reimp-alt-4","value":0.9479402385401547}]},{"group":"classification","table":"classification","column":"balanced_accuracy","task":"colorectal","label":"colorectal: COAD / READ","scorecard":true,"constant":0.5,"constant_note":"chance, 1 / 2: a constant guess recalls one class","value":0.6522297020865102,"lo":0.6132694004139331,"hi":0.6943793235547877,"hvg":{"value":0.7300120256381646,"lo":0.6917312747765907,"hi":0.7701368716403771},"delta":{"value":0.07778232355165438,"lo":0.029074342213510313,"hi":0.12737335006852993,"share_above":0.999},"levelled_at":256,"sweep":[{"dim":4,"value":0.4979296066252588,"lo":0.49472433267658095,"hi":0.5},{"dim":16,"value":0.5103829607865016,"lo":0.49315552595777856,"hi":0.5299709678533978},{"dim":64,"value":0.5538426253083895,"lo":0.5219205109336283,"hi":0.5878205331688269},{"dim":256,"value":0.6522297020865102,"lo":0.6132694004139331,"hi":0.6943793235547877}],"folds":[{"label":"fold 0","value":0.6941176470588235},{"label":"fold 1","value":0.6346153846153846},{"label":"fold 2","value":0.6428571428571428},{"label":"fold 3","value":0.6485906862745098},{"label":"fold 4","value":0.6404824948514269}],"salts":[{"label":"salt reimp-alt-1","value":0.6507171991420885},{"label":"salt reimp-alt-2","value":0.6480579214242322},{"label":"salt reimp-alt-3","value":0.6565936450081205},{"label":"salt reimp-alt-4","value":0.6395531917531396}]},{"group":"classification","table":"classification","column":"balanced_accuracy","task":"glioma","label":"glioma: GBM / LGG","scorecard":true,"constant":0.5,"constant_note":"chance, 1 / 2: a constant guess recalls one class","value":0.9856736721585064,"lo":0.9773319739370949,"hi":0.9926345165453222,"hvg":{"value":0.9869690089460712,"lo":0.9790089515358289,"hi":0.99370244492948},"delta":{"value":0.0012953367875647714,"lo":-0.005195923643076568,"hi":0.007665356846555712,"share_above":0.643},"levelled_at":64,"sweep":[{"dim":4,"value":0.8870437212551667,"lo":0.8650189465614443,"hi":0.9071710544294567},{"dim":16,"value":0.936577011895752,"lo":0.91883754722305,"hi":0.9528796944956391},{"dim":64,"value":0.9836603209718422,"lo":0.9746831731879598,"hi":0.9918336090233968},{"dim":256,"value":0.9856736721585064,"lo":0.9773319739370949,"hi":0.9926345165453222}],"folds":[{"label":"fold 0","value":0.974012474012474},{"label":"fold 1","value":0.9871794871794872},{"label":"fold 2","value":0.990909090909091},{"label":"fold 3","value":0.993421052631579},{"label":"fold 4","value":0.983322177599286}],"salts":[{"label":"salt reimp-alt-1","value":0.9856736721585064},{"label":"salt reimp-alt-2","value":0.9853146649589568},{"label":"salt reimp-alt-3","value":0.9791969882206827},{"label":"salt reimp-alt-4","value":0.9843783353709418}]},{"group":"expression","table":"invertibility","column":"r2_pooled","task":null,"label":"expression R\u00b2, pooled over genes","scorecard":true,"constant":0.0,"constant_note":"each gene's training mean","value":0.8381491326519932,"lo":0.8364196485044054,"hi":0.8398447369056624,"hvg":{"value":0.9287158583235179,"lo":0.9278777896222045,"hi":0.9295472514886169},"delta":{"value":0.09056672567152468,"lo":0.08965686383091281,"hi":0.0914629173340631,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.3091312437797724,"lo":0.3047813697502586,"hi":0.31355448385954005},{"dim":16,"value":0.5824354242871009,"lo":0.5786373942505905,"hi":0.5859765245007905},{"dim":64,"value":0.7450569460620653,"lo":0.7425228599856273,"hi":0.747462475544128},{"dim":256,"value":0.8381491326519932,"lo":0.8364196485044054,"hi":0.8398447369056624}],"folds":[{"label":"fold 0","value":0.8375970458889483},{"label":"fold 1","value":0.8367941610276499},{"label":"fold 2","value":0.8374935102053886},{"label":"fold 3","value":0.8407384213348649},{"label":"fold 4","value":0.8379578605109919}],"salts":[{"label":"salt reimp-alt-1","value":0.83814686905713},{"label":"salt reimp-alt-2","value":0.8380866075397998},{"label":"salt reimp-alt-3","value":0.8381242968268932},{"label":"salt reimp-alt-4","value":0.8381744678888254}]},{"group":"expression","table":"invertibility","column":"r2_gene","task":null,"label":"expression R\u00b2, per gene","scorecard":true,"constant":0.0,"constant_note":"each gene's training mean","value":0.7150712175013829,"lo":null,"hi":null,"hvg":{"value":0.7008394224828919,"lo":null,"hi":null},"delta":null,"levelled_at":256,"sweep":[{"dim":4,"value":0.2332134346410675,"lo":null,"hi":null},{"dim":16,"value":0.4537780471503274,"lo":null,"hi":null},{"dim":64,"value":0.616677772027403,"lo":null,"hi":null},{"dim":256,"value":0.7150712175013829,"lo":null,"hi":null}],"folds":[{"label":"fold 0","value":0.7039695740307503},{"label":"fold 1","value":0.7070692405592592},{"label":"fold 2","value":0.7066698262270638},{"label":"fold 3","value":0.7149293351080441},{"label":"fold 4","value":0.7109467703480972}],"salts":[{"label":"salt reimp-alt-1","value":0.7149373221446641},{"label":"salt reimp-alt-2","value":0.7148680409438236},{"label":"salt reimp-alt-3","value":0.7149810690560565},{"label":"salt reimp-alt-4","value":0.7152146191479993}]},{"group":"expression","table":"invertibility","column":"pearson_sample","task":null,"label":"per-sample Pearson","scorecard":true,"constant":0.8873771031067876,"constant_note":"the training mean profile for every sample","value":0.982277546977386,"lo":0.982125360922146,"hi":0.9824337371679498,"hvg":{"value":0.9922738083750658,"lo":0.9921947058512334,"hi":0.9923573184540807},"delta":{"value":0.00999626139767984,"lo":0.009922260109726664,"hi":0.010073738246249162,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.9225347599426575,"lo":0.9220362663611851,"hi":0.9230256308511872},{"dim":16,"value":0.9536241235136058,"lo":0.9532710720757678,"hi":0.9539690745116581},{"dim":64,"value":0.9719034047364392,"lo":0.9716797792849169,"hi":0.9721393228787972},{"dim":256,"value":0.982277546977386,"lo":0.982125360922146,"hi":0.9824337371679498}],"folds":[{"label":"fold 0","value":0.9823011604884833},{"label":"fold 1","value":0.9821359249696413},{"label":"fold 2","value":0.9821562586865547},{"label":"fold 3","value":0.9824987769730003},{"label":"fold 4","value":0.9822980603827891}],"salts":[{"label":"salt reimp-alt-1","value":0.9822772511454143},{"label":"salt reimp-alt-2","value":0.9822698653867243},{"label":"salt reimp-alt-3","value":0.9822737310178896},{"label":"salt reimp-alt-4","value":0.9822800585535739}]},{"group":"expression","table":"pathways","column":"r2_pooled","task":null,"label":"pathway R\u00b2, pooled","scorecard":true,"constant":0.0,"constant_note":"each project's training mean","value":0.9304182400701541,"lo":0.9293165016874964,"hi":0.9315612308292021,"hvg":{"value":0.9655659934651605,"lo":0.9649957766840443,"hi":0.9661223081503735},"delta":{"value":0.03514775339500642,"lo":0.0344823515692875,"hi":0.03580800996884282,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.4800398638854525,"lo":0.47231495354365177,"hi":0.4876596428409796},{"dim":16,"value":0.7395916625316162,"lo":0.7357940312294772,"hi":0.7432290881541774},{"dim":64,"value":0.8777972463812733,"lo":0.87601020681904,"hi":0.8795965539635519},{"dim":256,"value":0.9304182400701541,"lo":0.9293165016874964,"hi":0.9315612308292021}],"folds":[{"label":"fold 0","value":0.9334583007097426},{"label":"fold 1","value":0.9277772542360753},{"label":"fold 2","value":0.9287741453892088},{"label":"fold 3","value":0.9326077828741219},{"label":"fold 4","value":0.9292857218841017}],"salts":[{"label":"salt reimp-alt-1","value":0.9304399454241574},{"label":"salt reimp-alt-2","value":0.9302001792756914},{"label":"salt reimp-alt-3","value":0.9305001428960391},{"label":"salt reimp-alt-4","value":0.9303627900287446}]},{"group":"expression","table":"pathways","column":"r2_pathway","task":null,"label":"pathway R\u00b2, per pathway","scorecard":true,"constant":0.0,"constant_note":"each project's training mean","value":0.9040572904731481,"lo":0.9025719181491217,"hi":0.9055067854505117,"hvg":{"value":0.9513197617077642,"lo":0.9505824902067327,"hi":0.9521125645072377},"delta":{"value":0.04726247123461613,"lo":0.046325200439449855,"hi":0.048147554451318034,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.42055266818397696,"lo":0.4146087030009243,"hi":0.4262312012115572},{"dim":16,"value":0.6856686247996379,"lo":0.6817476415980954,"hi":0.6893112507374238},{"dim":64,"value":0.8318794376134631,"lo":0.8296199330909342,"hi":0.8343321795291531},{"dim":256,"value":0.9040572904731481,"lo":0.9025719181491217,"hi":0.9055067854505117}],"folds":[{"label":"fold 0","value":0.907450795612516},{"label":"fold 1","value":0.901523894721612},{"label":"fold 2","value":0.9024454774429936},{"label":"fold 3","value":0.9057590944443422},{"label":"fold 4","value":0.9026471232292276}],"salts":[{"label":"salt reimp-alt-1","value":0.9042411007280959},{"label":"salt reimp-alt-2","value":0.9039266674196237},{"label":"salt reimp-alt-3","value":0.9041959973133368},{"label":"salt reimp-alt-4","value":0.9039248737505993}]},{"group":"survival","table":"survival","column":"c_index","task":null,"label":"C-index, pairs pooled","scorecard":true,"constant":0.5,"constant_note":"within a project, cancer type ranks no one","value":0.6257606490872211,"lo":0.6140374871008744,"hi":0.6379977394930375,"hvg":{"value":0.6368005581323238,"lo":0.6239922340735445,"hi":0.6491409405004808},"delta":{"value":0.01103990904510277,"lo":0.003645979746554055,"hi":0.018248753005321135,"share_above":0.997},"levelled_at":256,"sweep":[{"dim":4,"value":0.5563364814408083,"lo":0.544050690911294,"hi":0.5684617025474777},{"dim":16,"value":0.5787974315577318,"lo":0.566294431086798,"hi":0.5907957610456679},{"dim":64,"value":0.609772483559644,"lo":0.596912598822303,"hi":0.6219338328286891},{"dim":256,"value":0.6257606490872211,"lo":0.6140374871008744,"hi":0.6379977394930375}],"folds":[{"label":"fold 0","value":0.6248750794948669},{"label":"fold 1","value":0.6352651739279375},{"label":"fold 2","value":0.6185223523322766},{"label":"fold 3","value":0.6211694437845726},{"label":"fold 4","value":0.6285977670797911}],"salts":[{"label":"salt reimp-alt-1","value":0.6248275506388685},{"label":"salt reimp-alt-2","value":0.6319332395347936},{"label":"salt reimp-alt-3","value":0.6291647605363367},{"label":"salt reimp-alt-4","value":0.6286656512984666}]},{"group":"survival","table":"survival","column":"c_index_macro","task":null,"label":"C-index, mean over projects","scorecard":true,"constant":0.5,"constant_note":"within a project, cancer type ranks no one","value":0.6209573687358299,"lo":0.6014370558605578,"hi":0.6422594872251446,"hvg":{"value":0.6359425467269746,"lo":0.6173393398037996,"hi":0.655016892214531},"delta":{"value":0.014985177991144738,"lo":-1.0372956795806604e-05,"hi":0.029667665271035044,"share_above":0.974},"levelled_at":64,"sweep":[{"dim":4,"value":0.5655040991607662,"lo":0.5437783607854961,"hi":0.5852370316546563},{"dim":16,"value":0.592899517247697,"lo":0.5741120940362437,"hi":0.6113680922309087},{"dim":64,"value":0.6120413924191357,"lo":0.5924228853124507,"hi":0.6316090113370015},{"dim":256,"value":0.6209573687358299,"lo":0.6014370558605578,"hi":0.6422594872251446}],"folds":[{"label":"fold 0","value":0.6324562035191091},{"label":"fold 1","value":0.6387790554833479},{"label":"fold 2","value":0.6102908814876913},{"label":"fold 3","value":0.6339393242026687},{"label":"fold 4","value":0.6157964841255743}],"salts":[{"label":"salt reimp-alt-1","value":0.6315528407098481},{"label":"salt reimp-alt-2","value":0.6335864115742311},{"label":"salt reimp-alt-3","value":0.6269692607690348},{"label":"salt reimp-alt-4","value":0.6194625231815534}]},{"group":"geometry","table":"geometry","column":"precision_at_1","task":null,"label":"precision@1","scorecard":true,"constant":0.045039986762764626,"constant_note":"a random training sample shares the cancer type","value":0.9113794705062703,"lo":0.9058374641316747,"hi":0.9169139465875371,"hvg":{"value":0.9098931723176963,"lo":0.9045495589492867,"hi":0.9152528217789909},"delta":{"value":-0.0014862981885740423,"lo":-0.005012147547967932,"hi":0.0019508253381908785,"share_above":0.198},"levelled_at":64,"sweep":[{"dim":4,"value":0.5119368323269856,"lo":0.5021336651777911,"hi":0.521599980598598},{"dim":16,"value":0.8663260566651184,"lo":0.8597304084937798,"hi":0.8727852240501149},{"dim":64,"value":0.9048769159312587,"lo":0.899458960811849,"hi":0.9104507420834836},{"dim":256,"value":0.9113794705062703,"lo":0.9058374641316747,"hi":0.9169139465875371}],"folds":[{"label":"fold 0","value":0.9125987912598791},{"label":"fold 1","value":0.917789131444496},{"label":"fold 2","value":0.9081585081585082},{"label":"fold 3","value":0.9123951537744641},{"label":"fold 4","value":0.9059907834101383}],"salts":[{"label":"salt reimp-alt-1","value":0.9121226196005574},{"label":"salt reimp-alt-2","value":0.9105434277751974},{"label":"salt reimp-alt-3","value":0.9148165350673478},{"label":"salt reimp-alt-4","value":0.9128657686948444}]},{"group":"geometry","table":"geometry","column":"precision_at_10","task":null,"label":"precision@10","scorecard":true,"constant":0.045039986762764626,"constant_note":"a random training sample shares the cancer type","value":0.883947979563388,"lo":0.8796043636782498,"hi":0.8882487032417709,"hvg":{"value":0.8781142591732353,"lo":0.8733012762423986,"hi":0.8824741168711894},"delta":{"value":-0.00583372039015273,"lo":-0.007122312013550814,"hi":-0.004528097823205355,"share_above":0.0},"levelled_at":64,"sweep":[{"dim":4,"value":0.5055085926614034,"lo":0.4987366377354465,"hi":0.5124142401109326},{"dim":16,"value":0.8243288434742122,"lo":0.8192256717247162,"hi":0.8294078034067635},{"dim":64,"value":0.8790060380863782,"lo":0.8743026221603207,"hi":0.8834171592706},{"dim":256,"value":0.883947979563388,"lo":0.8796043636782498,"hi":0.8882487032417709}],"folds":[{"label":"fold 0","value":0.8786610878661097},{"label":"fold 1","value":0.893218764514632},{"label":"fold 2","value":0.8822843822843844},{"label":"fold 3","value":0.8865330848089481},{"label":"fold 4","value":0.8790783410138268}],"salts":[{"label":"salt reimp-alt-1","value":0.8839944263817819},{"label":"salt reimp-alt-2","value":0.8836971667440675},{"label":"salt reimp-alt-3","value":0.8845610775661742},{"label":"salt reimp-alt-4","value":0.8836228518346403}]},{"group":"geometry","table":"geometry","column":"nmi","task":null,"label":"k-means NMI","scorecard":true,"constant":null,"constant_note":"","value":0.8059793545570105,"lo":null,"hi":null,"hvg":{"value":0.8046681919387828,"lo":null,"hi":null},"delta":null,"levelled_at":64,"sweep":[{"dim":4,"value":0.5472748237208643,"lo":null,"hi":null},{"dim":16,"value":0.7451178640379806,"lo":null,"hi":null},{"dim":64,"value":0.8098643766465564,"lo":null,"hi":null},{"dim":256,"value":0.8059793545570105,"lo":null,"hi":null}],"folds":[{"label":"fold 0","value":0.8090452291166816},{"label":"fold 1","value":0.8151495428908542},{"label":"fold 2","value":0.8021601307655891},{"label":"fold 3","value":0.8105770263873021},{"label":"fold 4","value":0.7929648436246262}],"salts":[{"label":"salt reimp-alt-1","value":0.8054313105297984},{"label":"salt reimp-alt-2","value":0.8061896195520324},{"label":"salt reimp-alt-3","value":0.8068564073567241},{"label":"salt reimp-alt-4","value":0.798644235099724}]},{"group":"geometry","table":"geometry","column":"ari","task":null,"label":"k-means ARI","scorecard":true,"constant":0.0,"constant_note":"clusters that ignore cancer type","value":0.6409354738578865,"lo":null,"hi":null,"hvg":{"value":0.6341598405414757,"lo":null,"hi":null},"delta":null,"levelled_at":256,"sweep":[{"dim":4,"value":0.29763665014783175,"lo":null,"hi":null},{"dim":16,"value":0.5446579168949593,"lo":null,"hi":null},{"dim":64,"value":0.6627023863398224,"lo":null,"hi":null},{"dim":256,"value":0.6409354738578865,"lo":null,"hi":null}],"folds":[{"label":"fold 0","value":0.6328936976157928},{"label":"fold 1","value":0.6503063145533499},{"label":"fold 2","value":0.6428038938023231},{"label":"fold 3","value":0.6780511561728709},{"label":"fold 4","value":0.6006223071450959}],"salts":[{"label":"salt reimp-alt-1","value":0.6476462817711023},{"label":"salt reimp-alt-2","value":0.6422903839351761},{"label":"salt reimp-alt-3","value":0.6271218576726071},{"label":"salt reimp-alt-4","value":0.627089035701594}]},{"group":"geometry","table":"geometry","column":"silhouette","task":null,"label":"silhouette","scorecard":true,"constant":null,"constant_note":"","value":0.2753170401713945,"lo":0.2695974064446529,"hi":0.28071391045944016,"hvg":{"value":0.22156009896991183,"lo":0.21650184401291683,"hi":0.22640078566606125},"delta":{"value":-0.053756941201482694,"lo":-0.05476767024793052,"hi":-0.05277740589453635,"share_above":0.0},"levelled_at":256,"sweep":[{"dim":4,"value":-0.041481596865532565,"lo":-0.050292230375543506,"hi":-0.03262135229782957},{"dim":16,"value":0.2598044723421283,"lo":0.25233043182661263,"hi":0.2669970701176639},{"dim":64,"value":0.31857547061615976,"lo":0.3122699758933368,"hi":0.32461124322293283},{"dim":256,"value":0.2753170401713945,"lo":0.2695974064446529,"hi":0.28071391045944016}],"folds":[{"label":"fold 0","value":0.27035934464722083},{"label":"fold 1","value":0.2933461860043046},{"label":"fold 2","value":0.2803331699075925},{"label":"fold 3","value":0.2697952261119671},{"label":"fold 4","value":0.2628458267067074}],"salts":[{"label":"salt reimp-alt-1","value":0.2761548807017597},{"label":"salt reimp-alt-2","value":0.27529066064797886},{"label":"salt reimp-alt-3","value":0.2755854054828189},{"label":"salt reimp-alt-4","value":0.2756403056090373}]},{"group":"geometry","table":"geometry","column":"effective_rank","task":null,"label":"effective rank","scorecard":false,"constant":null,"constant_note":"","value":45.170301818847655,"lo":null,"hi":null,"hvg":{"value":107.32287292480468,"lo":null,"hi":null},"delta":null,"levelled_at":256,"sweep":[{"dim":4,"value":3.743496322631836,"lo":null,"hi":null},{"dim":16,"value":12.422863960266113,"lo":null,"hi":null},{"dim":64,"value":26.30764389038086,"lo":null,"hi":null},{"dim":256,"value":45.170301818847655,"lo":null,"hi":null}],"folds":[{"label":"fold 0","value":45.1483268737793},{"label":"fold 1","value":45.302947998046875},{"label":"fold 2","value":45.0862922668457},{"label":"fold 3","value":44.68511199951172},{"label":"fold 4","value":45.62882995605469}],"salts":[{"label":"salt reimp-alt-1","value":45.1735237121582},{"label":"salt reimp-alt-2","value":45.164306640625},{"label":"salt reimp-alt-3","value":45.173571014404295},{"label":"salt reimp-alt-4","value":45.194725799560544}]},{"group":"confounders","table":"confounders","column":"log_reads_r2","task":null,"label":"log total reads R\u00b2","scorecard":true,"constant":0.0,"constant_note":"each project's training mean","value":0.2184880247998281,"lo":0.20038997404566444,"hi":0.23510989065460486,"hvg":{"value":0.23853366525847264,"lo":0.22113306128237645,"hi":0.2561956301333113},"delta":{"value":0.020045640458644542,"lo":0.01337127515479067,"hi":0.026696988503817118,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.06168445196160677,"lo":0.05094813541559593,"hi":0.07187341611131903},{"dim":16,"value":0.09550408093741891,"lo":0.08194549913890435,"hi":0.10862995573456151},{"dim":64,"value":0.1494197007345578,"lo":0.1323958119272163,"hi":0.16463292446698968},{"dim":256,"value":0.2184880247998281,"lo":0.20038997404566444,"hi":0.23510989065460486}],"folds":[{"label":"fold 0","value":0.23078670939594703},{"label":"fold 1","value":0.1990605301759446},{"label":"fold 2","value":0.23097209752661585},{"label":"fold 3","value":0.20405840220800786},{"label":"fold 4","value":0.2291734737788943}],"salts":[{"label":"salt reimp-alt-1","value":0.22396700476948617},{"label":"salt reimp-alt-2","value":0.2193816555543071},{"label":"salt reimp-alt-3","value":0.22077343341633704},{"label":"salt reimp-alt-4","value":0.22284178176304115}]},{"group":"confounders","table":"confounders","column":"assigned_fraction_r2","task":null,"label":"assigned-read fraction R\u00b2","scorecard":true,"constant":0.0,"constant_note":"each project's training mean","value":0.5996817353127681,"lo":0.5545896013703632,"hi":0.6414646180958038,"hvg":{"value":0.6049015514881666,"lo":0.5631740713953426,"hi":0.6448679034742797},"delta":{"value":0.005219816175398462,"lo":-0.0009117724323117327,"hi":0.011442755597336436,"share_above":0.95},"levelled_at":256,"sweep":[{"dim":4,"value":0.022467054629656813,"lo":0.014117045924453009,"hi":0.030587559453417283},{"dim":16,"value":0.20308088768097965,"lo":0.1731416658030434,"hi":0.2304519335066874},{"dim":64,"value":0.48469058060293535,"lo":0.43930947270905674,"hi":0.526891659165021},{"dim":256,"value":0.5996817353127681,"lo":0.5545896013703632,"hi":0.6414646180958038}],"folds":[{"label":"fold 0","value":0.5744423540164705},{"label":"fold 1","value":0.5963108558158108},{"label":"fold 2","value":0.5645730133595577},{"label":"fold 3","value":0.6173037085497741},{"label":"fold 4","value":0.637376930015916}],"salts":[{"label":"salt reimp-alt-1","value":0.5992727156692853},{"label":"salt reimp-alt-2","value":0.6017155646534391},{"label":"salt reimp-alt-3","value":0.5987159471676042},{"label":"salt reimp-alt-4","value":0.6010492372260621}]},{"group":"confounders","table":"confounders","column":"strand_balance_r2","task":null,"label":"strand balance R\u00b2","scorecard":true,"constant":0.0,"constant_note":"each project's training mean","value":0.8646000049148429,"lo":0.8263467298946638,"hi":0.8936023262730453,"hvg":{"value":0.8982091681922578,"lo":0.8730108698465107,"hi":0.9174972872223219},"delta":{"value":0.03360916327741492,"lo":0.020825320609295827,"hi":0.047492362139604,"share_above":1.0},"levelled_at":256,"sweep":[{"dim":4,"value":0.0775961620354394,"lo":0.05902856831249019,"hi":0.09569036946313682},{"dim":16,"value":0.238048611226795,"lo":0.1996159426317949,"hi":0.2713880665573064},{"dim":64,"value":0.7635103298429424,"lo":0.7257329936698306,"hi":0.7930719185275863},{"dim":256,"value":0.8646000049148429,"lo":0.8263467298946638,"hi":0.8936023262730453}],"folds":[{"label":"fold 0","value":0.8357681646799477},{"label":"fold 1","value":0.8109689365411263},{"label":"fold 2","value":0.8652884943641421},{"label":"fold 3","value":0.9016421627975574},{"label":"fold 4","value":0.9019021700405987}],"salts":[{"label":"salt reimp-alt-1","value":0.8666216619908833},{"label":"salt reimp-alt-2","value":0.8656415493786657},{"label":"salt reimp-alt-3","value":0.8684191655010487},{"label":"salt reimp-alt-4","value":0.8650681829096566}]},{"group":"confounders","table":"confounders","column":"plate_enrichment","task":null,"label":"plate enrichment","scorecard":true,"constant":0.0,"constant_note":"neighbours that ignore the batch","value":0.07359094608808606,"lo":0.0706584206062555,"hi":0.07688549169201613,"hvg":{"value":0.06204495782976926,"lo":0.05922850471152228,"hi":0.06524410178965408},"delta":{"value":-0.011545988258316799,"lo":-0.012856650910514033,"hi":-0.01022777155229163,"share_above":0.0},"levelled_at":16,"sweep":[{"dim":4,"value":0.03146066931984448,"lo":0.029168642370211027,"hi":0.03391924509127815},{"dim":16,"value":0.06969568935525619,"lo":0.0669331245419182,"hi":0.07299590949796957},{"dim":64,"value":0.07739301486080094,"lo":0.07438791926820688,"hi":0.08081558424011953},{"dim":256,"value":0.07359094608808606,"lo":0.0706584206062555,"hi":0.07688549169201613}],"folds":[{"label":"fold 0","value":0.07671131506685362},{"label":"fold 1","value":0.07450186167585976},{"label":"fold 2","value":0.06968882752176479},{"label":"fold 3","value":0.0718916475192218},{"label":"fold 4","value":0.07512882724029774}],"salts":[{"label":"salt reimp-alt-1","value":0.07455790125512907},{"label":"salt reimp-alt-2","value":0.07315080268783232},{"label":"salt reimp-alt-3","value":0.07437687054910871},{"label":"salt reimp-alt-4","value":0.07434675173790839}]},{"group":"confounders","table":"confounders","column":"tss_enrichment","task":null,"label":"tissue source site enrichment","scorecard":true,"constant":0.0,"constant_note":"neighbours that ignore the batch","value":0.05895570052782982,"lo":0.05602068676462621,"hi":0.06194537593684984,"hvg":{"value":0.05624890514641751,"lo":0.05330275048506166,"hi":0.05912748458104584},"delta":{"value":-0.0027067953814123094,"lo":-0.003913385784333236,"hi":-0.00135414113964907,"share_above":0.0},"levelled_at":16,"sweep":[{"dim":4,"value":0.027751839085466832,"lo":0.02538029790341952,"hi":0.030010438099958382},{"dim":16,"value":0.050759599827469325,"lo":0.04811103143063697,"hi":0.053631510243756696},{"dim":64,"value":0.0586623066228511,"lo":0.055669548498943275,"hi":0.06166439009349131},{"dim":256,"value":0.05895570052782982,"lo":0.05602068676462621,"hi":0.06194537593684984}],"folds":[{"label":"fold 0","value":0.06152391066966124},{"label":"fold 1","value":0.05934500238193786},{"label":"fold 2","value":0.0555602181352085},{"label":"fold 3","value":0.06024936864249156},{"label":"fold 4","value":0.05812218385027233}],"salts":[{"label":"salt reimp-alt-1","value":0.061413704704274846},{"label":"salt reimp-alt-2","value":0.06014596308062881},{"label":"salt reimp-alt-3","value":0.06187379483781029},{"label":"salt reimp-alt-4","value":0.05929022006767125}]}],"classification":[{"task":"project_id","label":"cancer type, 33 projects","classes":33,"n":10765,"majority":0.10385508592661402,"accuracy":{"value":0.9470506270320483,"lo":0.9428463059274405,"hi":0.9511816364862595},"balanced_accuracy":{"value":0.9292561111658877,"lo":0.921485536760302,"hi":0.9362481333488677},"macro_f1":{"value":0.9302618956013546,"lo":0.9233758478983031,"hi":0.9365171610628477},"weighted_f1":{"value":0.9472399590723212,"lo":0.9430137242771532,"hi":0.9513390200856233}},{"task":"tumor_vs_normal","label":"tumour vs normal","classes":2,"n":11505,"majority":0.9356801390699696,"accuracy":{"value":0.9899174272055627,"lo":0.9880075799349167,"hi":0.9916507581658813},"balanced_accuracy":{"value":0.958746124201303,"lo":0.9483292014805216,"hi":0.9679503203513947},"macro_f1":{"value":0.958169531968159,"lo":0.9504071617778889,"hi":0.9651260958290031},"weighted_f1":{"value":0.9899237622140908,"lo":0.987988017508864,"hi":0.9916592708427365}},{"task":"lung","label":"lung: LUAD / LUSC","classes":2,"n":1053,"majority":0.5147198480531814,"accuracy":{"value":0.9477682811016145,"lo":0.9342230695900858,"hi":0.960952380952381},"balanced_accuracy":{"value":0.9474151688679313,"lo":0.9337541962361203,"hi":0.9606399713532847},"macro_f1":{"value":0.9476850534531116,"lo":0.9341793551898502,"hi":0.9609011258791661},"weighted_f1":{"value":0.9477464833841495,"lo":0.9342045090149582,"hi":0.9609521507412063}},{"task":"kidney","label":"kidney: KICH / KIRC / KIRP","classes":3,"n":899,"majority":0.6028921023359288,"accuracy":{"value":0.9477196885428254,"lo":0.9324455252631657,"hi":0.9611628199445915},"balanced_accuracy":{"value":0.946117891356983,"lo":0.9239193975080147,"hi":0.9650621683141191},"macro_f1":{"value":0.9303982422575617,"lo":0.9051162233303123,"hi":0.9525451353294802},"weighted_f1":{"value":0.9479510567985333,"lo":0.9328730630074757,"hi":0.9618405513582379}},{"task":"colorectal","label":"colorectal: COAD / READ","classes":2,"n":650,"majority":0.7430769230769231,"accuracy":{"value":0.7276923076923076,"lo":0.6933713499768402,"hi":0.761469654199012},"balanced_accuracy":{"value":0.6522297020865102,"lo":0.6132694004139331,"hi":0.6943793235547877},"macro_f1":{"value":0.6495060182604167,"lo":0.6098628776539191,"hi":0.6888977499168869},"weighted_f1":{"value":0.7299844138971515,"lo":0.6953215131412022,"hi":0.763222587549021}},{"task":"glioma","label":"glioma: GBM / LGG","classes":2,"n":920,"majority":0.5804347826086956,"accuracy":{"value":0.9858695652173913,"lo":0.9778214643085044,"hi":0.9924652186997234},"balanced_accuracy":{"value":0.9856736721585064,"lo":0.9773319739370949,"hi":0.9926345165453222},"macro_f1":{"value":0.9854993568067547,"lo":0.9770999824796619,"hi":0.9923241226819794},"weighted_f1":{"value":0.9858720836419533,"lo":0.977830968712599,"hi":0.9924701490522838}}],"projects":[{"code":"ACC","patients":79,"events":41,"pca":{"value":0.8177570093457944,"lo":0.7332094235632576,"hi":0.8953633063243187},"hvg":{"value":0.8130841121495327,"lo":0.7330749713064757,"hi":0.8904157080439876}},{"code":"UVM","patients":76,"events":34,"pca":{"value":0.7910447761194029,"lo":0.6776895049721942,"hi":0.8937297527706735},"hvg":{"value":0.8171641791044776,"lo":0.6969505178365939,"hi":0.91879395357445}},{"code":"KIRP","patients":288,"events":56,"pca":{"value":0.7705078125,"lo":0.6918502995060997,"hi":0.841584927126253},"hvg":{"value":0.79736328125,"lo":0.7066776235912792,"hi":0.8664415145957237}},{"code":"KICH","patients":65,"events":11,"pca":{"value":0.7326732673267327,"lo":0.5,"hi":0.9210782638414217},"hvg":{"value":0.8514851485148515,"lo":0.6758215962441316,"hi":0.9687678912213741}},{"code":"KIRC","patients":531,"events":160,"pca":{"value":0.72625902568321,"lo":0.6821432751253027,"hi":0.7668459615619082},"hvg":{"value":0.7363129512841605,"lo":0.6937574054464885,"hi":0.7773916499473303}},{"code":"LGG","patients":514,"events":193,"pca":{"value":0.7108027368218175,"lo":0.6663595224571102,"hi":0.7529239119541162},"hvg":{"value":0.7271851209405416,"lo":0.6834395021044583,"hi":0.7677534026027998}},{"code":"SKCM","patients":102,"events":37,"pca":{"value":0.6949891067538126,"lo":0.5777764887857695,"hi":0.7987735849056604},"hvg":{"value":0.6230936819172114,"lo":0.4914669509416958,"hi":0.7428703703703704}},{"code":"PRAD","patients":497,"events":111,"pca":{"value":0.6825187142228093,"lo":0.6246812962386696,"hi":0.742692365930948},"hvg":{"value":0.6880962865110818,"lo":0.6296041319740602,"hi":0.7479997017103753}},{"code":"CESC","patients":304,"events":72,"pca":{"value":0.6711813393528969,"lo":0.6009272046434124,"hi":0.7365460328464976},"hvg":{"value":0.6779533483822423,"lo":0.6081292319173545,"hi":0.7435514401254436}},{"code":"UCEC","patients":543,"events":124,"pca":{"value":0.6616272360069244,"lo":0.6070574551256169,"hi":0.7163704951886766},"hvg":{"value":0.6777841892671668,"lo":0.6221651022488165,"hi":0.7345261701159078}},{"code":"BRCA","patients":1093,"events":145,"pca":{"value":0.6303465501092725,"lo":0.5817617860649895,"hi":0.6797811867159476},"hvg":{"value":0.6376522010615049,"lo":0.5861783596518052,"hi":0.6936674903500214}},{"code":"LUAD","patients":508,"events":207,"pca":{"value":0.6244822047510356,"lo":0.578765734483959,"hi":0.6688581746283193},"hvg":{"value":0.6374165187251669,"lo":0.5914877634367883,"hi":0.6789386108290631}},{"code":"BLCA","patients":405,"events":172,"pca":{"value":0.624219125420471,"lo":0.5810629280772645,"hi":0.6707901426746953},"hvg":{"value":0.6547333012974531,"lo":0.6101004197469242,"hi":0.700610381681037}},{"code":"COAD","patients":455,"events":122,"pca":{"value":0.6174418604651163,"lo":0.5567561008457906,"hi":0.6749552064681985},"hvg":{"value":0.6424418604651163,"lo":0.583953562340967,"hi":0.7026878504796253}},{"code":"MESO","patients":83,"events":62,"pca":{"value":0.617059891107078,"lo":0.5070025608194623,"hi":0.7184152242060787},"hvg":{"value":0.6261343012704175,"lo":0.5243786827971006,"hi":0.7239170692431562}},{"code":"PAAD","patients":178,"events":108,"pca":{"value":0.6148184494602551,"lo":0.5405798313203254,"hi":0.6845685586943697},"hvg":{"value":0.6050049067713444,"lo":0.5303549097197372,"hi":0.6768817107983423}},{"code":"SARC","patients":259,"events":137,"pca":{"value":0.6129625373477362,"lo":0.5560617964081103,"hi":0.6715940472859475},"hvg":{"value":0.6301999540335556,"lo":0.5759291277625709,"hi":0.6845639057804023}},{"code":"LUSC","patients":496,"events":146,"pca":{"value":0.603150012909889,"lo":0.5488378247169264,"hi":0.6548009139426285},"hvg":{"value":0.6010844306738962,"lo":0.5438421270678042,"hi":0.6526896330592422}},{"code":"HNSC","patients":519,"events":198,"pca":{"value":0.6016641452344932,"lo":0.5574409885966397,"hi":0.6455437683951485},"hvg":{"value":0.6055219364599093,"lo":0.5619041400806107,"hi":0.6473107901414815}},{"code":"LIHC","patients":370,"events":180,"pca":{"value":0.5990037359900373,"lo":0.5511630131665775,"hi":0.6449776078672368},"hvg":{"value":0.6255707762557078,"lo":0.5743048211501441,"hi":0.6713341389783261}},{"code":"READ","patients":165,"events":37,"pca":{"value":0.5952,"lo":0.43281105711733825,"hi":0.7503673310686367},"hvg":{"value":0.6,"lo":0.45653362897265337,"hi":0.7291549369200291}},{"code":"PCPG","patients":179,"events":21,"pca":{"value":0.5809768637532133,"lo":0.3801630020432436,"hi":0.7728535353535352},"hvg":{"value":0.5809768637532133,"lo":0.3580209432511223,"hi":0.7663101102509969}},{"code":"STAD","patients":409,"events":148,"pca":{"value":0.576592082616179,"lo":0.5197079379533696,"hi":0.6280876472932676},"hvg":{"value":0.5887837062535858,"lo":0.5343759987183373,"hi":0.64017939266637}},{"code":"UCS","patients":57,"events":37,"pca":{"value":0.5757575757575758,"lo":0.44180011265792235,"hi":0.7159485833673054},"hvg":{"value":0.5670995670995671,"lo":0.4197396086042374,"hi":0.707143479776848}},{"code":"THCA","patients":505,"events":52,"pca":{"value":0.5749863163656267,"lo":0.48830909261441047,"hi":0.661379534582291},"hvg":{"value":0.5823754789272031,"lo":0.4886541958759863,"hi":0.6717857300248427}},{"code":"TGCT","patients":134,"events":35,"pca":{"value":0.5705229793977813,"lo":0.4543818744435829,"hi":0.6685994976851969},"hvg":{"value":0.6006339144215531,"lo":0.48854614276325764,"hi":0.6992855046538279}},{"code":"CHOL","patients":35,"events":20,"pca":{"value":0.5466666666666666,"lo":0.3298584397599631,"hi":0.7678914835164835},"hvg":{"value":0.5866666666666667,"lo":0.3648140397034203,"hi":0.8036744505494505}},{"code":"OV","patients":425,"events":307,"pca":{"value":0.5456549118387909,"lo":0.5070143018571318,"hi":0.5877909924929295},"hvg":{"value":0.5343198992443325,"lo":0.49609831351933803,"hi":0.5746404075378181}},{"code":"ESCA","patients":184,"events":87,"pca":{"value":0.5404624277456648,"lo":0.4596889102916896,"hi":0.6222596271061138},"hvg":{"value":0.5578034682080925,"lo":0.481351165957733,"hi":0.642820467279683}},{"code":"GBM","patients":282,"events":229,"pca":{"value":0.5273962031177651,"lo":0.47765188666980224,"hi":0.5756140481301674},"hvg":{"value":0.5522457169316253,"lo":0.5033085918581682,"hi":0.5972881575206432}},{"code":"THYM","patients":119,"events":21,"pca":{"value":0.46984126984126984,"lo":0.32066218041727124,"hi":0.6366926182237601},"hvg":{"value":0.5619047619047619,"lo":0.42275546677880577,"hi":0.708365174672489}},{"code":"DLBC","patients":48,"events":12,"pca":{"value":0.3620689655172414,"lo":0.13333333333333333,"hi":0.6207974137931034},"hvg":{"value":0.3620689655172414,"lo":0.10526315789473684,"hi":0.692391304347826}}]}</script>
+<script>/* What every report's charts share: SVG helpers, tooltips, resizing, tables.
+   Inlined ahead of each page's own script, which reads `ReportKit`. */
+const ReportKit = (() => {
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+  const int = n => Math.round(n).toLocaleString('en-US');
+  const pct = (x, d = 1) => `${(100 * x).toFixed(d)}%`;
+
+  function svg(tag, attrs, parent) {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+  function label(parent, x, y, str, cls, attrs) {
+    const t = svg('text', Object.assign({ x, y, class: cls }, attrs || {}), parent);
+    t.textContent = str;
+    return t;
+  }
+  function plot(box, W, H, title) {
+    return svg('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'plot', role: 'img', 'aria-label': title || '' }, box);
+  }
+
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  function measure(str, size) {
+    measureCtx.font = `${size || 12}px Archivo, system-ui, sans-serif`;
+    return measureCtx.measureText(str).width;
+  }
+
+  function niceTicks(max, count) {
+    const raw = Math.max(max, 1e-9) / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    const out = [];
+    for (let i = 0; i * step <= max + step * 0.999; i++) out.push(+(i * step).toPrecision(10));
+    return out;
+  }
+
+  function barRight(x, y, w, h) {
+    if (w <= 0) return '';
+    const r = Math.min(4, w, h / 2);
+    return `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - r)}z`;
+  }
+  function barUp(x, y, w, h) {
+    if (w <= 0 || h <= 0) return '';
+    const r = Math.min(4, w / 2, h);
+    return `M${x},${y + h}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}z`;
+  }
+
+  /* ---------- tooltip ---------- */
+  const tip = document.getElementById('tip');
+  function showTip(evt, node, content) {
+    tip.replaceChildren();
+    if (content.title) {
+      const head = document.createElement('div');
+      head.className = 'tip-title';
+      head.textContent = content.title;
+      tip.append(head);
+    }
+    for (const [value, what] of content.lines) {
+      const row = document.createElement('div');
+      row.className = 'tip-row';
+      const v = document.createElement('strong');
+      v.textContent = value;
+      const w = document.createElement('span');
+      w.textContent = what;
+      row.append(v, w);
+      tip.append(row);
+    }
+    tip.hidden = false;
+    let x, y;
+    if (evt.type === 'pointermove') { x = evt.clientX; y = evt.clientY; }
+    else { const r = node.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top; }
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = `${Math.min(Math.max(8, x + 14), window.innerWidth - w - 8)}px`;
+    tip.style.top = `${y - h - 12 < 8 ? y + 18 : y - h - 12}px`;
+  }
+  function hover(node, content, mark, focusable) {
+    node.classList.add('hit');
+    if (focusable) {
+      node.setAttribute('tabindex', '0');
+      const words = content.lines.map(([v, w]) => `${v} ${w}`);
+      node.setAttribute('aria-label', [content.title, ...words].filter(Boolean).join(', '));
+    }
+    const marks = mark ? [].concat(mark) : [];
+    const on = e => { showTip(e, node, content); marks.forEach(m => m.classList.add('is-active')); };
+    const off = () => { tip.hidden = true; marks.forEach(m => m.classList.remove('is-active')); };
+    node.addEventListener('pointermove', on);
+    node.addEventListener('pointerleave', off);
+    node.addEventListener('focus', on);
+    node.addEventListener('blur', off);
+  }
+  window.addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+
+  /* ---------- charts redraw at their container's width ---------- */
+  const renders = [];
+  function mount(id, draw) {
+    const box = document.getElementById(id);
+    if (!box) return;
+    let width = -1;
+    const render = () => {
+      width = Math.round(box.clientWidth);
+      box.replaceChildren();
+      if (width > 0) draw(box, width);
+    };
+    renders.push(render);
+    new ResizeObserver(() => { if (Math.round(box.clientWidth) !== width) render(); }).observe(box);
+  }
+  // Text is measured to lay charts out; measure again once the web fonts arrive.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renders.forEach(r => r()));
+
+  /* ---------- tables ---------- */
+  function fillTable(id, columns, rows) {
+    const table = document.getElementById(id);
+    if (!table) return;
+    const head = document.createElement('thead');
+    const tr = document.createElement('tr');
+    for (const c of columns) {
+      const th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = c.label;
+      if (c.num) th.className = 'num';
+      tr.append(th);
+    }
+    head.append(tr);
+    const body = document.createElement('tbody');
+    for (const r of rows) {
+      const row = document.createElement('tr');
+      if (r.rowClass) row.className = r.rowClass;
+      for (const c of columns) {
+        const td = document.createElement('td');
+        const v = c.value(r);
+        if (v instanceof Node) td.append(v); else td.textContent = v;
+        const cls = [c.num ? 'num' : '', c.cls ? c.cls(r) : ''].filter(Boolean).join(' ');
+        if (cls) td.className = cls;
+        row.append(td);
+      }
+      body.append(row);
+    }
+    table.replaceChildren(head, body);
+  }
+  function codeNode(text) { const c = document.createElement('code'); c.textContent = text; return c; }
+  function chip(role) { const s = document.createElement('span'); s.className = `chip ${role}`; s.textContent = role; return s; }
+  function stacked(main, sub) {
+    const frag = document.createDocumentFragment();
+    frag.append(main);
+    const s = document.createElement('span');
+    s.className = 'sub';
+    s.textContent = sub;
+    frag.append(s);
+    return frag;
+  }
+
+  return {
+    data: JSON.parse(document.getElementById('report-data').textContent),
+    int, pct, svg, label, plot, measure, niceTicks, barRight, barUp,
+    hover, mount, fillTable, codeNode, chip, stacked,
+  };
+})();</script>
+<script>
+(() => {
+  'use strict';
+  const { data: DATA, int, pct, svg, label, plot, measure, hover, mount, fillTable, stacked } = ReportKit;
+  const HEAD = DATA.head;
+  const GENES = `top ${int(DATA.hvg_genes)} genes`;
+  const fmt = (v, d = 3) => (v == null ? '–' : v.toFixed(d));
+  const interval = p => (p == null || p.lo == null ? '' : `[${fmt(p.lo)}, ${fmt(p.hi)}]`);
+  const signed = v => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(3)}`;
+  const signedTick = t => (Math.abs(t) < 1e-12 ? '0' : signed(t).replace(/0+$/, '').replace(/\.$/, ''));
+  const GROUP = Object.fromEntries(DATA.groups.map(g => [g.id, g]));
+
+  /* a linear scale's nice domain and ticks covering [lo, hi] */
+  function niceScale(lo, hi, count) {
+    if (hi - lo < 1e-9) { lo -= 0.005; hi += 0.005; }
+    const raw = (hi - lo) / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    const a = Math.floor(lo / step + 1e-9) * step, b = Math.ceil(hi / step - 1e-9) * step;
+    const list = [];
+    for (let v = a; v <= b + step * 1e-6; v += step) list.push(+v.toPrecision(10));
+    return { lo: a, hi: b, step, list };
+  }
+  function decimals(step) {
+    const s = String(+step.toPrecision(6));
+    return s.includes('.') ? s.length - s.indexOf('.') - 1 : 0;
+  }
+  const finite = values => values.filter(v => v != null && Number.isFinite(v));
+
+  /* ---------- rows of scores, grouped by evaluation ---------- */
+  function grouped(keep) {
+    const items = [];
+    for (const g of DATA.groups) {
+      const ms = DATA.metrics.filter(m => m.group === g.id && keep(m));
+      if (!ms.length) continue;
+      items.push({ head: g });
+      for (const metric of ms) items.push({ metric });
+    }
+    return items;
+  }
+  function rowLayout(W, items, valueW) {
+    const longest = Math.max(...items.filter(it => it.metric).map(it => measure(it.metric.label, 12)));
+    const above = longest + 16 > W * 0.42;
+    const x0 = above ? 0 : longest + 16;
+    const rowH = above ? 40 : 24, headH = 34;
+    let y = 24;
+    const rows = items.map(it => {
+      const h = it.head ? headH : rowH;
+      const row = Object.assign({ y, h }, it);
+      y += h;
+      return row;
+    });
+    return { above, x0, x1: Math.max(x0 + 80, W - valueW), H: y + 4, rows };
+  }
+  function rowFrame(root, L, r) {
+    if (r.head) {
+      const t = label(root, 0, r.y + r.h - 9, r.head.title, 'group-label');
+      if (r.head.note) {
+        const note = svg('tspan', { class: 'group-note', dx: 8 }, t);
+        note.textContent = r.head.note;
+      }
+      return null;
+    }
+    const cy = L.above ? r.y + 28 : r.y + r.h / 2;
+    if (L.above) label(root, 0, r.y + 13, r.metric.label, 'label');
+    else label(root, L.x0 - 10, cy, r.metric.label, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    return cy;
+  }
+  function axis(root, L, s, sx, fmtTick) {
+    for (const t of s.list) {
+      svg('line', { x1: sx(t), x2: sx(t), y1: 18, y2: L.H - 2, class: 'gridline' }, root);
+      label(root, sx(t), 12, fmtTick(t), 'tick', { 'text-anchor': 'middle' });
+    }
+  }
+  /* a point and its interval, shifted `dy` off the row's centre line */
+  function pointMark(root, sx, cy, p, series, dy, marks) {
+    if (!p || p.value == null) return;
+    if (p.lo != null) marks.push(svg('line', { x1: sx(p.lo), x2: sx(p.hi), y1: cy + dy, y2: cy + dy, class: series === 2 ? 'ci ci-2' : 'ci' }, root));
+    marks.push(svg('circle', { cx: sx(p.value), cy: cy + dy, r: 4, class: `dot mark-${series}` }, root));
+  }
+
+  function scorecard(box, W) {
+    const items = grouped(m => m.scorecard);
+    const L = rowLayout(W, items, 104);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    const all = finite(ms.flatMap(m => [m.value, m.lo, m.hi, m.constant, m.hvg.value, m.hvg.lo, m.hvg.hi]));
+    const s = niceScale(Math.min(0, ...all), Math.max(1, ...all), 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Every score of both baselines');
+    axis(root, L, s, sx, t => t.toFixed(decimals(s.step)));
+    label(root, W - 56, 12, 'PCA', 'tick', { 'text-anchor': 'end' });
+    label(root, W, 12, 'genes', 'tick', { 'text-anchor': 'end' });
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      if (m.constant != null) {
+        const x = sx(m.constant);
+        marks.push(svg('path', { d: `M${x},${cy - 5}l5,5l-5,5l-5,-5z`, class: 'const-mark' }, root));
+      }
+      pointMark(root, sx, cy, m, 1, -3.5, marks);
+      pointMark(root, sx, cy, m.hvg, 2, 3.5, marks);
+      label(root, W - 56, cy, fmt(m.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      label(root, W, cy, fmt(m.hvg.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [[`${fmt(m.value)} ${interval(m)}`.trim(), `PCA ${HEAD}`]];
+      if (m.hvg.value != null) lines.push([`${fmt(m.hvg.value)} ${interval(m.hvg)}`.trim(), GENES]);
+      if (m.delta) lines.push([`${signed(m.delta.value)} ${interval(m.delta)}`, 'genes minus PCA, paired']);
+      if (m.constant != null) lines.push([fmt(m.constant), `no embedding: ${m.constant_note}`]);
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* differences on a shared axis around zero, one row per score */
+  function deltaChart(box, W) {
+    const items = grouped(m => m.scorecard && m.delta);
+    if (!items.length) { box.textContent = 'No score has replicates for both baselines.'; return; }
+    const L = rowLayout(W, items, 60);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    const reach = Math.max(...ms.flatMap(m => [Math.abs(m.delta.lo), Math.abs(m.delta.hi), Math.abs(m.delta.value)]));
+    const s = niceScale(-reach, reach, 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Top genes minus principal components');
+    axis(root, L, s, sx, signedTick);
+    svg('line', { x1: sx(0), x2: sx(0), y1: 18, y2: L.H - 2, class: 'zero-line' }, root);
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      pointMark(root, sx, cy, m.delta, 2, 0, marks);
+      label(root, W, cy, signed(m.delta.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [
+        [`${signed(m.delta.value)} ${interval(m.delta)}`, 'genes minus PCA, paired 95% interval'],
+        [pct(m.delta.share_above, 0), 'of replicates with the genes higher'],
+        [fmt(m.hvg.value), GENES],
+        [fmt(m.value), `PCA ${HEAD}`],
+      ];
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* each project's C-index under both baselines */
+  function projectChart(box, W) {
+    const P = DATA.projects;
+    if (!P.length) { box.textContent = 'No project has comparable pairs.'; return; }
+    const items = P.map(p => ({ metric: Object.assign({ label: p.code }, p) }));
+    const L = rowLayout(W, items, 48);
+    const vals = finite(P.flatMap(p => [p.pca.value, p.pca.lo, p.pca.hi, p.hvg.value, p.hvg.lo, p.hvg.hi]));
+    const s = niceScale(Math.min(0.5, ...vals), Math.max(0.5, ...vals), 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Each project’s C-index');
+    axis(root, L, s, sx, t => t.toFixed(decimals(s.step)));
+    svg('line', { x1: sx(0.5), x2: sx(0.5), y1: 18, y2: L.H - 2, class: 'const-line' }, root);
+    label(root, W, 12, 'events', 'tick', { 'text-anchor': 'end' });
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      const p = r.metric;
+      const marks = [];
+      pointMark(root, sx, cy, p.pca, 1, -3.5, marks);
+      pointMark(root, sx, cy, p.hvg, 2, 3.5, marks);
+      label(root, W, cy, int(p.events), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [
+        [`${fmt(p.pca.value)} ${interval(p.pca)}`.trim(), `PCA ${HEAD}`],
+        [`${fmt(p.hvg.value)} ${interval(p.hvg)}`.trim(), GENES],
+        [int(p.patients), 'patients'],
+        [int(p.events), 'events'],
+      ];
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: p.code, lines }, marks, true);
+    }
+  }
+
+  /* other estimates of each score (one fold alone, or the folds drawn again) minus the original */
+  function strip(box, W, key, title) {
+    const items = grouped(m => m.scorecard && m[key].some(f => f.value != null));
+    if (!items.length) { box.textContent = 'Nothing to compare.'; return; }
+    const L = rowLayout(W, items, 60);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    let reach = 0;
+    for (const m of ms) {
+      for (const f of m[key]) if (f.value != null) reach = Math.max(reach, Math.abs(f.value - m.value));
+      if (m.lo != null) reach = Math.max(reach, m.value - m.lo, m.hi - m.value);
+    }
+    const s = niceScale(-reach, reach, 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, title);
+    axis(root, L, s, sx, signedTick);
+    svg('line', { x1: sx(0), x2: sx(0), y1: 18, y2: L.H - 2, class: 'zero-line' }, root);
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      if (m.lo != null) {
+        const xa = sx(m.lo - m.value), xb = sx(m.hi - m.value);
+        marks.push(svg('rect', { x: xa, y: cy - 7, width: Math.max(1, xb - xa), height: 14, rx: 2, class: 'band' }, root));
+      }
+      const others = m[key].filter(f => f.value != null);
+      others.forEach((f, i) => {
+        const dy = (i - (others.length - 1) / 2) * 2.4;
+        marks.push(svg('circle', { cx: sx(f.value - m.value), cy: cy + dy, r: 3.5, class: 'dot mark-1' }, root));
+      });
+      const widest = Math.max(...others.map(f => Math.abs(f.value - m.value)));
+      label(root, W, cy, `±${widest.toFixed(3)}`, 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [[`${fmt(m.value)} ${interval(m)}`.trim(), 'original, pooled']];
+      for (const f of others) lines.push([fmt(f.value), `${f.label} (${signed(f.value - m.value)})`]);
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* ---------- one small chart per score, by number of components ---------- */
+  function sweep(box, W, m) {
+    const H = 172, padL = 44, padR = 16, padT = 18, padB = 26;
+    const dims = DATA.dims, n = dims.length;
+    const pts = m.sweep.map((p, i) => Object.assign({ i }, p)).filter(p => p.value != null);
+    const vals = finite([...pts.flatMap(p => [p.value, p.lo, p.hi]), m.constant, m.hvg.value]);
+    const s = niceScale(Math.min(...vals), Math.max(...vals), 3);
+    const d = decimals(s.step);
+    const span = W - padL - padR;
+    const sx = i => padL + span * (n > 1 ? i / (n - 1) : 0.5);
+    const sy = v => padT + (H - padT - padB) * (1 - (v - s.lo) / (s.hi - s.lo));
+    const root = plot(box, W, H, `${m.label} by number of components`);
+    for (const t of s.list) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: 'gridline' }, root);
+      label(root, padL - 6, sy(t), t.toFixed(d), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    dims.forEach((dim, i) => label(root, sx(i), H - 6, String(dim), 'tick', { 'text-anchor': 'middle' }));
+    // Reference labels sit below their line where there is room, clear of the scores above.
+    const reference = (value, cls, text, anchor) => {
+      const y = sy(value);
+      svg('line', { x1: padL, x2: W - padR, y1: y, y2: y, class: cls }, root);
+      const below = y + 16 < H - padB;
+      const x = anchor === 'end' ? W - padR : padL + 4;
+      label(root, x, below ? y + 13 : y - 6, text, 'annot', { 'text-anchor': anchor });
+    };
+    if (m.constant != null) reference(m.constant, 'const-line', `no embedding ${fmt(m.constant, 2)}`, 'end');
+    // The HVG line is named by the legend and the tooltip; a label would sit on the PCA curve.
+    if (m.hvg.value != null) svg('line', { x1: padL, x2: W - padR, y1: sy(m.hvg.value), y2: sy(m.hvg.value), class: 'hvg-line' }, root);
+    svg('path', { d: 'M' + pts.map(p => `${sx(p.i).toFixed(1)},${sy(p.value).toFixed(1)}`).join('L'), class: 'series-line' }, root);
+    const half = span / (2 * Math.max(1, n - 1));
+    for (const p of pts) {
+      const marks = [];
+      if (p.lo != null) marks.push(svg('line', { x1: sx(p.i), x2: sx(p.i), y1: sy(p.lo), y2: sy(p.hi), class: 'ci-soft' }, root));
+      marks.push(svg('circle', { cx: sx(p.i), cy: sy(p.value), r: p.dim === HEAD ? 5 : 3.5, class: 'dot mark-1' }, root));
+      const lines = [[fmt(p.value), `${p.dim} components`]];
+      if (p.lo != null) lines.push([interval(p), '95% interval']);
+      if (m.hvg.value != null) lines.push([fmt(m.hvg.value), GENES]);
+      if (m.constant != null) lines.push([fmt(m.constant), 'no embedding']);
+      const hit = svg('rect', { x: sx(p.i) - half, y: padT, width: 2 * half, height: H - padT - padB, class: 'hit-area' }, root);
+      hover(hit, { title: m.label, lines }, marks);
+    }
+  }
+  const pointCell = p => (p == null || p.value == null ? '–' : p.lo == null ? fmt(p.value) : stacked(fmt(p.value), interval(p)));
+  function sweeps(group) {
+    const container = document.getElementById(`sweep-${group}`);
+    DATA.metrics.filter(m => m.group === group).forEach((m, i) => {
+      const cell = document.createElement('div');
+      const title = document.createElement('h4');
+      title.textContent = m.label;
+      const box = document.createElement('div');
+      box.className = 'plot-box';
+      box.id = `sweep-${group}-${i}`;
+      cell.append(title, box);
+      container.append(cell);
+      mount(box.id, (b, W) => sweep(b, W, m));
+    });
+    fillTable(`table-sweep-${group}`, [
+      { label: 'Score', value: m => m.label },
+      ...DATA.dims.map((dim, i) => ({ label: `${dim}`, num: true, value: m => pointCell(m.sweep[i]) })),
+      { label: 'Top genes', num: true, value: m => pointCell(m.hvg) },
+      { label: 'No embedding', num: true, value: m => fmt(m.constant) },
+      { label: `Within ${DATA.level} of ${HEAD} from`, num: true, value: m => String(m.levelled_at) },
+    ], DATA.metrics.filter(m => m.group === group));
+  }
+
+  /* ---------- wire it up ---------- */
+  mount('chart-scorecard', scorecard);
+  mount('chart-delta', deltaChart);
+  mount('chart-projects', projectChart);
+  mount('chart-folds', (box, W) => strip(box, W, 'folds', 'Each fold alone against the pooled score'));
+  mount('chart-redraw', (box, W) => strip(box, W, 'salts', 'Each redrawn assignment against the original'));
+  for (const g of DATA.groups) sweeps(g.id);
+
+  const card = DATA.metrics.filter(m => m.scorecard);
+  fillTable('table-scorecard', [
+    { label: 'Evaluation', value: m => GROUP[m.group].title, cls: () => 'group' },
+    { label: 'Score', value: m => m.label },
+    { label: `PCA ${HEAD}`, num: true, value: m => pointCell(m) },
+    { label: 'Top genes', num: true, value: m => pointCell(m.hvg) },
+    { label: 'Genes minus PCA', num: true, value: m => (m.delta ? stacked(signed(m.delta.value), interval(m.delta)) : '–') },
+    { label: 'No embedding', num: true, value: m => fmt(m.constant) },
+  ], card);
+  fillTable('table-classification', [
+    { label: 'Task', value: t => t.label },
+    { label: 'Classes', num: true, value: t => String(t.classes) },
+    { label: 'Samples', num: true, value: t => int(t.n) },
+    ...[['accuracy', 'Accuracy'], ['balanced_accuracy', 'Balanced'], ['macro_f1', 'Macro-F1'], ['weighted_f1', 'Weighted-F1']].map(([key, name]) => ({
+      label: name,
+      num: true,
+      value: t => pointCell(t[key]),
+    })),
+    { label: 'Majority', num: true, value: t => fmt(t.majority) },
+  ], DATA.classification);
+  fillTable('table-projects', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Patients', num: true, value: p => int(p.patients) },
+    { label: 'Events', num: true, value: p => int(p.events) },
+    { label: `PCA ${HEAD}`, num: true, value: p => pointCell(p.pca) },
+    { label: 'Top genes', num: true, value: p => pointCell(p.hvg) },
+  ], DATA.projects);
+  const others = (key, labels) => [
+    { label: 'Score', value: m => m.label },
+    { label: 'Original', num: true, value: m => pointCell(m) },
+    ...labels.map((name, k) => ({ label: name, num: true, value: m => fmt(m[key][k] && m[key][k].value) })),
+  ];
+  const withFolds = key => card.filter(m => m[key].some(f => f.value != null));
+  if (card.length) {
+    fillTable('table-folds', others('folds', card[0].folds.map(f => f.label)), withFolds('folds'));
+    fillTable('table-redraw', others('salts', card[0].salts.map(f => f.label.replace('salt ', ''))), withFolds('salts'));
+  }
+})();
+</script>
+</body>
+</html>

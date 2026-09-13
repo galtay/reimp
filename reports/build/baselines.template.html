@@ -1,0 +1,986 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reimp Baselines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..650;1,8..60,400&display=swap">
+<style>
+__REPORT_CSS__
+</style>
+<style>
+  /* this page's marks */
+  .group-label { font-size: 12px; font-weight: 650; fill: var(--ink); }
+  .group-note { font-size: 11.5px; font-weight: 400; fill: var(--muted); }
+  .ci { stroke: var(--series-1); stroke-width: 2; stroke-linecap: round; }
+  .ci.ci-2 { stroke: var(--series-2); }
+  .ci-soft { stroke: var(--series-1); stroke-opacity: 0.55; stroke-width: 1.5; stroke-linecap: round; }
+  .series-line { fill: none; stroke: var(--series-1); stroke-width: 2; stroke-linejoin: round; }
+  .hvg-line { stroke: var(--series-2); stroke-width: 1.5; }
+  .const-mark { fill: var(--surface); stroke: var(--ink-2); stroke-width: 1.5; }
+  .const-line { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; }
+  .zero-line { stroke: var(--ink-2); stroke-width: 1; }
+  .key.const::before { width: 8px; height: 8px; border-radius: 0; background: var(--surface); border: 1.5px solid var(--ink-2); transform: rotate(45deg); }
+  .key.dash::before { width: 16px; height: 0; border-radius: 0; background: none; border-top: 1.5px dashed var(--ink-2); }
+  .key.line::before { width: 16px; height: 2px; border-radius: 1px; }
+  .key.whisker::before { width: 16px; height: 2px; border-radius: 1px; background: var(--ink-2); }
+  .multiples.sweeps { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  td.group { color: var(--muted); }
+  .constants td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">{{dataset_short}} · labels {{labels_short}}</p>
+    <h1>Two model-free baselines on every probe</h1>
+    <p class="lede">
+      Scores of every shared probe on two embeddings that involve no trained
+      model: principal components of log-normalized counts (PCA-\(d\),
+      \(d \in \{ {{dims_set}} \}\)) and the {{hvg_genes}} highest-variance
+      log-normalized genes, standardized (HVG-{{hvg_n}}). Both are refit in each of
+      the {{n_folds}} cross-validation folds from that fold's training samples only.
+      The definitions below are complete enough to recompute every number; each
+      names the function in <code>reimp_shared</code> that implements it.
+    </p>
+    <dl class="specs">
+      <div class="spec"><dt>Baselines</dt><dd>PCA-{{head}}<small>and HVG-{{hvg_n}}</small></dd></div>
+      <div class="spec"><dt>Samples scored</dt><dd>{{n_samples}}<small>each once, out of fold</small></dd></div>
+      <div class="spec"><dt>Folds</dt><dd>{{n_folds}}<small>plus {{n_redraws}} redrawn assignments</small></dd></div>
+      <div class="spec"><dt>Intervals</dt><dd>95%<small>{{bootstrap}} patient-bootstrap replicates</small></dd></div>
+      <div class="spec"><dt>Survival</dt><dd>{{endpoint}}<small>{{survival_patients}} patients, {{survival_events}} events</small></dd></div>
+    </dl>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Sections">
+      <ol>
+        <li><a href="#scorecard">Summary<span class="mod">every score</span></a></li>
+        <li><a href="#data">Data and folds<span class="mod">data · splits</span></a></li>
+        <li><a href="#baseline">Baselines<span class="mod">eval.baselines</span></a></li>
+        <li><a href="#scoring">Scoring<span class="mod">protocol · bootstrap</span></a></li>
+        <li><a href="#genes">HVG against PCA<span class="mod">eval.compare</span></a></li>
+        <li><a href="#classification">Cancer type<span class="mod">classification</span></a></li>
+        <li><a href="#expression">Expression<span class="mod">invertibility · pathways</span></a></li>
+        <li><a href="#survival">Survival<span class="mod">survival</span></a></li>
+        <li><a href="#geometry">Geometry<span class="mod">geometry</span></a></li>
+        <li><a href="#confounders">Confounders<span class="mod">confounders</span></a></li>
+        <li><a href="#folds">One fold alone<span class="mod">protocol</span></a></li>
+        <li><a href="#redraw">Folds drawn again<span class="mod">splits</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="scorecard">
+        <p class="kicker">reimp-shared probe</p>
+        <h2>Every score of both baselines</h2>
+        <p>
+          One row per score, each computed once over the pooled out-of-fold
+          predictions (<a href="#scoring">Scoring</a>): blue PCA-{{head}}, orange
+          HVG-{{hvg_n}}. Whiskers are 95% patient-bootstrap intervals; {{n_narrow}} of
+          PCA's {{n_with_ci}} intervals are narrower than ±{{level}} and hidden by the
+          dot. The diamond is the score of a predictor that ignores the embedding,
+          defined per score in the table under <a href="#scoring">Scoring</a>.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Every score of both baselines</p>
+            <p class="chart-sub">Hover a row for the intervals, the paired difference and the no-embedding value.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">PCA-{{head}}</span>
+            <span class="key dot s2">HVG-{{hvg_n}}</span>
+            <span class="key whisker">95% interval</span>
+            <span class="key const">no embedding</span>
+          </div>
+          <div class="plot-box" id="chart-scorecard"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-scorecard"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="data">
+        <p class="kicker">reimp_shared.data.load_expression · reimp_shared.splits</p>
+        <h2>Data and folds</h2>
+        <p>
+          Samples \(i\) are the {{n_samples}} RNA-seq aliquots of
+          <code>{{dataset_short}}</code>; \(p(i)\) is the sample's patient
+          (<code>case_submitter_id</code>) and \(\pi(i)\) its TCGA project. Genes
+          \(g\) range over \(G\), the \(\left|G\right|  = {{genes_n}}\) protein-coding genes of
+          GENCODE v36 with the <code>_PAR_Y</code> rows removed, out of
+          {{genes_all}} in the dataset. \(c_{ig}\) is the unstranded STAR read count
+          (config <code>unstranded</code>). Both baselines and the invertibility target
+          start from the log-normalized value
+        </p>
+        <div class="eq">\[ x_{ig} = \ln\left(1 + L\,\frac{c_{ig}}{\sum_{g' \in G} c_{ig'}}\right), \qquad L = 10^{ {{lib_exp}} }, \]</div>
+        <p>
+          which rescales every library to \(L\) reads over the protein-coding genes
+          before the log (<code>load_expression(transform="lognorm")</code>).
+        </p>
+        <p>
+          The folds partition patients. Fold \(k \in \{0, \dots, 4\}\) assigns every
+          sample to a training set \(T_k\) ({{train_pct}}% of patients), a validation
+          set \(V_k\) ({{val_pct}}%) or a test set \(E_k\) ({{test_pct}}%), all
+          samples of a patient together, stratified by project; every patient is in
+          exactly one \(E_k\). The assignment is a deterministic function of the
+          salt <code>{{salt}}</code> and is described in the data report. Probes fit on
+          \(F_k = T_k \cup V_k\), the fitting set of fold \(k\).
+        </p>
+      </section>
+
+      <section id="baseline">
+        <p class="kicker">reimp_shared.eval.baselines</p>
+        <h2>Two baselines, refit in every fold</h2>
+        <p>
+          Both baselines are fit in fold \(k\) on \(T_k\) alone. \(V_k\) is not used:
+          neither baseline has a hyperparameter to select or a point at which to stop.
+          Their training statistics are the per-gene mean and population variance
+        </p>
+        <div class="eq">\[ \mu_g^{(k)} = \frac{1}{\left|T_k\right| }\sum_{i \in T_k} x_{ig}, \qquad \left(\sigma_g^{(k)}\right)^2 = \frac{1}{\left|T_k\right| }\sum_{i \in T_k}\left(x_{ig} - \mu_g^{(k)}\right)^2 . \]</div>
+        <dl class="defs">
+          <dt>PCA-\(d\) (<code>pca_embeddings</code>)</dt>
+          <dd>
+            Let \(V_d^{(k)} \in \mathbb{R}^{\left|G\right|  \times d}\) hold the leading \(d\) right
+            singular vectors of the \(\left|T_k\right|  \times \left|G\right| \) matrix with entries
+            \(x_{ig} - \mu_g^{(k)}\), \(i \in T_k\). Every sample is embedded as
+            <div class="eq">\[ z_i^{(k)} = V_d^{(k)\top}\left(x_i - \mu^{(k)}\right) \in \mathbb{R}^{d}, \]</div>
+            without whitening, by <code>sklearn.decomposition.PCA(n_components=d,
+            svd_solver="randomized", random_state=0)</code>. It is fit for
+            \(d \in \{ {{dims_set}} \}\); PCA without a subscript means PCA-{{head}}.
+          </dd>
+          <dt>HVG-\(n\) (<code>hvg_embeddings</code>)</dt>
+          <dd>
+            Let \(H_n^{(k)}\) be the \(n = {{hvg_n}}\) genes with the largest
+            \(\sigma_g^{(k)}\) (ties broken by gene order). Every sample is embedded as
+            the standardized values of those genes, in dataset gene order:
+            <div class="eq">\[ h_{ig}^{(k)} = \frac{x_{ig} - \mu_g^{(k)}}{\sigma_g^{(k)}}, \qquad g \in H_n^{(k)}, \qquad h_i^{(k)} \in \mathbb{R}^{n} . \]</div>
+            This is the "Identity" representation of Gross et al. (2024), their
+            strongest per-cohort survival representation, deep models included; they
+            ranked genes by the variance of TPM, while here ranking and scaling both
+            use \(x\). Against PCA it measures what projecting onto principal axes
+            gains or loses relative to the most variable genes themselves.
+          </dd>
+        </dl>
+        <p>
+          Each fold's baseline embeds all {{n_samples}} samples, and the probes of fold
+          \(k\) read fold \(k\)'s embeddings of \(F_k\) and \(E_k\). The files are
+          <code>out/pca&lt;d&gt;/fold&lt;k&gt;.parquet</code> and
+          <code>out/hvg{{hvg_n}}/fold&lt;k&gt;.parquet</code>, written by
+          <code>reimp-shared baseline-pca</code> and <code>baseline-hvg</code>.
+        </p>
+      </section>
+
+      <section id="scoring">
+        <p class="kicker">reimp_shared.eval.protocol · reimp_shared.eval.bootstrap</p>
+        <h2>Scoring: out of fold, pooled, patient bootstrap</h2>
+        <dl class="defs">
+          <dt>Out of fold</dt>
+          <dd>
+            For each probe and fold \(k\), everything the probe fits — standardization,
+            regression weights, penalty choice, cluster centroids — is fit on \(F_k\)
+            and applied to \(E_k\). Predictions are pooled over the five folds, so
+            each sample is predicted once, by the fold that held out its patient, and
+            each score is one statistic of the pooled predictions, not a mean over
+            folds. The exceptions are marked where they occur: scores of a whole
+            embedding space (effective rank, NMI, ARI) are computed per fold and
+            averaged, and C-index pairs never span two folds.
+          </dd>
+          <dt>Standardization</dt>
+          <dd>
+            Inside every regression probe, each embedding dimension is standardized
+            over the probe's fitting rows: \(\hat z_{ij} = (z_{ij} - m_j)/s_j\), with
+            \(m_j, s_j\) the mean and standard deviation over those rows.
+          </dd>
+          <dt>Intervals (<code>bootstrap_weights</code>, <code>summarize</code>)</dt>
+          <dd>
+            Let \(P\) be the scored patients. Replicate \(b = 1, \dots, B\),
+            \(B = {{bootstrap_n}}\), draws \(\left|P\right| \) patients uniformly with replacement
+            (<code>numpy.random.default_rng(0)</code>), and \(w_{ib}\) is the number of
+            times \(p(i)\) was drawn. Every score is a ratio of sums over samples, or
+            over pairs of samples weighted by \(w_{ib} w_{jb}\), so the replicate
+            score \(s_b\) is recomputed from the same predictions without refitting.
+            The interval is the 2.5th to 97.5th percentile of \(s_1, \dots, s_B\). It
+            is conditional on the fitted probes and on the fold assignment; the second
+            is measured under <a href="#redraw">Folds drawn again</a>.
+          </dd>
+          <dt>Paired differences (<code>paired_differences</code>)</dt>
+          <dd>
+            Two embeddings scored on the same samples receive identical weights
+            \(w_{ib}\). Their difference \(\Delta = s^{A} - s^{B}\) has replicates
+            \(\Delta_b = s^{A}_b - s^{B}_b\), from which the interval is taken, and
+            the share of replicates with \(\Delta_b > 0\) is reported
+            (<code>reimp-shared probe A B --against B</code>).
+          </dd>
+        </dl>
+        <h3>Scores without an embedding</h3>
+        <p>
+          Each score is drawn beside the value it takes when the prediction ignores
+          the embedding. \(K\) is the number of classes, \(n_c\) the number of
+          samples of class \(c\), and \(n\) the total.
+        </p>
+        <div class="table-wrap">
+          <table class="constants">
+            <thead><tr><th scope="col">score</th><th scope="col" class="num">value</th><th scope="col">predictor that ignores the embedding</th></tr></thead>
+            <tbody>
+              <tr><td>balanced accuracy</td><td class="num">\(1/K\)</td><td>any constant class, or any label drawn independently of the sample</td></tr>
+              <tr><td>expression \(R^2\)</td><td class="num">0</td><td>\(\hat y_{ig} = \bar y_g\), each gene's mean</td></tr>
+              <tr><td>per-sample Pearson</td><td class="num">{{pearson_base}}</td><td>\(\hat y_i\) = the fitting set's mean profile, the same for every sample</td></tr>
+              <tr><td>pathway and covariate \(R^2\)</td><td class="num">0</td><td>each project's mean over its fitting samples</td></tr>
+              <tr><td>C-index</td><td class="num">0.5</td><td>any risk that is constant within a project</td></tr>
+              <tr><td>precision@\(k\)</td><td class="num">{{prec_chance}}</td><td>\(\sum_c (n_c/n)^2\): neighbours drawn at random</td></tr>
+              <tr><td>ARI, batch enrichment</td><td class="num">0</td><td>clusters independent of cancer type; neighbours independent of batch</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note" style="margin-top: 1em">NMI, silhouette and effective rank have no such value and are drawn alone.</p>
+      </section>
+
+      <section id="genes">
+        <p class="kicker">reimp_shared.eval.compare</p>
+        <h2>HVG-{{hvg_n}} minus PCA-{{head}}</h2>
+        <p>
+          For every score with replicates, \(\Delta = s^{\text{HVG}} - s^{\text{PCA}}\)
+          with its paired interval. Of the {{n_paired}} such scores, \(\Delta\) is
+          positive with an interval excluding 0 for {{n_hvg_higher}}
+          ({{hvg_higher_list}}), negative for {{n_hvg_lower}} ({{hvg_lower_list}}), and
+          the interval contains 0 for the other {{n_paired_ties}}. For the four
+          confounder scores a negative \(\Delta\) means HVG carries less of the
+          technical covariate. HVG has {{hvg_ratio}} times PCA's dimensions, which
+          favours it on regression scores; the ridge penalty is chosen per fold for
+          each.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">HVG-{{hvg_n}} minus PCA-{{head}}</p>
+            <p class="chart-sub">Right of zero, HVG scores higher. The value at right is \(\Delta\).</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s2">\(\Delta\)</span>
+            <span class="key whisker">paired 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-delta"></div>
+        </figure>
+      </section>
+
+      <section id="classification">
+        <p class="kicker">reimp_shared.eval.classification</p>
+        <h2>Cancer type: balanced accuracy {{project_bacc}} over {{project_classes}} projects</h2>
+        <dl class="defs">
+          <dt>Tasks (<code>task_labels</code>)</dt>
+          <dd>
+            <code>project_id</code>: \(y_i = \pi(i)\) on tumour samples (every sample
+            type except Solid Tissue Normal), \(K = {{project_classes}}\).
+            <code>tumor_vs_normal</code>: all samples, normal versus tumour.
+            <code>lung</code>, <code>kidney</code>, <code>colorectal</code>,
+            <code>glioma</code>: \(y_i = \pi(i)\) on the tumour samples of LUAD/LUSC,
+            KICH/KIRC/KIRP, COAD/READ and GBM/LGG.
+          </dd>
+          <dt>Model (<code>fit_linear_probe</code>)</dt>
+          <dd>
+            Multinomial logistic regression on \(\hat z\), fit on the task's samples in
+            \(F_k\):
+            <div class="eq">\[ \min_{W,\,b}\; -\sum_{i \in F_k} \log \frac{\exp(w_{y_i}^\top \hat z_i + b_{y_i})}{\sum_{c} \exp(w_c^\top \hat z_i + b_c)} + \frac{1}{2C}\|W\|_F^2, \qquad C = 1, \]</div>
+            by L-BFGS with at most 2,000 iterations (<code>sklearn LogisticRegression</code>
+            defaults otherwise); \(\hat y_i\) is the most probable class.
+          </dd>
+          <dt>Scores (<code>classification_scores</code>)</dt>
+          <dd>
+            Over the pooled test predictions, with \(n_c\) the test samples of class
+            \(c\) and \(\mathrm{TP}_c, \mathrm{FP}_c, \mathrm{FN}_c\) the usual counts:
+            <div class="eq">\[ \mathrm{BA} = \frac{1}{K}\sum_{c} \frac{\mathrm{TP}_c}{n_c}, \qquad F1_c = \frac{2\,\mathrm{TP}_c}{2\,\mathrm{TP}_c + \mathrm{FP}_c + \mathrm{FN}_c}, \]</div>
+            accuracy \(\frac{1}{n}\sum_c \mathrm{TP}_c\), macro-F1 the mean of
+            \(F1_c\), and weighted-F1 \(\sum_c (n_c/n)\, F1_c\). Balanced accuracy
+            weights every class equally; its chance level is \(1/K\).
+          </dd>
+        </dl>
+        <p>
+          Over {{n_tumour}} tumour samples and {{project_classes}} projects, PCA reaches
+          accuracy {{project_acc}}, weighted-F1 {{project_wf1}} and balanced accuracy
+          {{project_bacc}} {{project_bacc_ci}}; PCA-{{min_dim}} reaches
+          {{project_bacc_min}} and HVG {{project_bacc_hvg}}. {{n_early}} of the
+          {{n_tasks}} tasks come within ±{{level}} of their PCA-{{head}} score at
+          \(d = {{early_dim}}\). COAD and READ, which TCGA's colorectal study analysed
+          as one disease, are the hardest pair: PCA reaches {{colorectal_bacc}}
+          {{colorectal_ci}}.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Balanced accuracy of PCA-\(d\) against \(d\)</p>
+            <p class="chart-sub">\(d\) on a log scale; whiskers are 95% intervals. The orange line is HVG-{{hvg_n}}, the dashed line \(1/K\).</p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-{{hvg_n}}</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-classification"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-classification"></table></div></details>
+        </figure>
+        <p>All four measures for PCA-{{head}}:</p>
+        <div class="table-wrap"><table id="table-classification"></table></div>
+        <p class="table-note">Beneath each score, its 95% interval. Majority is the accuracy of predicting the largest class, \(\max_c n_c / n\).</p>
+      </section>
+
+      <section id="expression">
+        <p class="kicker">reimp_shared.eval.invertibility · reimp_shared.eval.pathways</p>
+        <h2>Expression: \(R^2\) {{inv_r2}} over genes, {{path_r2}} over pathways</h2>
+        <dl class="defs">
+          <dt>Invertibility (<code>invertibility</code>)</dt>
+          <dd>
+            The target is \(y_i = x_i \in \mathbb{R}^{\left|G\right| }\), all {{genes}}
+            log-normalized genes, whatever the embedding was computed from. Ridge
+            regression from the standardized embedding,
+            <div class="eq">\[ \hat y_i = W \hat z_i + b, \qquad \min_{W,\,b} \sum_{i \in F_k} \|y_i - W \hat z_i - b\|^2 + \alpha \|W\|_F^2, \]</div>
+            with one \(\alpha \in \{10^{ {{ridge_lo}} }, \dots, 10^{ {{ridge_hi}} }\}\)
+            (powers of ten) for all genes, chosen by leave-one-out squared error over
+            \(F_k\) (<code>sklearn RidgeCV</code>). Over the pooled test samples \(E\),
+            with \(\bar y_g\) the mean of \(y_{ig}\) over \(E\):
+            <div class="eq">\[ R^2_{\text{pooled}} = 1 - \frac{\sum_{i \in E}\sum_{g}(y_{ig} - \hat y_{ig})^2}{\sum_{i \in E}\sum_{g}(y_{ig} - \bar y_g)^2}, \qquad R^2_{\text{gene}} = \frac{1}{\left|G'\right| }\sum_{g \in G'}\left[1 - \frac{\sum_{i \in E}(y_{ig} - \hat y_{ig})^2}{\sum_{i \in E}(y_{ig} - \bar y_g)^2}\right], \]</div>
+            \(G'\) being the genes not constant over \(E\). \(R^2_{\text{pooled}}\)
+            weights each gene by its variance; \(R^2_{\text{gene}}\) weights genes
+            equally and has no interval, because a replicate that misses the few
+            samples carrying a gene's variance sends that gene's \(R^2\) far below 0.
+            Per-sample Pearson is the mean over \(i \in E\) of
+            \(\mathrm{corr}_g(y_{ig}, \hat y_{ig})\).
+          </dd>
+          <dt>Pathways (<code>pathway_probe</code>)</dt>
+          <dd>
+            \(s_{ia}\) is the ssGSEA score of MSigDB 2026.1 Hallmark set \(a\)
+            (\(\left|A\right|  = {{n_pathways}}\)) for tumour sample \(i\), computed by tcga2hf from
+            <code>tpm_unstranded</code> with GSVA's ssGSEA and published unnormalized
+            (<code>score_raw</code>). Scores and embeddings are centred on their
+            project's mean over the fitting tumour samples,
+            <div class="eq">\[ \tilde s_{ia} = s_{ia} - \frac{1}{\left|F_k^{\pi(i)}\right| }\sum_{j \in F_k^{\pi(i)}} s_{ja}, \]</div>
+            the embedding is then standardized, and \(\hat s\) is a ridge regression
+            fit as above. With every sum over tumour samples \(i \in E\):
+            <div class="eq">\[ R^2_{\text{pooled}} = 1 - \frac{\sum_{i}\sum_{a}(\tilde s_{ia} - \hat s_{ia})^2}{\sum_{i}\sum_{a}\tilde s_{ia}^2}, \qquad R^2_{\text{pathway}} = \frac{1}{\left|A\right| }\sum_{a}\left[1 - \frac{\sum_{i}(\tilde s_{ia} - \hat s_{ia})^2}{\sum_{i}\tilde s_{ia}^2}\right]. \]</div>
+            0 is what the project alone predicts. The scores derive from each sample's
+            own expression, so this probe is invertibility weighted by gene sets, not
+            an independent label.
+          </dd>
+        </dl>
+        <p>
+          PCA's \(R^2_{\text{pooled}}\) is {{inv_r2}}, from {{inv_r2_min}} at
+          \(d = {{min_dim}}\); HVG's is {{inv_r2_hvg}}. PCA's \(R^2_{\text{gene}}\) is
+          {{inv_r2_gene}}, and its per-sample Pearson {{inv_pearson}} against
+          {{pearson_base}} for the mean profile. PCA of \(x\) is the rank-\(d\) linear
+          code of \(x\) with least squared reconstruction error, so among
+          \(d\)-dimensional embeddings with a linear readout, PCA-\(d\) is near the
+          ceiling of \(R^2_{\text{pooled}}\). HVG-{{hvg_n}} contains {{hvg_genes}} of the
+          {{genes}} target genes exactly, up to scale; the ridge recovers the rest
+          from them. The Hallmark \(R^2\) is {{path_r2}} pooled and
+          {{path_r2_pathway}} per pathway.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Expression and pathway scores of PCA-\(d\) against \(d\)</p>
+            <p class="chart-sub">\(R^2_{\text{gene}}\) has no interval (see above).</p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-{{hvg_n}}</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-expression"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-expression"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="survival">
+        <p class="kicker">reimp_shared.eval.survival</p>
+        <h2>Survival: C-index {{c_index}} within projects</h2>
+        <dl class="defs">
+          <dt>Samples and endpoint (<code>survival_samples</code>)</dt>
+          <dd>
+            One sample per patient: the earliest (lowest <code>sample_index</code>) of
+            type Primary Tumor or Primary Blood Derived Cancer – Peripheral Blood.
+            The endpoint is {{endpoint}} from <code>{{labels_short}}</code>: time
+            \(t_p\) in days from diagnosis and event indicator \(\delta_p\). Patients
+            without a primary tumour sample or without the endpoint are not scored,
+            which leaves {{survival_patients}} patients and {{survival_events}} events.
+          </dd>
+          <dt>Model (<code>fit_cox</code>, <code>select_alpha</code>)</dt>
+          <dd>
+            A Cox model stratified by project, with its own baseline hazard per
+            project, fit by L-BFGS on the \(n\) fitting patients of \(F_k\):
+            <div class="eq">\[ \ell(\beta) = -\frac{1}{n}\sum_{p:\,\delta_p = 1}\left[\beta^\top \hat z_p - \log \sum_{q \in R(p)} e^{\beta^\top \hat z_q}\right] + \frac{\alpha}{2}\|\beta\|^2, \qquad R(p) = \{q : \pi(q) = \pi(p),\ t_q \ge t_p\}, \]</div>
+            with Breslow's handling of ties. The penalty
+            \(\alpha \in \{ {{cox_alphas}} \}\) is chosen by {{cox_folds}}-fold
+            cross-validation over the fitting patients (shuffled, seed 0): fits run
+            from the strongest penalty down, each warm-started from the last, scored
+            by the within-project C-index pooled over the held-out folds, and the path
+            stops at the first \(\alpha\) that does not improve it. The risk score is
+            \(r_p = \hat\beta^\top \hat z_p\).
+          </dd>
+          <dt>C-index (<code>survival_scores</code>)</dt>
+          <dd>
+            Harrell's C over comparable pairs from the same project and the same fold,
+            since each fold's model has its own risk scale:
+            <div class="eq">\[ C = \frac{\sum_{(p,q) \in \mathcal{P}}\left[\mathbf{1}(r_p > r_q) + \frac{1}{2}\mathbf{1}(r_p = r_q)\right]}{\left|\mathcal{P}\right| }, \qquad \mathcal{P} = \{(p, q) : \delta_p = 1,\ t_p < t_q,\ \pi(p) = \pi(q),\ k(p) = k(q)\}. \]</div>
+            A project's own C restricts \(\mathcal{P}\) to its pairs; the macro
+            C-index is the mean of those over projects with at least
+            {{macro_min_events}} events. Cancer type is constant within every pair, so
+            it contributes nothing, and 0.5 is chance.
+          </dd>
+        </dl>
+        <p>
+          PCA's C-index is {{c_index}} {{c_index_ci}}, from {{c_index_min}} at
+          \(d = {{min_dim}}\); HVG's is {{c_index_hvg}}. PCA's macro C-index over the
+          {{survival_projects}} projects with at least {{macro_min_events}} events is
+          {{c_macro}}. The primary-tumour rule, which TCGA-CDR recommends, leaves out
+          the {{metastatic_only}} patients sampled only at metastasis,
+          {{metastatic_only_where}}; SKCM keeps {{skcm_patients}} scored patients and a
+          C-index of {{skcm_c}} {{skcm_ci}}. A metastasis is sampled after diagnosis,
+          so \(t_p\) measured from diagnosis would include time the patient was
+          guaranteed to survive, and for PFI the first progression can precede the
+          sample; <code>shared/EVALS.md</code> quantifies both in SKCM.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">C-index of PCA-\(d\) against \(d\)</p></div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-{{hvg_n}}</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-survival"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-survival"></table></div></details>
+        </figure>
+        <p>
+          Per project, with intervals from the same replicates: for PCA,
+          {{n_proj_above}} of the {{n_proj}} projects with comparable pairs have an
+          interval wholly above 0.5.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each project's C-index</p>
+            <p class="chart-sub">Sorted by PCA's C-index; the value at right is the project's number of events.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">PCA-{{head}}</span>
+            <span class="key dot s2">HVG-{{hvg_n}}</span>
+            <span class="key whisker">95% interval</span>
+            <span class="key dash">0.5</span>
+          </div>
+          <div class="plot-box" id="chart-projects"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-projects"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="geometry">
+        <p class="kicker">reimp_shared.eval.geometry</p>
+        <h2>Geometry: {{prec1_pct}} of nearest neighbours share the cancer type</h2>
+        <dl class="defs">
+          <dt>Embedding and labels</dt>
+          <dd>
+            Tumour samples, \(y_i = \pi(i)\). In fold \(k\) the embedding is centred,
+            not scaled: \(u_i = z_i - m_k\), with \(m_k\) the mean over the fitting
+            tumour samples. Similarity is cosine,
+            \(\cos(u_i, u_j) = u_i^\top u_j / (\|u_i\|\,\|u_j\|)\).
+          </dd>
+          <dt>Precision@\(k\) (<code>neighbour_precision</code>)</dt>
+          <dd>
+            With \(N_k(i)\) the \(k\) fitting tumour samples most similar to test
+            sample \(i\),
+            \(\mathrm{P@}k(i) = \frac{1}{k}\sum_{j \in N_k(i)} \mathbf{1}(y_j = y_i)\),
+            averaged over test samples, for \(k \in \{1, 10\}\).
+          </dd>
+          <dt>Clusters (<code>clustering_agreement</code>)</dt>
+          <dd>
+            k-means with as many clusters as projects in \(F_k\), on
+            \(u_i / \|u_i\|\) of the fitting samples (<code>sklearn KMeans</code>,
+            <code>n_init="auto"</code>, seed 0); test samples take their nearest
+            centroid \(\hat c_i\).
+            \(\mathrm{NMI} = I(y;\hat c) / \left(\tfrac{1}{2}[H(y) + H(\hat c)]\right)\)
+            and the adjusted Rand index over the test samples, per fold, then averaged
+            over folds; neither has an interval, since a replicate's duplicated
+            patients form pairs that agree by construction.
+          </dd>
+          <dt>Silhouette and spectrum (<code>spectrum</code>)</dt>
+          <dd>
+            The cosine silhouette of the project labels among each fold's test
+            samples, averaged over all test samples. With \(\lambda_1 \ge \lambda_2
+            \ge \dots\) the eigenvalues of the covariance of fold \(k\)'s test
+            embeddings and \(\rho_j = \lambda_j / \sum_l \lambda_l\), the effective
+            rank is \(\exp\left(-\sum_j \rho_j \ln \rho_j\right)\) and the top share
+            \(\rho_1\), each averaged over folds.
+          </dd>
+        </dl>
+        <p>
+          PCA's precision@1 is {{prec1_pct1}}, against \(\sum_c (n_c/n)^2 =\)
+          {{prec_chance_pct}}; NMI {{nmi}}, ARI {{ari}}. PCA-{{head}}'s effective rank is
+          {{eff_rank}} and its first component's share {{top_share}}: principal
+          components are ordered by variance, so a few dominate the spectrum.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Geometry scores of PCA-\(d\) against \(d\)</p>
+          </div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-{{hvg_n}}</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-geometry"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-geometry"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="confounders">
+        <p class="kicker">reimp_shared.eval.confounders · reimp_shared.labels.technical_covariates</p>
+        <h2>Confounders: technical covariates within projects</h2>
+        <dl class="defs">
+          <dt>Covariates</dt>
+          <dd>
+            With \(N_i\) the library's total reads — the unstranded counts over all
+            {{genes_all}} genes plus STAR's unmapped, multimapping, no-feature and
+            ambiguous tallies — and \(c^{(1)}, c^{(2)}\) the first- and second-strand
+            counts:
+            <div class="eq">\[ q^{\text{reads}}_i = \log_{10} N_i, \qquad q^{\text{assigned}}_i = \frac{\sum_{g} c_{ig}}{N_i}, \qquad q^{\text{strand}}_i = \frac{\sum_g c^{(1)}_{ig}}{\sum_g \left(c^{(1)}_{ig} + c^{(2)}_{ig}\right)}, \]</div>
+            each sum over all genes. The batches are the sequencing plate, the sixth
+            field of the aliquot barcode, and the tissue source site, the second.
+          </dd>
+          <dt>Covariate \(R^2\) (<code>within_project_r2</code>)</dt>
+          <dd>
+            On tumour samples, covariate and embedding are centred on their project's
+            mean over \(F_k\) as for pathways, the embedding standardized, and a ridge
+            regression fit per covariate. \(R^2 = 1 - \sum_i (\tilde q_i - \hat
+            q_i)^2 / \sum_i \tilde q_i^2\) over the test samples: 0 means the
+            embedding predicts nothing about the covariate beyond the project.
+          </dd>
+          <dt>Batch enrichment (<code>batch_enrichment</code>)</dt>
+          <dd>
+            With \(R_i\) the fitting tumour samples of \(i\)'s project with a known
+            batch, and \(N_k(i) \subset R_i\) the \(k = {{neighbours_k}}\) most
+            similar by cosine on the project-centred embedding,
+            <div class="eq">\[ e_i = \frac{1}{k}\sum_{j \in N_k(i)} \mathbf{1}(b_j = b_i) - \frac{1}{\left|R_i\right| }\sum_{j \in R_i} \mathbf{1}(b_j = b_i), \]</div>
+            averaged over test samples: how much more often a sample's neighbours
+            share its batch than its project's samples do.
+          </dd>
+        </dl>
+        <p>
+          Lower is more invariant, though not all of it is artefact: sites differ in
+          their patients, and plates in when and from where samples arrived. PCA's
+          \(q^{\text{strand}}\) \(R^2\) is {{strand_min}} at \(d = {{min_dim}}\),
+          {{strand_head}} at \(d = {{head}}\), and {{strand_hvg}} for HVG; its
+          \(q^{\text{reads}}\) \(R^2\) is {{reads_min}} and {{reads_head}}. PCA's plate
+          enrichment is {{plate_pts}} percentage points and its site enrichment
+          {{tss_pts}}.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Confounder scores of PCA-\(d\) against \(d\)</p></div>
+          <div class="legend">
+            <span class="key line s1">PCA-<i>d</i></span>
+            <span class="key line s2">HVG-{{hvg_n}}</span>
+            <span class="key dash">no embedding</span>
+          </div>
+          <div class="multiples sweeps" id="sweep-confounders"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-sweep-confounders"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="folds">
+        <p class="kicker">reimp_shared.eval.protocol</p>
+        <h2>One fold alone: up to {{fold_max_dev}} from the pooled score</h2>
+        <p>
+          A single fold is an ordinary train / validation / test split: its probes fit
+          on \(F_k\) and score only \(E_k\), a fifth of the patients
+          (<code>reimp-shared probe out/pca{{head}}/fold&lt;k&gt;.parquet</code>). The
+          five single-fold scores \(s^{(k)}\) of PCA-{{head}} differ from the pooled
+          score by up to {{fold_max_dev}} ({{fold_max_metric}}, {{fold_max_fold}}), and
+          {{fold_outside}} of {{fold_scored}} fall outside the pooled score's 95%
+          interval. Pooling uses every test patient and every project's full count of
+          events.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">\(s^{(k)}\) minus the pooled score</p>
+            <p class="chart-sub">The band is the pooled score's 95% interval, centred the same way; the value at right is \(\max_k \left|s^{(k)} - s\right| \).</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">one fold</span>
+            <span class="key band">pooled 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-folds"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-folds"></table></div></details>
+        </figure>
+      </section>
+
+      <section id="redraw">
+        <p class="kicker">reimp_shared.splits · reimp-shared --salt</p>
+        <h2>Folds drawn again</h2>
+        <p>
+          The bootstrap resamples patients under one fold assignment. To measure the
+          variation it leaves out, the assignment is redrawn with the same rule under
+          {{n_redraws}} other salts ({{salts}}), and PCA-{{head}} is refit and rescored
+          under each. For every score with an interval, the ratio of its standard
+          deviation over the {{n_assignments}} assignments to the half-width of its
+          original interval has median {{salt_ratio}}; the largest change is
+          {{salt_max_dev}} ({{salt_max_metric}}), and {{salt_outside}} of
+          {{salt_scored}} redrawn scores fall outside the original interval. Gross et
+          al. (2024) show that a lead on one split often fails to hold on another; a
+          difference between two embeddings no larger than this spread should be
+          read as a tie.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each redrawn assignment's score minus the original</p>
+            <p class="chart-sub">The band is the original score's 95% interval, centred the same way; the value at right is the largest distance of any redraw.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">another salt</span>
+            <span class="key band">original 95% interval</span>
+          </div>
+          <div class="plot-box" id="chart-redraw"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-redraw"></table></div></details>
+        </figure>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>
+      Built by <code>reports/build/baselines.py</code> from <code>{{dataset}}</code> and
+      labels from <code>{{labels}}</code>; split salt <code>{{salt}}</code>, redrawn
+      under {{salts}}; {{bootstrap}} bootstrap replicates; Hallmark pathways.
+    </p>
+    <p>
+      Rebuild: <code>uv run python reports/build/baselines.py</code>. It fits and scores
+      whatever baseline is missing or stale under <code>out/</code> first (about 12
+      minutes from nothing), and <code>--rerun</code> recomputes all of them.
+    </p>
+  </footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>__REPORT_JS__</script>
+<script>
+(() => {
+  'use strict';
+  const { data: DATA, int, pct, svg, label, plot, measure, hover, mount, fillTable, stacked } = ReportKit;
+  const HEAD = DATA.head;
+  const GENES = `top ${int(DATA.hvg_genes)} genes`;
+  const fmt = (v, d = 3) => (v == null ? '–' : v.toFixed(d));
+  const interval = p => (p == null || p.lo == null ? '' : `[${fmt(p.lo)}, ${fmt(p.hi)}]`);
+  const signed = v => `${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(3)}`;
+  const signedTick = t => (Math.abs(t) < 1e-12 ? '0' : signed(t).replace(/0+$/, '').replace(/\.$/, ''));
+  const GROUP = Object.fromEntries(DATA.groups.map(g => [g.id, g]));
+
+  /* a linear scale's nice domain and ticks covering [lo, hi] */
+  function niceScale(lo, hi, count) {
+    if (hi - lo < 1e-9) { lo -= 0.005; hi += 0.005; }
+    const raw = (hi - lo) / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    const a = Math.floor(lo / step + 1e-9) * step, b = Math.ceil(hi / step - 1e-9) * step;
+    const list = [];
+    for (let v = a; v <= b + step * 1e-6; v += step) list.push(+v.toPrecision(10));
+    return { lo: a, hi: b, step, list };
+  }
+  function decimals(step) {
+    const s = String(+step.toPrecision(6));
+    return s.includes('.') ? s.length - s.indexOf('.') - 1 : 0;
+  }
+  const finite = values => values.filter(v => v != null && Number.isFinite(v));
+
+  /* ---------- rows of scores, grouped by evaluation ---------- */
+  function grouped(keep) {
+    const items = [];
+    for (const g of DATA.groups) {
+      const ms = DATA.metrics.filter(m => m.group === g.id && keep(m));
+      if (!ms.length) continue;
+      items.push({ head: g });
+      for (const metric of ms) items.push({ metric });
+    }
+    return items;
+  }
+  function rowLayout(W, items, valueW) {
+    const longest = Math.max(...items.filter(it => it.metric).map(it => measure(it.metric.label, 12)));
+    const above = longest + 16 > W * 0.42;
+    const x0 = above ? 0 : longest + 16;
+    const rowH = above ? 40 : 24, headH = 34;
+    let y = 24;
+    const rows = items.map(it => {
+      const h = it.head ? headH : rowH;
+      const row = Object.assign({ y, h }, it);
+      y += h;
+      return row;
+    });
+    return { above, x0, x1: Math.max(x0 + 80, W - valueW), H: y + 4, rows };
+  }
+  function rowFrame(root, L, r) {
+    if (r.head) {
+      const t = label(root, 0, r.y + r.h - 9, r.head.title, 'group-label');
+      if (r.head.note) {
+        const note = svg('tspan', { class: 'group-note', dx: 8 }, t);
+        note.textContent = r.head.note;
+      }
+      return null;
+    }
+    const cy = L.above ? r.y + 28 : r.y + r.h / 2;
+    if (L.above) label(root, 0, r.y + 13, r.metric.label, 'label');
+    else label(root, L.x0 - 10, cy, r.metric.label, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    return cy;
+  }
+  function axis(root, L, s, sx, fmtTick) {
+    for (const t of s.list) {
+      svg('line', { x1: sx(t), x2: sx(t), y1: 18, y2: L.H - 2, class: 'gridline' }, root);
+      label(root, sx(t), 12, fmtTick(t), 'tick', { 'text-anchor': 'middle' });
+    }
+  }
+  /* a point and its interval, shifted `dy` off the row's centre line */
+  function pointMark(root, sx, cy, p, series, dy, marks) {
+    if (!p || p.value == null) return;
+    if (p.lo != null) marks.push(svg('line', { x1: sx(p.lo), x2: sx(p.hi), y1: cy + dy, y2: cy + dy, class: series === 2 ? 'ci ci-2' : 'ci' }, root));
+    marks.push(svg('circle', { cx: sx(p.value), cy: cy + dy, r: 4, class: `dot mark-${series}` }, root));
+  }
+
+  function scorecard(box, W) {
+    const items = grouped(m => m.scorecard);
+    const L = rowLayout(W, items, 104);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    const all = finite(ms.flatMap(m => [m.value, m.lo, m.hi, m.constant, m.hvg.value, m.hvg.lo, m.hvg.hi]));
+    const s = niceScale(Math.min(0, ...all), Math.max(1, ...all), 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Every score of both baselines');
+    axis(root, L, s, sx, t => t.toFixed(decimals(s.step)));
+    label(root, W - 56, 12, 'PCA', 'tick', { 'text-anchor': 'end' });
+    label(root, W, 12, 'genes', 'tick', { 'text-anchor': 'end' });
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      if (m.constant != null) {
+        const x = sx(m.constant);
+        marks.push(svg('path', { d: `M${x},${cy - 5}l5,5l-5,5l-5,-5z`, class: 'const-mark' }, root));
+      }
+      pointMark(root, sx, cy, m, 1, -3.5, marks);
+      pointMark(root, sx, cy, m.hvg, 2, 3.5, marks);
+      label(root, W - 56, cy, fmt(m.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      label(root, W, cy, fmt(m.hvg.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [[`${fmt(m.value)} ${interval(m)}`.trim(), `PCA ${HEAD}`]];
+      if (m.hvg.value != null) lines.push([`${fmt(m.hvg.value)} ${interval(m.hvg)}`.trim(), GENES]);
+      if (m.delta) lines.push([`${signed(m.delta.value)} ${interval(m.delta)}`, 'genes minus PCA, paired']);
+      if (m.constant != null) lines.push([fmt(m.constant), `no embedding: ${m.constant_note}`]);
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* differences on a shared axis around zero, one row per score */
+  function deltaChart(box, W) {
+    const items = grouped(m => m.scorecard && m.delta);
+    if (!items.length) { box.textContent = 'No score has replicates for both baselines.'; return; }
+    const L = rowLayout(W, items, 60);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    const reach = Math.max(...ms.flatMap(m => [Math.abs(m.delta.lo), Math.abs(m.delta.hi), Math.abs(m.delta.value)]));
+    const s = niceScale(-reach, reach, 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Top genes minus principal components');
+    axis(root, L, s, sx, signedTick);
+    svg('line', { x1: sx(0), x2: sx(0), y1: 18, y2: L.H - 2, class: 'zero-line' }, root);
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      pointMark(root, sx, cy, m.delta, 2, 0, marks);
+      label(root, W, cy, signed(m.delta.value), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [
+        [`${signed(m.delta.value)} ${interval(m.delta)}`, 'genes minus PCA, paired 95% interval'],
+        [pct(m.delta.share_above, 0), 'of replicates with the genes higher'],
+        [fmt(m.hvg.value), GENES],
+        [fmt(m.value), `PCA ${HEAD}`],
+      ];
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* each project's C-index under both baselines */
+  function projectChart(box, W) {
+    const P = DATA.projects;
+    if (!P.length) { box.textContent = 'No project has comparable pairs.'; return; }
+    const items = P.map(p => ({ metric: Object.assign({ label: p.code }, p) }));
+    const L = rowLayout(W, items, 48);
+    const vals = finite(P.flatMap(p => [p.pca.value, p.pca.lo, p.pca.hi, p.hvg.value, p.hvg.lo, p.hvg.hi]));
+    const s = niceScale(Math.min(0.5, ...vals), Math.max(0.5, ...vals), 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, 'Each project’s C-index');
+    axis(root, L, s, sx, t => t.toFixed(decimals(s.step)));
+    svg('line', { x1: sx(0.5), x2: sx(0.5), y1: 18, y2: L.H - 2, class: 'const-line' }, root);
+    label(root, W, 12, 'events', 'tick', { 'text-anchor': 'end' });
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      const p = r.metric;
+      const marks = [];
+      pointMark(root, sx, cy, p.pca, 1, -3.5, marks);
+      pointMark(root, sx, cy, p.hvg, 2, 3.5, marks);
+      label(root, W, cy, int(p.events), 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [
+        [`${fmt(p.pca.value)} ${interval(p.pca)}`.trim(), `PCA ${HEAD}`],
+        [`${fmt(p.hvg.value)} ${interval(p.hvg)}`.trim(), GENES],
+        [int(p.patients), 'patients'],
+        [int(p.events), 'events'],
+      ];
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: p.code, lines }, marks, true);
+    }
+  }
+
+  /* other estimates of each score (one fold alone, or the folds drawn again) minus the original */
+  function strip(box, W, key, title) {
+    const items = grouped(m => m.scorecard && m[key].some(f => f.value != null));
+    if (!items.length) { box.textContent = 'Nothing to compare.'; return; }
+    const L = rowLayout(W, items, 60);
+    const ms = items.filter(it => it.metric).map(it => it.metric);
+    let reach = 0;
+    for (const m of ms) {
+      for (const f of m[key]) if (f.value != null) reach = Math.max(reach, Math.abs(f.value - m.value));
+      if (m.lo != null) reach = Math.max(reach, m.value - m.lo, m.hi - m.value);
+    }
+    const s = niceScale(-reach, reach, 4);
+    const sx = v => L.x0 + (L.x1 - L.x0) * (v - s.lo) / (s.hi - s.lo);
+    const root = plot(box, W, L.H, title);
+    axis(root, L, s, sx, signedTick);
+    svg('line', { x1: sx(0), x2: sx(0), y1: 18, y2: L.H - 2, class: 'zero-line' }, root);
+    for (const r of L.rows) {
+      const cy = rowFrame(root, L, r);
+      if (cy == null) continue;
+      const m = r.metric;
+      const marks = [];
+      if (m.lo != null) {
+        const xa = sx(m.lo - m.value), xb = sx(m.hi - m.value);
+        marks.push(svg('rect', { x: xa, y: cy - 7, width: Math.max(1, xb - xa), height: 14, rx: 2, class: 'band' }, root));
+      }
+      const others = m[key].filter(f => f.value != null);
+      others.forEach((f, i) => {
+        const dy = (i - (others.length - 1) / 2) * 2.4;
+        marks.push(svg('circle', { cx: sx(f.value - m.value), cy: cy + dy, r: 3.5, class: 'dot mark-1' }, root));
+      });
+      const widest = Math.max(...others.map(f => Math.abs(f.value - m.value)));
+      label(root, W, cy, `±${widest.toFixed(3)}`, 'value', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      const lines = [[`${fmt(m.value)} ${interval(m)}`.trim(), 'original, pooled']];
+      for (const f of others) lines.push([fmt(f.value), `${f.label} (${signed(f.value - m.value)})`]);
+      const hit = svg('rect', { x: 0, y: r.y, width: W, height: r.h, class: 'hit-area' }, root);
+      hover(hit, { title: `${GROUP[m.group].title} · ${m.label}`, lines }, marks, true);
+    }
+  }
+
+  /* ---------- one small chart per score, by number of components ---------- */
+  function sweep(box, W, m) {
+    const H = 172, padL = 44, padR = 16, padT = 18, padB = 26;
+    const dims = DATA.dims, n = dims.length;
+    const pts = m.sweep.map((p, i) => Object.assign({ i }, p)).filter(p => p.value != null);
+    const vals = finite([...pts.flatMap(p => [p.value, p.lo, p.hi]), m.constant, m.hvg.value]);
+    const s = niceScale(Math.min(...vals), Math.max(...vals), 3);
+    const d = decimals(s.step);
+    const span = W - padL - padR;
+    const sx = i => padL + span * (n > 1 ? i / (n - 1) : 0.5);
+    const sy = v => padT + (H - padT - padB) * (1 - (v - s.lo) / (s.hi - s.lo));
+    const root = plot(box, W, H, `${m.label} by number of components`);
+    for (const t of s.list) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: 'gridline' }, root);
+      label(root, padL - 6, sy(t), t.toFixed(d), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    dims.forEach((dim, i) => label(root, sx(i), H - 6, String(dim), 'tick', { 'text-anchor': 'middle' }));
+    // Reference labels sit below their line where there is room, clear of the scores above.
+    const reference = (value, cls, text, anchor) => {
+      const y = sy(value);
+      svg('line', { x1: padL, x2: W - padR, y1: y, y2: y, class: cls }, root);
+      const below = y + 16 < H - padB;
+      const x = anchor === 'end' ? W - padR : padL + 4;
+      label(root, x, below ? y + 13 : y - 6, text, 'annot', { 'text-anchor': anchor });
+    };
+    if (m.constant != null) reference(m.constant, 'const-line', `no embedding ${fmt(m.constant, 2)}`, 'end');
+    // The HVG line is named by the legend and the tooltip; a label would sit on the PCA curve.
+    if (m.hvg.value != null) svg('line', { x1: padL, x2: W - padR, y1: sy(m.hvg.value), y2: sy(m.hvg.value), class: 'hvg-line' }, root);
+    svg('path', { d: 'M' + pts.map(p => `${sx(p.i).toFixed(1)},${sy(p.value).toFixed(1)}`).join('L'), class: 'series-line' }, root);
+    const half = span / (2 * Math.max(1, n - 1));
+    for (const p of pts) {
+      const marks = [];
+      if (p.lo != null) marks.push(svg('line', { x1: sx(p.i), x2: sx(p.i), y1: sy(p.lo), y2: sy(p.hi), class: 'ci-soft' }, root));
+      marks.push(svg('circle', { cx: sx(p.i), cy: sy(p.value), r: p.dim === HEAD ? 5 : 3.5, class: 'dot mark-1' }, root));
+      const lines = [[fmt(p.value), `${p.dim} components`]];
+      if (p.lo != null) lines.push([interval(p), '95% interval']);
+      if (m.hvg.value != null) lines.push([fmt(m.hvg.value), GENES]);
+      if (m.constant != null) lines.push([fmt(m.constant), 'no embedding']);
+      const hit = svg('rect', { x: sx(p.i) - half, y: padT, width: 2 * half, height: H - padT - padB, class: 'hit-area' }, root);
+      hover(hit, { title: m.label, lines }, marks);
+    }
+  }
+  const pointCell = p => (p == null || p.value == null ? '–' : p.lo == null ? fmt(p.value) : stacked(fmt(p.value), interval(p)));
+  function sweeps(group) {
+    const container = document.getElementById(`sweep-${group}`);
+    DATA.metrics.filter(m => m.group === group).forEach((m, i) => {
+      const cell = document.createElement('div');
+      const title = document.createElement('h4');
+      title.textContent = m.label;
+      const box = document.createElement('div');
+      box.className = 'plot-box';
+      box.id = `sweep-${group}-${i}`;
+      cell.append(title, box);
+      container.append(cell);
+      mount(box.id, (b, W) => sweep(b, W, m));
+    });
+    fillTable(`table-sweep-${group}`, [
+      { label: 'Score', value: m => m.label },
+      ...DATA.dims.map((dim, i) => ({ label: `${dim}`, num: true, value: m => pointCell(m.sweep[i]) })),
+      { label: 'Top genes', num: true, value: m => pointCell(m.hvg) },
+      { label: 'No embedding', num: true, value: m => fmt(m.constant) },
+      { label: `Within ${DATA.level} of ${HEAD} from`, num: true, value: m => String(m.levelled_at) },
+    ], DATA.metrics.filter(m => m.group === group));
+  }
+
+  /* ---------- wire it up ---------- */
+  mount('chart-scorecard', scorecard);
+  mount('chart-delta', deltaChart);
+  mount('chart-projects', projectChart);
+  mount('chart-folds', (box, W) => strip(box, W, 'folds', 'Each fold alone against the pooled score'));
+  mount('chart-redraw', (box, W) => strip(box, W, 'salts', 'Each redrawn assignment against the original'));
+  for (const g of DATA.groups) sweeps(g.id);
+
+  const card = DATA.metrics.filter(m => m.scorecard);
+  fillTable('table-scorecard', [
+    { label: 'Evaluation', value: m => GROUP[m.group].title, cls: () => 'group' },
+    { label: 'Score', value: m => m.label },
+    { label: `PCA ${HEAD}`, num: true, value: m => pointCell(m) },
+    { label: 'Top genes', num: true, value: m => pointCell(m.hvg) },
+    { label: 'Genes minus PCA', num: true, value: m => (m.delta ? stacked(signed(m.delta.value), interval(m.delta)) : '–') },
+    { label: 'No embedding', num: true, value: m => fmt(m.constant) },
+  ], card);
+  fillTable('table-classification', [
+    { label: 'Task', value: t => t.label },
+    { label: 'Classes', num: true, value: t => String(t.classes) },
+    { label: 'Samples', num: true, value: t => int(t.n) },
+    ...[['accuracy', 'Accuracy'], ['balanced_accuracy', 'Balanced'], ['macro_f1', 'Macro-F1'], ['weighted_f1', 'Weighted-F1']].map(([key, name]) => ({
+      label: name,
+      num: true,
+      value: t => pointCell(t[key]),
+    })),
+    { label: 'Majority', num: true, value: t => fmt(t.majority) },
+  ], DATA.classification);
+  fillTable('table-projects', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Patients', num: true, value: p => int(p.patients) },
+    { label: 'Events', num: true, value: p => int(p.events) },
+    { label: `PCA ${HEAD}`, num: true, value: p => pointCell(p.pca) },
+    { label: 'Top genes', num: true, value: p => pointCell(p.hvg) },
+  ], DATA.projects);
+  const others = (key, labels) => [
+    { label: 'Score', value: m => m.label },
+    { label: 'Original', num: true, value: m => pointCell(m) },
+    ...labels.map((name, k) => ({ label: name, num: true, value: m => fmt(m[key][k] && m[key][k].value) })),
+  ];
+  const withFolds = key => card.filter(m => m[key].some(f => f.value != null));
+  if (card.length) {
+    fillTable('table-folds', others('folds', card[0].folds.map(f => f.label)), withFolds('folds'));
+    fillTable('table-redraw', others('salts', card[0].salts.map(f => f.label.replace('salt ', ''))), withFolds('salts'));
+  }
+})();
+</script>
+</body>
+</html>

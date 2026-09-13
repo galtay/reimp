@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reimp Data Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..650;1,8..60,400&display=swap">
+<style>
+__REPORT_CSS__
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">{{repo}} @ {{commit_short}}</p>
+    <h1>One cohort, five folds, every patient tested once</h1>
+    <p class="lede">
+      TCGA bulk RNA-seq from GDC's STAR pipeline, one row per aliquot, as
+      <code>reimp_shared</code> loads it. This sheet shows what is in the data,
+      which genes are selected by default, and how patients are divided into five
+      cross-validation folds.
+    </p>
+    <dl class="specs">
+      <div class="spec"><dt>Samples</dt><dd>{{samples}}<small>RNA-seq aliquots</small></dd></div>
+      <div class="spec"><dt>Patients</dt><dd>{{cases}}<small>the unit every split is drawn on</small></dd></div>
+      <div class="spec"><dt>Projects</dt><dd>{{projects}}<small>TCGA cancer types</small></dd></div>
+      <div class="spec"><dt>Genes</dt><dd>{{genes}}<small>{{selected}} used by default</small></dd></div>
+      <div class="spec"><dt>Folds</dt><dd>{{n_folds}}<small>{{train_pct}} / {{val_pct}} / {{test_pct}} train, val, test</small></dd></div>
+    </dl>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Sections">
+      <ol>
+        <li><a href="#cohort">Cohort<span class="mod">hub</span></a></li>
+        <li><a href="#values">Values<span class="mod">data</span></a></li>
+        <li><a href="#genes">Genes<span class="mod">preprocess</span></a></li>
+        <li><a href="#folds">Folds<span class="mod">splits</span></a></li>
+        <li><a href="#balance">Balance<span class="mod">splits</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="cohort">
+        <p class="kicker">reimp_shared.hub</p>
+        <h2>{{samples}} samples from {{cases}} patients</h2>
+        <p>
+          Each row of the dataset is one RNA-seq aliquot from one of {{projects}} TCGA
+          projects. The projects differ in size {{project_ratio}}-fold:
+          {{largest_project}} contributes {{largest_samples}} samples,
+          {{smallest_project}} {{smallest_samples}}.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Samples per project</p>
+            <p class="chart-sub">Hover a bar for its patients and normals, or open the table for study names.</p>
+          </div>
+          <div class="plot-box" id="chart-projects"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-projects"></table></div></details>
+        </figure>
+
+        <p>
+          {{primary}} samples are primary tumours and {{normals}} are solid-tissue
+          normals, spread over {{normal_projects}} projects; the rest are metastases,
+          recurrences and blood-derived cancers.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Samples by GDC sample type</p></div>
+          <div class="plot-box" id="chart-types"></div>
+        </figure>
+
+        <h3>Why every split is drawn by patient</h3>
+        <p>
+          {{multi_cases}} patients contribute more than one aliquot — {{multi_samples}}
+          samples, {{multi_pct}} of the dataset — and {{mixed_cases}} of them contribute
+          more than one kind of sample, typically a tumour and its matched normal.
+          Aliquots of one patient are not independent, so every assignment on this
+          page is a function of the patient alone: all of a patient's samples land
+          on the same side of every split.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Patients by number of aliquots</p></div>
+          <div class="plot-box" id="chart-aliquots"></div>
+        </figure>
+      </section>
+
+      <section id="values">
+        <p class="kicker">reimp_shared.data.load_expression</p>
+        <h2>Six quantifications of every library</h2>
+        <p>
+          GDC's STAR pipeline reports six measures per gene, and each is its own
+          config of the dataset. Three are read counts and three are normalized per
+          library. The loaders pick one with <code>quantification=</code>; the default
+          is raw <code>unstranded</code> counts.
+        </p>
+        <div class="table-wrap"><table id="table-quant"></table></div>
+
+        <h3>Libraries</h3>
+        <p>
+          A median library holds {{reads_median}} reads, and the 1st to 99th
+          percentiles run from {{reads_q01}} to {{reads_q99}}, a {{depth_ratio}}-fold
+          spread. STAR assigns {{assigned_median}} of a median sample's reads to a
+          gene, and {{protein_share_median}} of those assigned reads fall on
+          protein-coding genes. Depth varies this much from library to library,
+          which is what the normalizing transforms below correct for.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Per-sample library statistics</p>
+            <p class="chart-sub">Each chart counts samples; the line marks the median.</p>
+          </div>
+          <div class="multiples">
+            <div><h4>Total reads</h4><div class="plot-box" id="chart-reads"></div></div>
+            <div><h4>Share assigned to a gene</h4><div class="plot-box" id="chart-assigned"></div></div>
+            <div><h4>Assigned reads on protein-coding genes</h4><div class="plot-box" id="chart-protein"></div></div>
+          </div>
+        </figure>
+
+        <h3>Transforms</h3>
+        <p>What the loaders do to each sample's row, after gene selection.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">transform</th><th scope="col">each value becomes</th><th scope="col">applied to counts, gives</th></tr></thead>
+            <tbody>
+              <tr><td><code>none</code></td><td>the stored value</td><td>raw counts</td></tr>
+              <tr><td><code>log1p</code></td><td>log(1 + x)</td><td>log counts; on TPM, log TPM</td></tr>
+              <tr><td><code>lognorm</code></td><td>log(1 + x · L / Σx), the sum over the selected genes, L = {{library_size}} by default</td><td>log counts per L reads, every library the same size</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="genes">
+        <p class="kicker">reimp_shared.preprocess.select_genes</p>
+        <h2>{{selected}} protein-coding genes by default</h2>
+        <p>
+          The dataset carries {{genes}} GENCODE v36 genes of {{biotypes}} biotypes. By
+          default the loaders select the protein-coding ones: {{selected_gene_pct}} of
+          the genes, which together carry {{selected_read_pct}} of all assigned reads.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Genes and reads by biotype</p>
+            <p class="chart-sub">The same rows twice: how many genes each biotype has, and its share of every assigned read in the dataset. Blue is the default selection.</p>
+          </div>
+          <div class="pair">
+            <div><h4>Genes</h4><div class="plot-box" id="chart-biotype-genes"></div></div>
+            <div><h4>Share of assigned reads</h4><div class="plot-box" id="chart-biotype-reads"></div></div>
+          </div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-biotypes"></table></div></details>
+          <p class="table-note">Smaller biotypes that still carry a visible share of reads: {{notable}}.</p>
+        </figure>
+
+        <p>The default selection, step by step:</p>
+        <ol class="steps">
+          <li><span>{{genes}} genes in the dataset.</span></li>
+          <li><span>{{protein_coding}} of biotype <code>protein_coding</code>.</span></li>
+          <li><span>{{selected}} after dropping {{par_y_protein}} <code>_PAR_Y</code> rows — the
+            Y-chromosome copies of pseudoautosomal genes, which GDC quantifies as zero in
+            every sample ({{par_y}} such rows across all biotypes).</span></li>
+        </ol>
+
+        <h3>How often each gene is seen</h3>
+        <p>
+          Of the {{selected}}, {{always_detected}} have at least one read in every
+          sample and {{never_detected}} in none; a median sample detects
+          {{detected_median}}. The rest spread across the range: genes that are on
+          in some tissues and cancers and off in others.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Protein-coding genes by the share of samples that detect them</p>
+            <p class="chart-sub">A gene is detected in a sample when it has at least one read.</p>
+          </div>
+          <div class="plot-box" id="chart-detection"></div>
+        </figure>
+        <p>
+          Other choices go through the same argument: <code>gene_types=None</code> keeps
+          all {{genes}} genes, and <code>gene_ids=</code> takes a fixed list of Ensembl
+          IDs, in its own order, versioned or not. Every choice works with every
+          quantification and transform.
+        </p>
+      </section>
+
+      <section id="folds">
+        <p class="kicker">reimp_shared.splits</p>
+        <h2>Five folds, each {{train_pct}} / {{val_pct}} / {{test_pct}}</h2>
+        <p>
+          Every fold divides the patients into train, val and test, and two steps
+          decide which is which. Step 1 maps each patient to one of {{n_buckets}}
+          buckets, in {{n_folds}} blocks of {{fold_width}}: its rank within its
+          project picks the block, so every project fills the blocks evenly, and its
+          hash picks the bucket in the block. Step 2 maps buckets to folds.
+          There is no split file: the same dataset gives the same folds on every
+          machine, whatever quantification, genes or samples are loaded.
+        </p>
+
+        <h3>From barcode to fold</h3>
+        <p>An aliquot's TCGA barcode names the patient in its first three fields; that case ID is what step 1 hashes.</p>
+        <figure class="chart">
+          <div class="barcode" id="barcode"><code>{{ex_barcode}}</code></div>
+          <p class="step-head">Step 1 · patient to bucket</p>
+          <ol class="steps">
+            <li><span>Hash the case with the salt: <code class="formula">blake2b("{{salt}}:{{ex_case}}", 8 bytes) = 0x{{ex_hash}}</code></span></li>
+            <li><span>Rank the project's patients by hash: {{ex_case}} is rank {{ex_rank}}, counting from 0, of the {{ex_n}} patients in {{ex_project}}.</span></li>
+            <li><span>The rank's fifth picks the block of {{fold_width}} buckets: <code class="formula">⌊{{n_folds}} · ({{ex_rank}} + ½) / {{ex_n}}⌋ = {{ex_fold}}</code></span></li>
+            <li><span>The hash picks the bucket within it: <code class="formula">{{fold_width}} · {{ex_fold}} + (0x{{ex_hash}} mod {{fold_width}} = {{ex_slot}}) = {{ex_bucket}}</code></span></li>
+          </ol>
+          <p class="step-head">Step 2 · bucket to fold</p>
+          <ol class="steps">
+            <li><span>Divide by {{fold_width}} for the test fold: <code class="formula">{{ex_bucket}} ÷ {{fold_width}} → fold {{ex_fold}}</code> The patient is a test patient in fold {{ex_fold}}.</span></li>
+            <li><span>Take the remainder for its role elsewhere: <code class="formula">{{ex_bucket}} mod {{fold_width}} = {{ex_offset}}</code> {{ex_offset_rule}}.</span></li>
+          </ol>
+        </figure>
+
+        <h3>Step 2 in full</h3>
+        <p>
+          The {{n_buckets}} buckets form {{n_folds}} folds of {{fold_width}}. In fold k,
+          fold k's own buckets are test; of every other fold, the last
+          {{val_buckets}} buckets validate and the rest train. Validation is held out
+          from fitting for choices such as when to stop, and is drawn evenly from
+          every training fold; setting a
+          whole fold aside for it would leave {{whole_fold_train_pct}}% to train on
+          instead of {{train_pct}}%.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">What each bucket is in each fold</p>
+            <p class="chart-sub">Rows are folds, columns the {{n_buckets}} buckets. The outlined column is {{ex_case}}'s bucket.</p>
+          </div>
+          <div class="legend">
+            <span class="key train">train · {{train_pct}} buckets</span>
+            <span class="key val">val · {{val_pct}}</span>
+            <span class="key test">test · {{test_pct}}</span>
+          </div>
+          <div class="plot-box" id="chart-buckets"></div>
+        </figure>
+
+        <p>Fold sizes in samples, with patients beneath:</p>
+        <div class="table-wrap"><table id="table-folds"></table></div>
+
+        <p style="margin-top: 1.4em">
+          Five real patients whose buckets the split tests pin, so that a change to
+          the hash, the ranking or the layout cannot go unnoticed:
+        </p>
+        <div class="table-wrap"><table id="table-examples"></table></div>
+
+        <h3>Reading a fold</h3>
+        <p>
+          In fold k, train is what a method fits on, val is held out from fitting for
+          the choices made along the way, and test is held out for evaluation. Over
+          the five folds every patient is a test patient exactly once, so pooling the
+          five test sets evaluates the whole cohort; one fold on its own is an
+          ordinary train / val / test split.
+        </p>
+      </section>
+
+      <section id="balance">
+        <p class="kicker">reimp_shared.splits.summarize_folds</p>
+        <h2>Every project split evenly</h2>
+        <p>
+          Step 1 ranks each project's patients before dealing them into the blocks,
+          so every project fills every test fold evenly: no project's count in any
+          fold is more than {{max_off}} patients from an even split, even in
+          projects of a few dozen patients. Validation is balanced by project only on
+          average, since the hash alone decides which patients land in each block's
+          last {{val_buckets}} buckets. The band shows how far an unstratified
+          random deal would let a project's share stray; the stratified folds sit on
+          the 20% line.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each project's share of patients in each fold</p>
+            <p class="chart-sub">One dot per project and fold, placed by the project's size.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">one project in one fold</span>
+            <span class="key band">95% range for an unstratified random deal</span>
+          </div>
+          <div class="plot-box" id="chart-balance"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-balance"></table></div>
+            <p class="table-note">Patients per fold, with the share of the project's patients.</p>
+          </details>
+        </figure>
+        <p>
+          A χ² test of project against fold gives p = {{chi_projects_p}}. Sample type,
+          which the ranking does not use, splits as a random deal would
+          (p = {{chi_types_p}}).
+        </p>
+        <p>
+          The price of stratifying: a patient's block depends on how many patients
+          its project has and where it ranks among them. Folds are therefore always
+          computed over the whole dataset, never over a filtered selection, and a
+          dataset release that drops one patient from a project changes the test
+          fold of at most {{stability_max}} others (median {{stability_median}}).
+          Nobody's place within a block moves, since the hash alone sets it.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>
+      Built by <code>reports/build/shared_data.py</code> from <code>{{repo}}</code> at
+      commit <code>{{commit}}</code>, split salt <code>{{salt}}</code>.
+    </p>
+    <p>Rebuild after a dataset or split change: <code>uv run python reports/build/shared_data.py</code></p>
+  </footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>__REPORT_JS__</script>
+<script>
+(() => {
+  'use strict';
+  const {
+    data: DATA, int, pct, svg, label, plot, measure, niceTicks, barRight, barUp,
+    hover, mount, fillTable, codeNode, chip, stacked,
+  } = ReportKit;
+  const millions = n => `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
+
+  /* horizontal bars, one row per category */
+  function hbar(box, W, rows, o) {
+    o = o || {};
+    const fmt = o.format || int;
+    const longest = Math.max(...rows.map(r => measure(r.label)));
+    const above = longest + 12 > W * 0.42;
+    const labelW = above ? 0 : longest + 12;
+    const valueW = Math.max(...rows.map(r => measure(fmt(r.value)))) + 14;
+    const barH = 12;
+    const rowH = above ? 38 : 22;
+    const plotH = rows.length * rowH;
+    const H = plotH + 24;
+    const x0 = labelW, x1 = Math.max(x0 + 60, W - valueW);
+    const tk = niceTicks(o.max || Math.max(...rows.map(r => r.value)), o.ticks || 4);
+    const top = tk[tk.length - 1];
+    const sx = v => x0 + (x1 - x0) * v / top;
+    const root = plot(box, W, H, o.title);
+    for (const t of tk) {
+      const x = sx(t);
+      svg('line', { x1: x, x2: x, y1: 0, y2: plotH, class: t === 0 ? 'baseline' : 'gridline' }, root);
+      label(root, x, plotH + 16, (o.tick || fmt)(t), 'tick', { 'text-anchor': t === 0 && above ? 'start' : 'middle' });
+    }
+    rows.forEach((r, i) => {
+      const yRow = i * rowH;
+      const yBar = above ? yRow + 20 : yRow + (rowH - barH) / 2;
+      const w = Math.max(0, sx(r.value) - x0);
+      const bar = svg('path', { d: barRight(x0, yBar, w, barH), class: `mark ${r.cls || 'mark-1'}` }, root);
+      if (above) label(root, 0, yRow + 13, r.label, 'label');
+      else label(root, x0 - 8, yBar + barH / 2, r.label, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      label(root, x0 + w + 6, yBar + barH / 2, fmt(r.value), 'value', { 'dominant-baseline': 'central' });
+      const hit = svg('rect', { x: 0, y: yRow, width: W, height: rowH, class: 'hit-area' }, root);
+      hover(hit, r.tip || { title: r.label, lines: [[fmt(r.value), o.unit || '']] }, bar, true);
+    });
+  }
+
+  /* a histogram of one distribution, with an optional marker line */
+  function histogram(box, W, hist, o) {
+    const H = 172, padL = 44, padR = 18, padT = 24, padB = 26;
+    const edges = hist.edges, counts = hist.counts;
+    const lo = edges[0], hi = edges[edges.length - 1];
+    const sx = v => padL + (W - padL - padR) * (v - lo) / (hi - lo);
+    const tk = niceTicks(Math.max(...counts), 3);
+    const top = tk[tk.length - 1];
+    const sy = v => padT + (H - padT - padB) * (1 - v / top);
+    const root = plot(box, W, H, o.title);
+    for (const t of tk) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: t === 0 ? 'baseline' : 'gridline' }, root);
+      label(root, padL - 6, sy(t), int(t), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    for (const [v, text] of o.xticks) {
+      if (v < lo - 1e-9 || v > hi + 1e-9) continue;
+      const x = sx(v);
+      svg('line', { x1: x, x2: x, y1: sy(0), y2: sy(0) + 4, class: 'baseline' }, root);
+      label(root, x, H - 6, text, 'tick', { 'text-anchor': 'middle' });
+    }
+    counts.forEach((c, i) => {
+      const xa = sx(edges[i]), xb = sx(edges[i + 1]);
+      const bar = svg('path', { d: barUp(xa + 1, sy(c), Math.max(1, xb - xa - 2), sy(0) - sy(c)), class: 'mark mark-1' }, root);
+      const hit = svg('rect', { x: xa, y: padT, width: xb - xa, height: sy(0) - padT, class: 'hit-area' }, root);
+      hover(hit, { title: o.range(edges[i], edges[i + 1]), lines: [[int(c), o.unit]] }, bar);
+    });
+    if (o.marker) {
+      const x = sx(o.marker.value);
+      svg('line', { x1: x, x2: x, y1: padT - 8, y2: sy(0), class: 'marker-line' }, root);
+      const right = x > padL + (W - padL - padR) * 0.55;
+      label(root, right ? x - 5 : x + 5, padT - 12, o.marker.text, 'annot', { 'text-anchor': right ? 'end' : 'start' });
+    }
+  }
+
+  /* the fold layout: five rows of a hundred buckets */
+  function bucketGrid(box, W) {
+    const F = DATA.folds;
+    const nb = F.layout[0].length, fw = F.fold_width, nf = F.layout.length;
+    const labelW = 50, padR = 4, rowH = 16, gap = 6, topH = 30, bottomH = 36;
+    const cw = (W - labelW - padR) / nb;
+    const gridBottom = topH + nf * (rowH + gap) - gap;
+    const H = gridBottom + bottomH;
+    const inset = cw >= 4 ? 0.5 : 0.25;
+    const sx = b => labelW + b * cw;
+    const root = plot(box, W, H, 'Fold layout');
+    for (let f = 0; f < nf; f++) {
+      const xa = sx(f * fw) + 2, xb = sx((f + 1) * fw) - 2;
+      svg('path', { d: `M${xa},${topH - 6}v-5H${xb}v5`, class: 'bracket' }, root);
+      const range = `${f * fw}–${(f + 1) * fw - 1}`;
+      const wide = `fold ${f} · buckets ${range}`;
+      label(root, (xa + xb) / 2, topH - 16, measure(wide, 11) < xb - xa - 4 ? wide : range, 'tick', { 'text-anchor': 'middle' });
+    }
+    F.layout.forEach((roles, k) => {
+      const y = topH + k * (rowH + gap);
+      label(root, labelW - 8, y + rowH / 2, `Fold ${k}`, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      roles.forEach((role, b) => {
+        const cell = svg('rect', { x: sx(b) + inset, y, width: Math.max(0.5, cw - 2 * inset), height: rowH, class: `role-${role}` }, root);
+        hover(cell, { title: `Bucket ${b} in fold ${k}`, lines: [[role, `(a test bucket of fold ${Math.floor(b / fw)})`]] }, cell);
+      });
+    });
+    const b = F.example_bucket;
+    svg('rect', { x: sx(b) - 1, y: topH - 2, width: cw + 2, height: gridBottom - topH + 4, class: 'column-mark' }, root);
+    const x = sx(b) + cw / 2;
+    svg('path', { d: `M${x},${gridBottom + 6}l4.5,7h-9z`, class: 'pointer' }, root);
+    const right = x > W * 0.6;
+    label(root, right ? x + 5 : x - 5, gridBottom + 28, `${F.example_case} · bucket ${b}`, 'annot', { 'text-anchor': right ? 'end' : 'start' });
+  }
+
+  /* each project's share per fold against its size, with the random-deal band */
+  function funnel(box, W) {
+    const rows = DATA.balance.projects;
+    const nf = rows[0].folds.length, even = 1 / nf;
+    const H = Math.round(Math.min(400, Math.max(290, W * 0.5)));
+    const padL = 46, padR = 16, padT = 14, padB = 44;
+    const ns = rows.map(r => r.cases);
+    const lo = Math.log10(Math.min(...ns) / 1.3), hi = Math.log10(Math.max(...ns) * 1.3);
+    const sx = n => padL + (W - padL - padR) * (Math.log10(n) - lo) / (hi - lo);
+    const half = n => 1.96 * Math.sqrt(even * (1 - even) / n);
+    const shares = rows.flatMap(r => r.folds.map(k => k / r.cases));
+    const ymax = Math.min(1, Math.ceil(Math.max(...shares, even + half(10 ** lo)) * 10) / 10);
+    const sy = s => padT + (H - padT - padB) * (1 - s / ymax);
+    const root = plot(box, W, H, 'Fold share against project size');
+    for (let t = 0; t <= ymax + 1e-9; t += 0.1) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: t < 1e-9 ? 'baseline' : 'gridline' }, root);
+      label(root, padL - 6, sy(t), pct(t, 0), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    for (const n of [10, 20, 50, 100, 200, 500, 1000, 2000, 5000]) {
+      if (Math.log10(n) < lo || Math.log10(n) > hi) continue;
+      svg('line', { x1: sx(n), x2: sx(n), y1: sy(0), y2: sy(0) + 4, class: 'baseline' }, root);
+      label(root, sx(n), sy(0) + 16, int(n), 'tick', { 'text-anchor': 'middle' });
+    }
+    label(root, W - padR, H - 4, 'patients in the project, log scale', 'tick', { 'text-anchor': 'end' });
+    const upper = [], lower = [];
+    for (let i = 0; i <= 80; i++) {
+      const n = 10 ** (lo + (hi - lo) * i / 80);
+      upper.push(`${sx(n).toFixed(1)},${sy(Math.min(ymax, even + half(n))).toFixed(1)}`);
+      lower.push(`${sx(n).toFixed(1)},${sy(Math.max(0, even - half(n))).toFixed(1)}`);
+    }
+    svg('path', { d: `M${upper.join('L')}L${[...lower].reverse().join('L')}Z`, class: 'band' }, root);
+    svg('path', { d: `M${upper.join('L')}`, class: 'band-edge' }, root);
+    svg('path', { d: `M${lower.join('L')}`, class: 'band-edge' }, root);
+    svg('line', { x1: padL, x2: W - padR, y1: sy(even), y2: sy(even), class: 'ref-line' }, root);
+    const points = [];
+    rows.forEach(r => r.folds.forEach((k, f) => points.push({ r, f, k, s: k / r.cases })));
+    const dots = points.map(p => svg('circle', { cx: sx(p.r.cases), cy: sy(p.s), r: 4, class: 'dot mark-1' }, root));
+    points.forEach((p, i) => {
+      const hit = svg('circle', { cx: sx(p.r.cases), cy: sy(p.s), r: 11, class: 'hit-area' }, root);
+      hover(hit, {
+        title: `${p.r.code} · fold ${p.f}`,
+        lines: [[pct(p.s), 'of the project’s patients'], [`${int(p.k)} of ${int(p.r.cases)}`, 'patients']],
+      }, dots[i]);
+    });
+  }
+
+  /* ---------- the barcode ---------- */
+  function barcode() {
+    const box = document.getElementById('barcode');
+    const ex = DATA.folds.examples[0];
+    const parts = ex.barcode.split('-');
+    if (parts.length < 4) return;
+    const names = ['program', 'tissue source site', 'participant', 'sample type · vial', 'portion · analyte', 'plate', 'centre'];
+    const segment = (text, what) => {
+      const seg = document.createElement('div');
+      seg.className = 'seg';
+      const c = document.createElement('span'); c.className = 'code'; c.textContent = text;
+      const w = document.createElement('span'); w.className = 'what'; w.textContent = what || '';
+      seg.append(c, w);
+      return seg;
+    };
+    const group = document.createElement('div');
+    group.className = 'case-group';
+    const caseSegs = document.createElement('div');
+    caseSegs.className = 'segs';
+    const rest = document.createElement('div');
+    rest.className = 'segs';
+    parts.forEach((p, i) => (i < 3 ? caseSegs : rest).append(segment(p, names[i])));
+    const caption = document.createElement('div');
+    caption.className = 'case-caption';
+    caption.textContent = `case_submitter_id ${parts.slice(0, 3).join('-')}: the patient, what step 1 hashes`;
+    group.append(caseSegs, caption);
+    box.replaceChildren(group, rest);
+  }
+
+  /* ---------- wire it up ---------- */
+  const C = DATA.cohort, V = DATA.values, G = DATA.genes, F = DATA.folds, B = DATA.balance;
+
+  mount('chart-projects', (box, W) => hbar(box, W, C.projects.map(p => ({
+    label: p.code,
+    value: p.samples,
+    tip: {
+      title: p.name ? `${p.code} · ${p.name}` : p.code,
+      lines: [[int(p.samples), 'samples'], [int(p.cases), 'patients'], [int(p.normal), 'solid-tissue normals']],
+    },
+  })), { title: 'Samples per project', unit: 'samples' }));
+  mount('chart-types', (box, W) => hbar(box, W, C.sample_types.map(t => ({ label: t.type, value: t.samples })), { title: 'Samples by sample type', unit: 'samples' }));
+  mount('chart-aliquots', (box, W) => hbar(box, W, C.aliquots.map(a => ({
+    label: `${a.aliquots} aliquot${a.aliquots > 1 ? 's' : ''}`,
+    value: a.cases,
+  })), { title: 'Patients by number of aliquots', unit: 'patients' }));
+
+  mount('chart-reads', (box, W) => histogram(box, W, V.reads, {
+    title: 'Total reads per sample',
+    unit: 'samples',
+    xticks: [5, 10, 20, 50, 100, 200].map(m => [Math.log10(m * 1e6), `${m}M`]),
+    range: (a, b) => `${millions(10 ** a)}–${millions(10 ** b)} reads`,
+    marker: { value: V.reads.median, text: `median ${millions(10 ** V.reads.median)}` },
+  }));
+  mount('chart-assigned', (box, W) => histogram(box, W, V.assigned, {
+    title: 'Share of reads assigned to a gene',
+    unit: 'samples',
+    xticks: [0, 0.25, 0.5, 0.75, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `${pct(a)}–${pct(b)} assigned`,
+    marker: { value: V.assigned.median, text: `median ${pct(V.assigned.median, 0)}` },
+  }));
+  mount('chart-protein', (box, W) => histogram(box, W, V.protein_share, {
+    title: 'Share of assigned reads on protein-coding genes',
+    unit: 'samples',
+    xticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `${pct(a, 0)}–${pct(b, 0)} protein-coding`,
+    marker: { value: V.protein_share.median, text: `median ${pct(V.protein_share.median)}` },
+  }));
+
+  const biotypeRows = key => G.biotypes.map(b => ({
+    label: b.biotype,
+    value: b[key],
+    cls: b.selected ? 'mark-1' : 'mark-quiet',
+    tip: { title: b.biotype, lines: [[int(b.genes), 'genes'], [pct(b.read_share, 2), 'of assigned reads']] },
+  }));
+  mount('chart-biotype-genes', (box, W) => hbar(box, W, biotypeRows('genes'), { title: 'Genes per biotype' }));
+  mount('chart-biotype-reads', (box, W) => hbar(box, W, biotypeRows('read_share'), {
+    title: 'Share of assigned reads per biotype',
+    format: v => pct(v, v < 0.01 ? 2 : 1),
+    tick: v => pct(v, 0),
+    max: 1,
+  }));
+  mount('chart-detection', (box, W) => histogram(box, W, G.detection, {
+    title: 'Genes by detection rate',
+    unit: 'genes',
+    xticks: [0, 0.25, 0.5, 0.75, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `detected in ${pct(a, 0)}–${pct(b, 0)} of samples`,
+  }));
+  mount('chart-buckets', bucketGrid);
+  mount('chart-balance', funnel);
+
+  barcode();
+  fillTable('table-projects', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Study', value: p => p.name },
+    { label: 'Samples', num: true, value: p => int(p.samples) },
+    { label: 'Patients', num: true, value: p => int(p.cases) },
+    { label: 'Normals', num: true, value: p => int(p.normal) },
+  ], C.projects);
+  fillTable('table-quant', [
+    { label: 'config', value: q => codeNode(q.name) },
+    { label: 'kind', value: q => q.kind },
+    { label: 'stored as', value: q => q.dtype },
+    { label: 'measures', value: q => q.measures },
+  ], V.quantifications);
+  fillTable('table-biotypes', [
+    { label: 'Biotype', value: b => b.biotype },
+    { label: 'Genes', num: true, value: b => int(b.genes) },
+    { label: 'Share of reads', num: true, value: b => pct(b.read_share, 2) },
+  ], G.biotypes);
+  fillTable('table-folds', [
+    { label: 'Fold', value: s => `fold ${s.fold}` },
+    ...['train', 'val', 'test'].map(role => ({
+      label: role,
+      num: true,
+      value: s => stacked(int(s[`${role}_samples`]), `${int(s[`${role}_cases`])} patients`),
+    })),
+  ], F.sizes);
+  fillTable('table-examples', [
+    { label: 'Case', value: e => codeNode(e.case) },
+    { label: 'Project', value: e => e.project.replace('TCGA-', '') },
+    { label: 'Bucket', num: true, value: e => String(e.bucket) },
+    ...F.layout.map((_, k) => ({ label: `fold ${k}`, value: e => chip(e.roles[k]) })),
+  ], F.examples);
+  fillTable('table-balance', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Patients', num: true, value: p => int(p.cases) },
+    ...B.projects[0].folds.map((_, k) => ({
+      label: `fold ${k}`,
+      num: true,
+      value: p => `${int(p.folds[k])} (${pct(p.folds[k] / p.cases, 0)})`,
+    })),
+  ], B.projects);
+
+})();
+</script>
+</body>
+</html>

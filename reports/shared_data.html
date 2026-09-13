@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>reimp Data Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..650;1,8..60,400&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f2f4f3;
+  --surface: #fbfcfb;
+  --ink: #131719;
+  --ink-2: #454e52;
+  --muted: #6d777a;
+  --rule: #d9dfdd;
+  --grid: #e4e8e6;
+  --axis: #b7bfbd;
+  --accent: #1c5cab;
+  --code-bg: #e6ebe9;
+  --case-bg: #d8e6f7;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --quiet-mark: #bcc4c2;
+  --band: rgba(42, 120, 214, 0.1);
+  --tip-bg: #131719;
+  --tip-ink: #f4f6f5;
+  --tip-ink-2: #aeb7b5;
+  --train: var(--series-1);
+  --val: var(--series-3);
+  --test: var(--series-2);
+  --sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1112;
+    --surface: #161a1b;
+    --ink: #ecf0ef;
+    --ink-2: #b3bcba;
+    --muted: #87918f;
+    --rule: #273031;
+    --grid: #20282a;
+    --axis: #3b4547;
+    --accent: #86b6ef;
+    --code-bg: #1f2628;
+    --case-bg: #1d3350;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --quiet-mark: #48525a;
+    --band: rgba(57, 135, 229, 0.16);
+    --tip-bg: #ecf0ef;
+    --tip-ink: #131719;
+    --tip-ink-2: #4d575a;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1112;
+  --surface: #161a1b;
+  --ink: #ecf0ef;
+  --ink-2: #b3bcba;
+  --muted: #87918f;
+  --rule: #273031;
+  --grid: #20282a;
+  --axis: #3b4547;
+  --accent: #86b6ef;
+  --code-bg: #1f2628;
+  --case-bg: #1d3350;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --quiet-mark: #48525a;
+  --band: rgba(57, 135, 229, 0.16);
+  --tip-bg: #ecf0ef;
+  --tip-ink: #131719;
+  --tip-ink-2: #4d575a;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font: 400 17px/1.62 var(--serif);
+  font-optical-sizing: auto;
+}
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+code {
+  font-family: var(--mono);
+  font-size: 0.84em;
+  background: var(--code-bg);
+  padding: 0.08em 0.36em;
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+
+.page { max-width: 1320px; margin-inline: auto; padding-inline: 20px; padding-block: 44px 72px; }
+
+/* ---------- masthead ---------- */
+.masthead { padding-block-end: 8px; }
+.eyebrow { font: 500 0.78rem/1.5 var(--mono); color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+h1 {
+  font-family: var(--sans);
+  font-weight: 720;
+  font-stretch: 112%;
+  font-size: clamp(2.1rem, 1.25rem + 3.1vw, 3.35rem);
+  line-height: 1.04;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+  max-width: 19ch;
+  margin: 0.4em 0 0.45em;
+}
+.lede { font-size: 1.14rem; color: var(--ink-2); max-width: none; margin: 0; }
+.specs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  margin: 30px 0 0;
+  border-block: 1px solid var(--rule);
+}
+.spec { padding: 14px 16px 14px 0; }
+.spec dt {
+  font: 600 0.7rem/1.3 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.spec dd { margin: 5px 0 0; font: 660 1.6rem/1.1 var(--sans); font-stretch: 104%; }
+.spec dd small { display: block; margin-top: 3px; font: 400 0.8rem/1.3 var(--sans); color: var(--ink-2); font-stretch: 100%; }
+
+/* ---------- layout ---------- */
+.layout { display: grid; gap: 0 56px; margin-top: 34px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.toc a { font: 500 0.88rem/1.4 var(--sans); color: var(--ink-2); text-decoration: none; }
+.toc a:hover { color: var(--accent); text-decoration: underline; }
+.toc .mod { display: block; font: 400 0.72rem/1.4 var(--mono); color: var(--muted); }
+@media (min-width: 1040px) {
+  .layout { grid-template-columns: 190px minmax(0, 1fr); }
+  .toc { position: sticky; top: 28px; align-self: start; padding-top: 58px; }
+  .toc ol { flex-direction: column; gap: 14px; }
+}
+
+/* ---------- sections ---------- */
+section { padding-block: 52px 8px; border-top: 1px solid var(--rule); }
+main > section:first-child { border-top: 0; padding-top: 26px; }
+.kicker { font: 500 0.78rem/1.4 var(--mono); color: var(--accent); margin: 0; }
+h2 {
+  font: 680 clamp(1.5rem, 1.15rem + 1.1vw, 2rem)/1.14 var(--sans);
+  font-stretch: 104%;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+  max-width: 44ch;
+  margin: 0.3em 0 0.65em;
+}
+h3 { font: 640 1.08rem/1.3 var(--sans); margin: 2.3em 0 0.5em; }
+/* Prose runs the full width of the column, like the figures beside it. */
+p, ul, ol.steps { max-width: none; }
+p { margin: 0 0 1em; }
+ul { padding-left: 1.2em; }
+li { margin-bottom: 0.45em; }
+.note { font-size: 0.92rem; color: var(--ink-2); }
+
+/* ---------- figures ---------- */
+figure.chart {
+  margin: 24px 0 28px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px 18px 14px;
+}
+.chart-head { margin-bottom: 12px; }
+.chart-title { font: 620 0.95rem/1.35 var(--sans); margin: 0; }
+.chart-sub { font: 400 0.84rem/1.45 var(--sans); color: var(--ink-2); margin: 3px 0 0; }
+.plot-box { width: 100%; }
+.plot-box svg { display: block; overflow: visible; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px 28px; }
+.multiples h4, .pair h4 { font: 600 0.8rem/1.35 var(--sans); color: var(--ink-2); margin: 0 0 6px; }
+.pair { display: grid; gap: 22px 32px; }
+@media (min-width: 760px) { .pair { grid-template-columns: 1fr 1fr; } }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 10px; font: 400 0.8rem/1.4 var(--sans); color: var(--ink-2); }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.key::before { content: ""; width: 11px; height: 11px; border-radius: 2px; background: var(--key); }
+.key.dot::before { border-radius: 50%; width: 9px; height: 9px; }
+.key.band::before { background: var(--band); outline: 1px solid color-mix(in srgb, var(--series-1) 45%, transparent); }
+.key.train { --key: var(--train); } .key.val { --key: var(--val); } .key.test { --key: var(--test); }
+.key.s1 { --key: var(--series-1); } .key.s2 { --key: var(--series-2); }
+
+/* chart text and marks */
+.plot text { font-family: var(--sans); }
+.tick { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.label { font-size: 12px; fill: var(--ink-2); }
+.value { font-size: 12px; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.annot { font-size: 11.5px; fill: var(--ink-2); pointer-events: none; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.baseline { stroke: var(--axis); stroke-width: 1; }
+.mark-1 { fill: var(--series-1); }
+.mark-2 { fill: var(--series-2); }
+.mark-quiet { fill: var(--quiet-mark); }
+.role-train { fill: var(--train); } .role-val { fill: var(--val); } .role-test { fill: var(--test); }
+.dot { stroke: var(--surface); stroke-width: 2; }
+.band { fill: var(--band); }
+.band-edge { fill: none; stroke: var(--series-1); stroke-opacity: 0.45; stroke-width: 1; }
+.ref-line, .marker-line { stroke: var(--ink-2); stroke-width: 1; pointer-events: none; }
+.bracket { fill: none; stroke: var(--axis); stroke-width: 1; }
+.column-mark { fill: none; stroke: var(--ink); stroke-width: 1.5; pointer-events: none; }
+.pointer { fill: var(--ink); }
+.hit-area { fill: transparent; }
+.hit { cursor: default; }
+.hit:focus { outline: none; }
+.hit:focus-visible { stroke: var(--accent); stroke-width: 2; }
+.is-active { filter: brightness(1.14); }
+
+/* tables */
+details.table-view { margin-top: 12px; font: 400 0.84rem/1.4 var(--sans); }
+details.table-view summary { cursor: pointer; color: var(--accent); width: max-content; }
+.table-wrap { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font: 400 0.84rem/1.4 var(--sans); font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--axis); padding: 6px 14px 6px 0; white-space: nowrap; }
+td { border-bottom: 1px solid var(--grid); padding: 6px 14px 6px 0; vertical-align: top; }
+th.num, td.num { text-align: right; }
+td .sub { display: block; color: var(--muted); font-size: 0.78rem; }
+td.out { font-weight: 650; }
+.table-note { color: var(--muted); font-size: 0.78rem; margin: 8px 0 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 0.78rem/1.2 var(--sans); color: var(--ink); }
+.chip::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--key); }
+.chip.train { --key: var(--train); } .chip.val { --key: var(--val); } .chip.test { --key: var(--test); }
+
+/* barcode */
+.barcode { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px 6px; }
+.barcode > code { font-size: 1.05rem; }
+.segs { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg { display: grid; gap: 3px; padding: 8px 10px 7px; background: var(--code-bg); border-radius: 4px; min-width: 3.6em; }
+.case-group .seg { background: var(--case-bg); }
+.seg .code { font: 500 1.08rem/1.2 var(--mono); }
+.seg .what { font: 600 0.64rem/1.2 var(--sans); text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-2); }
+.case-caption { font: 500 0.76rem/1.4 var(--mono); color: var(--accent); margin-top: 7px; }
+ol.steps { list-style: none; counter-reset: step; padding: 0; margin: 20px 0 0; display: grid; gap: 12px; }
+ol.steps li { counter-increment: step; display: grid; grid-template-columns: 1.6em minmax(0, 1fr); gap: 0 8px; margin: 0; }
+ol.steps li::before { content: counter(step); font: 600 0.82rem/1.9 var(--mono); color: var(--muted); }
+ol.steps .formula { display: block; margin-top: 2px; }
+.step-head {
+  font: 600 0.72rem/1.4 var(--sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin: 22px 0 0;
+}
+.step-head + ol.steps { margin-top: 10px; }
+
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--rule); font: 400 0.84rem/1.55 var(--sans); color: var(--ink-2); }
+footer p { max-width: none; margin: 0 0 0.5em; }
+
+.tip {
+  position: fixed; z-index: 10; pointer-events: none;
+  background: var(--tip-bg); color: var(--tip-ink);
+  font: 400 0.8rem/1.4 var(--sans);
+  padding: 7px 10px; border-radius: 5px; max-width: 280px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.tip-title { font-weight: 600; margin-bottom: 2px; }
+.tip-row strong { font-weight: 650; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.tip-row span { color: var(--tip-ink-2); }
+
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  figure.chart { padding: 12px 12px 10px; }
+}
+
+/* equations: MathML rendered at build time from the templates' TeX */
+math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", math; font-size: 1.04em; }
+math[display="block"] { display: block math; margin: 0.9em 0; }
+.eq { overflow-x: auto; overflow-y: hidden; max-width: none; padding-block: 2px; }
+dl.defs { max-width: none; margin: 0 0 1em; }
+dl.defs dt { font: 600 0.92rem/1.4 var(--sans); margin-top: 0.9em; }
+dl.defs dd { margin: 0.25em 0 0; }
+.params td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <p class="eyebrow">gabrielaltay/tcga-gene-expression-quantification-open @ 19785a6</p>
+    <h1>One cohort, five folds, every patient tested once</h1>
+    <p class="lede">
+      TCGA bulk RNA-seq from GDC's STAR pipeline, one row per aliquot, as
+      <code>reimp_shared</code> loads it. This sheet shows what is in the data,
+      which genes are selected by default, and how patients are divided into five
+      cross-validation folds.
+    </p>
+    <dl class="specs">
+      <div class="spec"><dt>Samples</dt><dd>11,505<small>RNA-seq aliquots</small></dd></div>
+      <div class="spec"><dt>Patients</dt><dd>10,517<small>the unit every split is drawn on</small></dd></div>
+      <div class="spec"><dt>Projects</dt><dd>33<small>TCGA cancer types</small></dd></div>
+      <div class="spec"><dt>Genes</dt><dd>60,660<small>19,944 used by default</small></dd></div>
+      <div class="spec"><dt>Folds</dt><dd>5<small>72 / 8 / 20 train, val, test</small></dd></div>
+    </dl>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Sections">
+      <ol>
+        <li><a href="#cohort">Cohort<span class="mod">hub</span></a></li>
+        <li><a href="#values">Values<span class="mod">data</span></a></li>
+        <li><a href="#genes">Genes<span class="mod">preprocess</span></a></li>
+        <li><a href="#folds">Folds<span class="mod">splits</span></a></li>
+        <li><a href="#balance">Balance<span class="mod">splits</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <section id="cohort">
+        <p class="kicker">reimp_shared.hub</p>
+        <h2>11,505 samples from 10,517 patients</h2>
+        <p>
+          Each row of the dataset is one RNA-seq aliquot from one of 33 TCGA
+          projects. The projects differ in size 28-fold:
+          BRCA contributes 1,231 samples,
+          CHOL 44.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Samples per project</p>
+            <p class="chart-sub">Hover a bar for its patients and normals, or open the table for study names.</p>
+          </div>
+          <div class="plot-box" id="chart-projects"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-projects"></table></div></details>
+        </figure>
+
+        <p>
+          10,157 samples are primary tumours and 740 are solid-tissue
+          normals, spread over 24 projects; the rest are metastases,
+          recurrences and blood-derived cancers.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Samples by GDC sample type</p></div>
+          <div class="plot-box" id="chart-types"></div>
+        </figure>
+
+        <h3>Why every split is drawn by patient</h3>
+        <p>
+          917 patients contribute more than one aliquot — 1,905
+          samples, 16.6% of the dataset — and 792 of them contribute
+          more than one kind of sample, typically a tumour and its matched normal.
+          Aliquots of one patient are not independent, so every assignment on this
+          page is a function of the patient alone: all of a patient's samples land
+          on the same side of every split.
+        </p>
+        <figure class="chart">
+          <div class="chart-head"><p class="chart-title">Patients by number of aliquots</p></div>
+          <div class="plot-box" id="chart-aliquots"></div>
+        </figure>
+      </section>
+
+      <section id="values">
+        <p class="kicker">reimp_shared.data.load_expression</p>
+        <h2>Six quantifications of every library</h2>
+        <p>
+          GDC's STAR pipeline reports six measures per gene, and each is its own
+          config of the dataset. Three are read counts and three are normalized per
+          library. The loaders pick one with <code>quantification=</code>; the default
+          is raw <code>unstranded</code> counts.
+        </p>
+        <div class="table-wrap"><table id="table-quant"></table></div>
+
+        <h3>Libraries</h3>
+        <p>
+          A median library holds 70.1M reads, and the 1st to 99th
+          percentiles run from 24.4M to 146.5M, a 6-fold
+          spread. STAR assigns 76% of a median sample's reads to a
+          gene, and 97.0% of those assigned reads fall on
+          protein-coding genes. Depth varies this much from library to library,
+          which is what the normalizing transforms below correct for.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Per-sample library statistics</p>
+            <p class="chart-sub">Each chart counts samples; the line marks the median.</p>
+          </div>
+          <div class="multiples">
+            <div><h4>Total reads</h4><div class="plot-box" id="chart-reads"></div></div>
+            <div><h4>Share assigned to a gene</h4><div class="plot-box" id="chart-assigned"></div></div>
+            <div><h4>Assigned reads on protein-coding genes</h4><div class="plot-box" id="chart-protein"></div></div>
+          </div>
+        </figure>
+
+        <h3>Transforms</h3>
+        <p>What the loaders do to each sample's row, after gene selection.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">transform</th><th scope="col">each value becomes</th><th scope="col">applied to counts, gives</th></tr></thead>
+            <tbody>
+              <tr><td><code>none</code></td><td>the stored value</td><td>raw counts</td></tr>
+              <tr><td><code>log1p</code></td><td>log(1 + x)</td><td>log counts; on TPM, log TPM</td></tr>
+              <tr><td><code>lognorm</code></td><td>log(1 + x · L / Σx), the sum over the selected genes, L = 100,000 by default</td><td>log counts per L reads, every library the same size</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="genes">
+        <p class="kicker">reimp_shared.preprocess.select_genes</p>
+        <h2>19,944 protein-coding genes by default</h2>
+        <p>
+          The dataset carries 60,660 GENCODE v36 genes of 40 biotypes. By
+          default the loaders select the protein-coding ones: 32.9% of
+          the genes, which together carry 96.2% of all assigned reads.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Genes and reads by biotype</p>
+            <p class="chart-sub">The same rows twice: how many genes each biotype has, and its share of every assigned read in the dataset. Blue is the default selection.</p>
+          </div>
+          <div class="pair">
+            <div><h4>Genes</h4><div class="plot-box" id="chart-biotype-genes"></div></div>
+            <div><h4>Share of assigned reads</h4><div class="plot-box" id="chart-biotype-reads"></div></div>
+          </div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-biotypes"></table></div></details>
+          <p class="table-note">Smaller biotypes that still carry a visible share of reads: Mt_rRNA (2 genes, 1.1% of reads); IG_C_gene (14 genes, 0.7% of reads).</p>
+        </figure>
+
+        <p>The default selection, step by step:</p>
+        <ol class="steps">
+          <li><span>60,660 genes in the dataset.</span></li>
+          <li><span>19,962 of biotype <code>protein_coding</code>.</span></li>
+          <li><span>19,944 after dropping 18 <code>_PAR_Y</code> rows — the
+            Y-chromosome copies of pseudoautosomal genes, which GDC quantifies as zero in
+            every sample (44 such rows across all biotypes).</span></li>
+        </ol>
+
+        <h3>How often each gene is seen</h3>
+        <p>
+          Of the 19,944, 9,834 have at least one read in every
+          sample and 366 in none; a median sample detects
+          17,239. The rest spread across the range: genes that are on
+          in some tissues and cancers and off in others.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Protein-coding genes by the share of samples that detect them</p>
+            <p class="chart-sub">A gene is detected in a sample when it has at least one read.</p>
+          </div>
+          <div class="plot-box" id="chart-detection"></div>
+        </figure>
+        <p>
+          Other choices go through the same argument: <code>gene_types=None</code> keeps
+          all 60,660 genes, and <code>gene_ids=</code> takes a fixed list of Ensembl
+          IDs, in its own order, versioned or not. Every choice works with every
+          quantification and transform.
+        </p>
+      </section>
+
+      <section id="folds">
+        <p class="kicker">reimp_shared.splits</p>
+        <h2>Five folds, each 72 / 8 / 20</h2>
+        <p>
+          Every fold divides the patients into train, val and test, and two steps
+          decide which is which. Step 1 maps each patient to one of 100
+          buckets, in 5 blocks of 20: its rank within its
+          project picks the block, so every project fills the blocks evenly, and its
+          hash picks the bucket in the block. Step 2 maps buckets to folds.
+          There is no split file: the same dataset gives the same folds on every
+          machine, whatever quantification, genes or samples are loaded.
+        </p>
+
+        <h3>From barcode to fold</h3>
+        <p>An aliquot's TCGA barcode names the patient in its first three fields; that case ID is what step 1 hashes.</p>
+        <figure class="chart">
+          <div class="barcode" id="barcode"><code>TCGA-OR-A5JP-01A-11R-A29S-07</code></div>
+          <p class="step-head">Step 1 · patient to bucket</p>
+          <ol class="steps">
+            <li><span>Hash the case with the salt: <code class="formula">blake2b("reimp-v1:TCGA-OR-A5JP", 8 bytes) = 0x837d27ae46165b69</code></span></li>
+            <li><span>Rank the project's patients by hash: TCGA-OR-A5JP is rank 40, counting from 0, of the 79 patients in TCGA-ACC.</span></li>
+            <li><span>The rank's fifth picks the block of 20 buckets: <code class="formula">⌊5 · (40 + ½) / 79⌋ = 2</code></span></li>
+            <li><span>The hash picks the bucket within it: <code class="formula">20 · 2 + (0x837d27ae46165b69 mod 20 = 17) = 57</code></span></li>
+          </ol>
+          <p class="step-head">Step 2 · bucket to fold</p>
+          <ol class="steps">
+            <li><span>Divide by 20 for the test fold: <code class="formula">57 ÷ 20 → fold 2</code> The patient is a test patient in fold 2.</span></li>
+            <li><span>Take the remainder for its role elsewhere: <code class="formula">57 mod 20 = 17</code> 17 is below 18, so the patient trains in the other 4 folds.</span></li>
+          </ol>
+        </figure>
+
+        <h3>Step 2 in full</h3>
+        <p>
+          The 100 buckets form 5 folds of 20. In fold k,
+          fold k's own buckets are test; of every other fold, the last
+          2 buckets validate and the rest train. Validation is held out
+          from fitting for choices such as when to stop, and is drawn evenly from
+          every training fold; setting a
+          whole fold aside for it would leave 60% to train on
+          instead of 72%.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">What each bucket is in each fold</p>
+            <p class="chart-sub">Rows are folds, columns the 100 buckets. The outlined column is TCGA-OR-A5JP's bucket.</p>
+          </div>
+          <div class="legend">
+            <span class="key train">train · 72 buckets</span>
+            <span class="key val">val · 8</span>
+            <span class="key test">test · 20</span>
+          </div>
+          <div class="plot-box" id="chart-buckets"></div>
+        </figure>
+
+        <p>Fold sizes in samples, with patients beneath:</p>
+        <div class="table-wrap"><table id="table-folds"></table></div>
+
+        <p style="margin-top: 1.4em">
+          Five real patients whose buckets the split tests pin, so that a change to
+          the hash, the ranking or the layout cannot go unnoticed:
+        </p>
+        <div class="table-wrap"><table id="table-examples"></table></div>
+
+        <h3>Reading a fold</h3>
+        <p>
+          In fold k, train is what a method fits on, val is held out from fitting for
+          the choices made along the way, and test is held out for evaluation. Over
+          the five folds every patient is a test patient exactly once, so pooling the
+          five test sets evaluates the whole cohort; one fold on its own is an
+          ordinary train / val / test split.
+        </p>
+      </section>
+
+      <section id="balance">
+        <p class="kicker">reimp_shared.splits.summarize_folds</p>
+        <h2>Every project split evenly</h2>
+        <p>
+          Step 1 ranks each project's patients before dealing them into the blocks,
+          so every project fills every test fold evenly: no project's count in any
+          fold is more than 0.8 patients from an even split, even in
+          projects of a few dozen patients. Validation is balanced by project only on
+          average, since the hash alone decides which patients land in each block's
+          last 2 buckets. The band shows how far an unstratified
+          random deal would let a project's share stray; the stratified folds sit on
+          the 20% line.
+        </p>
+        <figure class="chart">
+          <div class="chart-head">
+            <p class="chart-title">Each project's share of patients in each fold</p>
+            <p class="chart-sub">One dot per project and fold, placed by the project's size.</p>
+          </div>
+          <div class="legend">
+            <span class="key dot s1">one project in one fold</span>
+            <span class="key band">95% range for an unstratified random deal</span>
+          </div>
+          <div class="plot-box" id="chart-balance"></div>
+          <details class="table-view"><summary>Table view</summary><div class="table-wrap"><table id="table-balance"></table></div>
+            <p class="table-note">Patients per fold, with the share of the project's patients.</p>
+          </details>
+        </figure>
+        <p>
+          A χ² test of project against fold gives p = 1.00. Sample type,
+          which the ranking does not use, splits as a random deal would
+          (p = 0.99).
+        </p>
+        <p>
+          The price of stratifying: a patient's block depends on how many patients
+          its project has and where it ranks among them. Folds are therefore always
+          computed over the whole dataset, never over a filtered selection, and a
+          dataset release that drops one patient from a project changes the test
+          fold of at most 3 others (median 2).
+          Nobody's place within a block moves, since the hash alone sets it.
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>
+      Built by <code>reports/build/shared_data.py</code> from <code>gabrielaltay/tcga-gene-expression-quantification-open</code> at
+      commit <code>19785a6cc4575cce4c66514e424981dd184b1d9c</code>, split salt <code>reimp-v1</code>.
+    </p>
+    <p>Rebuild after a dataset or split change: <code>uv run python reports/build/shared_data.py</code></p>
+  </footer>
+</div>
+
+<div class="tip" id="tip" hidden></div>
+<script id="report-data" type="application/json">{"cohort":{"projects":[{"project":"TCGA-BRCA","code":"BRCA","name":"Breast invasive carcinoma","samples":1231,"cases":1095,"normal":113},{"project":"TCGA-KIRC","code":"KIRC","name":"Kidney renal clear cell carcinoma","samples":614,"cases":533,"normal":72},{"project":"TCGA-LUAD","code":"LUAD","name":"Lung adenocarcinoma","samples":601,"cases":518,"normal":59},{"project":"TCGA-UCEC","code":"UCEC","name":"Uterine corpus endometrial carcinoma","samples":589,"cases":557,"normal":35},{"project":"TCGA-THCA","code":"THCA","name":"Thyroid carcinoma","samples":572,"cases":505,"normal":59},{"project":"TCGA-HNSC","code":"HNSC","name":"Head and neck squamous cell carcinoma","samples":566,"cases":521,"normal":44},{"project":"TCGA-LUSC","code":"LUSC","name":"Lung squamous cell carcinoma","samples":562,"cases":501,"normal":51},{"project":"TCGA-PRAD","code":"PRAD","name":"Prostate adenocarcinoma","samples":554,"cases":497,"normal":52},{"project":"TCGA-LGG","code":"LGG","name":"Brain lower grade glioma","samples":534,"cases":516,"normal":0},{"project":"TCGA-COAD","code":"COAD","name":"Colon adenocarcinoma","samples":524,"cases":458,"normal":41},{"project":"TCGA-SKCM","code":"SKCM","name":"Skin cutaneous melanoma","samples":473,"cases":469,"normal":1},{"project":"TCGA-STAD","code":"STAD","name":"Stomach adenocarcinoma","samples":448,"cases":415,"normal":36},{"project":"TCGA-OV","code":"OV","name":"Ovarian serous cystadenocarcinoma","samples":434,"cases":427,"normal":0},{"project":"TCGA-BLCA","code":"BLCA","name":"Bladder urothelial carcinoma","samples":431,"cases":406,"normal":19},{"project":"TCGA-LIHC","code":"LIHC","name":"Liver hepatocellular carcinoma","samples":424,"cases":371,"normal":50},{"project":"TCGA-GBM","code":"GBM","name":"Glioblastoma multiforme","samples":391,"cases":293,"normal":5},{"project":"TCGA-KIRP","code":"KIRP","name":"Kidney renal papillary cell carcinoma","samples":323,"cases":290,"normal":32},{"project":"TCGA-CESC","code":"CESC","name":"Cervical squamous cell carcinoma and endocervical adenocarcinoma","samples":309,"cases":304,"normal":3},{"project":"TCGA-SARC","code":"SARC","name":"Sarcoma","samples":265,"cases":259,"normal":2},{"project":"TCGA-ESCA","code":"ESCA","name":"Esophageal carcinoma","samples":198,"cases":184,"normal":13},{"project":"TCGA-PCPG","code":"PCPG","name":"Pheochromocytoma and paraganglioma","samples":187,"cases":179,"normal":3},{"project":"TCGA-PAAD","code":"PAAD","name":"Pancreatic adenocarcinoma","samples":183,"cases":178,"normal":4},{"project":"TCGA-READ","code":"READ","name":"Rectum adenocarcinoma","samples":177,"cases":167,"normal":10},{"project":"TCGA-TGCT","code":"TGCT","name":"Testicular germ cell tumors","samples":156,"cases":150,"normal":0},{"project":"TCGA-LAML","code":"LAML","name":"Acute myeloid leukemia","samples":151,"cases":151,"normal":0},{"project":"TCGA-THYM","code":"THYM","name":"Thymoma","samples":122,"cases":120,"normal":2},{"project":"TCGA-KICH","code":"KICH","name":"Kidney chromophobe","samples":91,"cases":66,"normal":25},{"project":"TCGA-MESO","code":"MESO","name":"Mesothelioma","samples":87,"cases":87,"normal":0},{"project":"TCGA-UVM","code":"UVM","name":"Uveal melanoma","samples":80,"cases":80,"normal":0},{"project":"TCGA-ACC","code":"ACC","name":"Adrenocortical carcinoma","samples":79,"cases":79,"normal":0},{"project":"TCGA-UCS","code":"UCS","name":"Uterine carcinosarcoma","samples":57,"cases":57,"normal":0},{"project":"TCGA-DLBC","code":"DLBC","name":"Diffuse large B-cell lymphoma","samples":48,"cases":48,"normal":0},{"project":"TCGA-CHOL","code":"CHOL","name":"Cholangiocarcinoma","samples":44,"cases":36,"normal":9}],"sample_types":[{"type":"Primary Tumor","samples":10157},{"type":"Solid Tissue Normal","samples":740},{"type":"Metastatic","samples":394},{"type":"Primary Blood Derived Cancer - Peripheral Blood","samples":151},{"type":"Recurrent Tumor","samples":51},{"type":"Additional - New Primary","samples":11},{"type":"Additional Metastatic","samples":1}],"aliquots":[{"aliquots":1,"cases":9600},{"aliquots":2,"cases":859},{"aliquots":3,"cases":45},{"aliquots":4,"cases":13}]},"values":{"quantifications":[{"name":"unstranded","kind":"read count","dtype":"int32","measures":"reads assigned to the gene, on either strand"},{"name":"stranded_first","kind":"read count","dtype":"int32","measures":"reads assigned on the first strand"},{"name":"stranded_second","kind":"read count","dtype":"int32","measures":"reads assigned on the second strand"},{"name":"tpm_unstranded","kind":"normalized","dtype":"float32","measures":"transcripts per million: counts over gene length, scaled to a million"},{"name":"fpkm_unstranded","kind":"normalized","dtype":"float32","measures":"fragments per kilobase of gene per million mapped"},{"name":"fpkm_uq_unstranded","kind":"normalized","dtype":"float32","measures":"FPKM with each library scaled by its upper-quartile gene"}],"reads":{"edges":[6.7,6.75,6.8,6.85,6.9,6.95,7.0,7.05,7.1,7.15,7.2,7.25,7.3,7.35,7.4,7.45,7.5,7.55,7.6,7.65,7.7,7.75,7.8,7.85,7.9,7.95,8.0,8.05,8.1,8.15,8.2,8.25,8.3,8.35,8.4],"counts":[2,0,0,1,3,1,5,5,7,6,6,9,28,57,124,219,313,206,258,451,928,1544,1729,1695,1462,988,590,459,237,121,27,15,8,1],"median":7.845535792897286},"assigned":{"edges":[0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,0.275,0.3,0.325,0.35,0.375,0.4,0.425,0.45,0.475,0.5,0.525,0.55,0.575,0.6,0.625,0.65,0.675,0.7,0.725,0.75,0.775,0.8,0.825,0.85,0.875],"counts":[1,0,1,4,4,13,19,20,26,26,38,45,65,77,86,64,58,75,91,101,101,162,247,364,526,810,1863,3243,2850,513,11,1],"median":0.757765773604323},"protein_share":{"edges":[0.6,0.61,0.62,0.63,0.64,0.65,0.66,0.67,0.68,0.69,0.7,0.71,0.72,0.73,0.74,0.75,0.76,0.77,0.78,0.79,0.8,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.9,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0],"counts":[1,0,0,0,0,2,0,1,1,3,2,4,4,3,8,4,4,5,8,12,9,17,19,23,31,31,44,54,89,90,141,190,296,427,671,1283,2419,3992,1601,16],"median":0.9695147470433438}},"genes":{"biotypes":[{"biotype":"protein_coding","genes":19962.0,"read_share":0.9618036651728011,"selected":true},{"biotype":"lncRNA","genes":16901.0,"read_share":0.011374895781022246,"selected":false},{"biotype":"processed_pseudogene","genes":10167.0,"read_share":0.0016071707859834745,"selected":false},{"biotype":"unprocessed_pseudogene","genes":2614.0,"read_share":0.0010821912218612767,"selected":false},{"biotype":"misc_RNA","genes":2212.0,"read_share":0.0018005292668689277,"selected":false},{"biotype":"snRNA","genes":1901.0,"read_share":4.820922196088722e-05,"selected":false},{"biotype":"miRNA","genes":1881.0,"read_share":2.654266156756466e-05,"selected":false},{"biotype":"TEC","genes":1057.0,"read_share":0.00029505386031872656,"selected":false},{"biotype":"snoRNA","genes":943.0,"read_share":6.36629756071535e-05,"selected":false},{"biotype":"31 other biotypes","genes":3022,"read_share":0.021898079052008634,"selected":false}],"detection":{"edges":[0.0,0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95,1.0],"counts":[787,268,230,188,180,176,182,172,182,159,177,213,232,200,250,264,322,433,707,14622],"median":0.9999130812690135}},"folds":{"layout":[["test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val"],["train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val"],["train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val"],["train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val"],["train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","train","val","val","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test","test"]],"fold_width":20,"sizes":[{"fold":0,"train_samples":8304,"val_samples":910,"test_samples":2291,"train_cases":7585,"val_cases":829,"test_cases":2103},{"fold":1,"train_samples":8255,"val_samples":942,"test_samples":2308,"train_cases":7558,"val_cases":856,"test_cases":2103},{"fold":2,"train_samples":8251,"val_samples":947,"test_samples":2307,"train_cases":7552,"val_cases":860,"test_cases":2105},{"fold":3,"train_samples":8268,"val_samples":954,"test_samples":2283,"train_cases":7548,"val_cases":866,"test_cases":2103},{"fold":4,"train_samples":8262,"val_samples":927,"test_samples":2316,"train_cases":7561,"val_cases":853,"test_cases":2103}],"examples":[{"case":"TCGA-OR-A5JP","project":"TCGA-ACC","barcode":"TCGA-OR-A5JP-01A-11R-A29S-07","bucket":57,"test_fold":2,"roles":["train","train","test","train","train"]},{"case":"TCGA-OR-A5KX","project":"TCGA-ACC","barcode":"TCGA-OR-A5KX-01A-11R-A29S-07","bucket":3,"test_fold":0,"roles":["test","train","train","train","train"]},{"case":"TCGA-05-4244","project":"TCGA-LUAD","barcode":"TCGA-05-4244-01A-01R-1107-07","bucket":70,"test_fold":3,"roles":["train","train","train","test","train"]},{"case":"TCGA-A7-A0CE","project":"TCGA-BRCA","barcode":"TCGA-A7-A0CE-01A-11R-A00Z-07","bucket":64,"test_fold":3,"roles":["train","train","train","test","train"]},{"case":"TCGA-ZX-AA5X","project":"TCGA-CESC","barcode":"TCGA-ZX-AA5X-01A-11R-A42T-07","bucket":18,"test_fold":0,"roles":["test","val","val","val","val"]}],"example_case":"TCGA-OR-A5JP","example_bucket":57},"balance":{"projects":[{"code":"BRCA","name":"Breast invasive carcinoma","cases":1095,"folds":[219,219,219,219,219]},{"code":"KIRC","name":"Kidney renal clear cell carcinoma","cases":533,"folds":[107,106,107,106,107]},{"code":"LUAD","name":"Lung adenocarcinoma","cases":518,"folds":[104,103,104,103,104]},{"code":"UCEC","name":"Uterine corpus endometrial carcinoma","cases":557,"folds":[111,112,111,112,111]},{"code":"THCA","name":"Thyroid carcinoma","cases":505,"folds":[101,101,101,101,101]},{"code":"HNSC","name":"Head and neck squamous cell carcinoma","cases":521,"folds":[104,104,105,104,104]},{"code":"LUSC","name":"Lung squamous cell carcinoma","cases":501,"folds":[100,100,101,100,100]},{"code":"PRAD","name":"Prostate adenocarcinoma","cases":497,"folds":[99,100,99,100,99]},{"code":"LGG","name":"Brain lower grade glioma","cases":516,"folds":[103,103,104,103,103]},{"code":"COAD","name":"Colon adenocarcinoma","cases":458,"folds":[92,91,92,91,92]},{"code":"SKCM","name":"Skin cutaneous melanoma","cases":469,"folds":[94,94,93,94,94]},{"code":"STAD","name":"Stomach adenocarcinoma","cases":415,"folds":[83,83,83,83,83]},{"code":"OV","name":"Ovarian serous cystadenocarcinoma","cases":427,"folds":[85,86,85,86,85]},{"code":"BLCA","name":"Bladder urothelial carcinoma","cases":406,"folds":[81,81,82,81,81]},{"code":"LIHC","name":"Liver hepatocellular carcinoma","cases":371,"folds":[74,74,75,74,74]},{"code":"GBM","name":"Glioblastoma multiforme","cases":293,"folds":[59,58,59,58,59]},{"code":"KIRP","name":"Kidney renal papillary cell carcinoma","cases":290,"folds":[58,58,58,58,58]},{"code":"CESC","name":"Cervical squamous cell carcinoma and endocervical adenocarcinoma","cases":304,"folds":[61,61,60,61,61]},{"code":"SARC","name":"Sarcoma","cases":259,"folds":[52,52,51,52,52]},{"code":"ESCA","name":"Esophageal carcinoma","cases":184,"folds":[37,37,36,37,37]},{"code":"PCPG","name":"Pheochromocytoma and paraganglioma","cases":179,"folds":[36,36,35,36,36]},{"code":"PAAD","name":"Pancreatic adenocarcinoma","cases":178,"folds":[36,35,36,35,36]},{"code":"READ","name":"Rectum adenocarcinoma","cases":167,"folds":[33,34,33,34,33]},{"code":"TGCT","name":"Testicular germ cell tumors","cases":150,"folds":[30,30,30,30,30]},{"code":"LAML","name":"Acute myeloid leukemia","cases":151,"folds":[30,30,31,30,30]},{"code":"THYM","name":"Thymoma","cases":120,"folds":[24,24,24,24,24]},{"code":"KICH","name":"Kidney chromophobe","cases":66,"folds":[13,13,14,13,13]},{"code":"MESO","name":"Mesothelioma","cases":87,"folds":[17,18,17,18,17]},{"code":"UVM","name":"Uveal melanoma","cases":80,"folds":[16,16,16,16,16]},{"code":"ACC","name":"Adrenocortical carcinoma","cases":79,"folds":[16,16,15,16,16]},{"code":"UCS","name":"Uterine carcinosarcoma","cases":57,"folds":[11,12,11,12,11]},{"code":"DLBC","name":"Diffuse large B-cell lymphoma","cases":48,"folds":[10,9,10,9,10]},{"code":"CHOL","name":"Cholangiocarcinoma","cases":36,"folds":[7,7,8,7,7]}]}}</script>
+<script>/* What every report's charts share: SVG helpers, tooltips, resizing, tables.
+   Inlined ahead of each page's own script, which reads `ReportKit`. */
+const ReportKit = (() => {
+  'use strict';
+  const NS = 'http://www.w3.org/2000/svg';
+  const int = n => Math.round(n).toLocaleString('en-US');
+  const pct = (x, d = 1) => `${(100 * x).toFixed(d)}%`;
+
+  function svg(tag, attrs, parent) {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) node.setAttribute(k, v);
+    if (parent) parent.appendChild(node);
+    return node;
+  }
+  function label(parent, x, y, str, cls, attrs) {
+    const t = svg('text', Object.assign({ x, y, class: cls }, attrs || {}), parent);
+    t.textContent = str;
+    return t;
+  }
+  function plot(box, W, H, title) {
+    return svg('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'plot', role: 'img', 'aria-label': title || '' }, box);
+  }
+
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  function measure(str, size) {
+    measureCtx.font = `${size || 12}px Archivo, system-ui, sans-serif`;
+    return measureCtx.measureText(str).width;
+  }
+
+  function niceTicks(max, count) {
+    const raw = Math.max(max, 1e-9) / count;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    const out = [];
+    for (let i = 0; i * step <= max + step * 0.999; i++) out.push(+(i * step).toPrecision(10));
+    return out;
+  }
+
+  function barRight(x, y, w, h) {
+    if (w <= 0) return '';
+    const r = Math.min(4, w, h / 2);
+    return `M${x},${y}h${w - r}a${r},${r} 0 0 1 ${r},${r}v${h - 2 * r}a${r},${r} 0 0 1 ${-r},${r}h${-(w - r)}z`;
+  }
+  function barUp(x, y, w, h) {
+    if (w <= 0 || h <= 0) return '';
+    const r = Math.min(4, w / 2, h);
+    return `M${x},${y + h}v${-(h - r)}a${r},${r} 0 0 1 ${r},${-r}h${w - 2 * r}a${r},${r} 0 0 1 ${r},${r}v${h - r}z`;
+  }
+
+  /* ---------- tooltip ---------- */
+  const tip = document.getElementById('tip');
+  function showTip(evt, node, content) {
+    tip.replaceChildren();
+    if (content.title) {
+      const head = document.createElement('div');
+      head.className = 'tip-title';
+      head.textContent = content.title;
+      tip.append(head);
+    }
+    for (const [value, what] of content.lines) {
+      const row = document.createElement('div');
+      row.className = 'tip-row';
+      const v = document.createElement('strong');
+      v.textContent = value;
+      const w = document.createElement('span');
+      w.textContent = what;
+      row.append(v, w);
+      tip.append(row);
+    }
+    tip.hidden = false;
+    let x, y;
+    if (evt.type === 'pointermove') { x = evt.clientX; y = evt.clientY; }
+    else { const r = node.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top; }
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = `${Math.min(Math.max(8, x + 14), window.innerWidth - w - 8)}px`;
+    tip.style.top = `${y - h - 12 < 8 ? y + 18 : y - h - 12}px`;
+  }
+  function hover(node, content, mark, focusable) {
+    node.classList.add('hit');
+    if (focusable) {
+      node.setAttribute('tabindex', '0');
+      const words = content.lines.map(([v, w]) => `${v} ${w}`);
+      node.setAttribute('aria-label', [content.title, ...words].filter(Boolean).join(', '));
+    }
+    const marks = mark ? [].concat(mark) : [];
+    const on = e => { showTip(e, node, content); marks.forEach(m => m.classList.add('is-active')); };
+    const off = () => { tip.hidden = true; marks.forEach(m => m.classList.remove('is-active')); };
+    node.addEventListener('pointermove', on);
+    node.addEventListener('pointerleave', off);
+    node.addEventListener('focus', on);
+    node.addEventListener('blur', off);
+  }
+  window.addEventListener('scroll', () => { tip.hidden = true; }, { passive: true });
+
+  /* ---------- charts redraw at their container's width ---------- */
+  const renders = [];
+  function mount(id, draw) {
+    const box = document.getElementById(id);
+    if (!box) return;
+    let width = -1;
+    const render = () => {
+      width = Math.round(box.clientWidth);
+      box.replaceChildren();
+      if (width > 0) draw(box, width);
+    };
+    renders.push(render);
+    new ResizeObserver(() => { if (Math.round(box.clientWidth) !== width) render(); }).observe(box);
+  }
+  // Text is measured to lay charts out; measure again once the web fonts arrive.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => renders.forEach(r => r()));
+
+  /* ---------- tables ---------- */
+  function fillTable(id, columns, rows) {
+    const table = document.getElementById(id);
+    if (!table) return;
+    const head = document.createElement('thead');
+    const tr = document.createElement('tr');
+    for (const c of columns) {
+      const th = document.createElement('th');
+      th.scope = 'col';
+      th.textContent = c.label;
+      if (c.num) th.className = 'num';
+      tr.append(th);
+    }
+    head.append(tr);
+    const body = document.createElement('tbody');
+    for (const r of rows) {
+      const row = document.createElement('tr');
+      if (r.rowClass) row.className = r.rowClass;
+      for (const c of columns) {
+        const td = document.createElement('td');
+        const v = c.value(r);
+        if (v instanceof Node) td.append(v); else td.textContent = v;
+        const cls = [c.num ? 'num' : '', c.cls ? c.cls(r) : ''].filter(Boolean).join(' ');
+        if (cls) td.className = cls;
+        row.append(td);
+      }
+      body.append(row);
+    }
+    table.replaceChildren(head, body);
+  }
+  function codeNode(text) { const c = document.createElement('code'); c.textContent = text; return c; }
+  function chip(role) { const s = document.createElement('span'); s.className = `chip ${role}`; s.textContent = role; return s; }
+  function stacked(main, sub) {
+    const frag = document.createDocumentFragment();
+    frag.append(main);
+    const s = document.createElement('span');
+    s.className = 'sub';
+    s.textContent = sub;
+    frag.append(s);
+    return frag;
+  }
+
+  return {
+    data: JSON.parse(document.getElementById('report-data').textContent),
+    int, pct, svg, label, plot, measure, niceTicks, barRight, barUp,
+    hover, mount, fillTable, codeNode, chip, stacked,
+  };
+})();</script>
+<script>
+(() => {
+  'use strict';
+  const {
+    data: DATA, int, pct, svg, label, plot, measure, niceTicks, barRight, barUp,
+    hover, mount, fillTable, codeNode, chip, stacked,
+  } = ReportKit;
+  const millions = n => `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M`;
+
+  /* horizontal bars, one row per category */
+  function hbar(box, W, rows, o) {
+    o = o || {};
+    const fmt = o.format || int;
+    const longest = Math.max(...rows.map(r => measure(r.label)));
+    const above = longest + 12 > W * 0.42;
+    const labelW = above ? 0 : longest + 12;
+    const valueW = Math.max(...rows.map(r => measure(fmt(r.value)))) + 14;
+    const barH = 12;
+    const rowH = above ? 38 : 22;
+    const plotH = rows.length * rowH;
+    const H = plotH + 24;
+    const x0 = labelW, x1 = Math.max(x0 + 60, W - valueW);
+    const tk = niceTicks(o.max || Math.max(...rows.map(r => r.value)), o.ticks || 4);
+    const top = tk[tk.length - 1];
+    const sx = v => x0 + (x1 - x0) * v / top;
+    const root = plot(box, W, H, o.title);
+    for (const t of tk) {
+      const x = sx(t);
+      svg('line', { x1: x, x2: x, y1: 0, y2: plotH, class: t === 0 ? 'baseline' : 'gridline' }, root);
+      label(root, x, plotH + 16, (o.tick || fmt)(t), 'tick', { 'text-anchor': t === 0 && above ? 'start' : 'middle' });
+    }
+    rows.forEach((r, i) => {
+      const yRow = i * rowH;
+      const yBar = above ? yRow + 20 : yRow + (rowH - barH) / 2;
+      const w = Math.max(0, sx(r.value) - x0);
+      const bar = svg('path', { d: barRight(x0, yBar, w, barH), class: `mark ${r.cls || 'mark-1'}` }, root);
+      if (above) label(root, 0, yRow + 13, r.label, 'label');
+      else label(root, x0 - 8, yBar + barH / 2, r.label, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      label(root, x0 + w + 6, yBar + barH / 2, fmt(r.value), 'value', { 'dominant-baseline': 'central' });
+      const hit = svg('rect', { x: 0, y: yRow, width: W, height: rowH, class: 'hit-area' }, root);
+      hover(hit, r.tip || { title: r.label, lines: [[fmt(r.value), o.unit || '']] }, bar, true);
+    });
+  }
+
+  /* a histogram of one distribution, with an optional marker line */
+  function histogram(box, W, hist, o) {
+    const H = 172, padL = 44, padR = 18, padT = 24, padB = 26;
+    const edges = hist.edges, counts = hist.counts;
+    const lo = edges[0], hi = edges[edges.length - 1];
+    const sx = v => padL + (W - padL - padR) * (v - lo) / (hi - lo);
+    const tk = niceTicks(Math.max(...counts), 3);
+    const top = tk[tk.length - 1];
+    const sy = v => padT + (H - padT - padB) * (1 - v / top);
+    const root = plot(box, W, H, o.title);
+    for (const t of tk) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: t === 0 ? 'baseline' : 'gridline' }, root);
+      label(root, padL - 6, sy(t), int(t), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    for (const [v, text] of o.xticks) {
+      if (v < lo - 1e-9 || v > hi + 1e-9) continue;
+      const x = sx(v);
+      svg('line', { x1: x, x2: x, y1: sy(0), y2: sy(0) + 4, class: 'baseline' }, root);
+      label(root, x, H - 6, text, 'tick', { 'text-anchor': 'middle' });
+    }
+    counts.forEach((c, i) => {
+      const xa = sx(edges[i]), xb = sx(edges[i + 1]);
+      const bar = svg('path', { d: barUp(xa + 1, sy(c), Math.max(1, xb - xa - 2), sy(0) - sy(c)), class: 'mark mark-1' }, root);
+      const hit = svg('rect', { x: xa, y: padT, width: xb - xa, height: sy(0) - padT, class: 'hit-area' }, root);
+      hover(hit, { title: o.range(edges[i], edges[i + 1]), lines: [[int(c), o.unit]] }, bar);
+    });
+    if (o.marker) {
+      const x = sx(o.marker.value);
+      svg('line', { x1: x, x2: x, y1: padT - 8, y2: sy(0), class: 'marker-line' }, root);
+      const right = x > padL + (W - padL - padR) * 0.55;
+      label(root, right ? x - 5 : x + 5, padT - 12, o.marker.text, 'annot', { 'text-anchor': right ? 'end' : 'start' });
+    }
+  }
+
+  /* the fold layout: five rows of a hundred buckets */
+  function bucketGrid(box, W) {
+    const F = DATA.folds;
+    const nb = F.layout[0].length, fw = F.fold_width, nf = F.layout.length;
+    const labelW = 50, padR = 4, rowH = 16, gap = 6, topH = 30, bottomH = 36;
+    const cw = (W - labelW - padR) / nb;
+    const gridBottom = topH + nf * (rowH + gap) - gap;
+    const H = gridBottom + bottomH;
+    const inset = cw >= 4 ? 0.5 : 0.25;
+    const sx = b => labelW + b * cw;
+    const root = plot(box, W, H, 'Fold layout');
+    for (let f = 0; f < nf; f++) {
+      const xa = sx(f * fw) + 2, xb = sx((f + 1) * fw) - 2;
+      svg('path', { d: `M${xa},${topH - 6}v-5H${xb}v5`, class: 'bracket' }, root);
+      const range = `${f * fw}–${(f + 1) * fw - 1}`;
+      const wide = `fold ${f} · buckets ${range}`;
+      label(root, (xa + xb) / 2, topH - 16, measure(wide, 11) < xb - xa - 4 ? wide : range, 'tick', { 'text-anchor': 'middle' });
+    }
+    F.layout.forEach((roles, k) => {
+      const y = topH + k * (rowH + gap);
+      label(root, labelW - 8, y + rowH / 2, `Fold ${k}`, 'label', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+      roles.forEach((role, b) => {
+        const cell = svg('rect', { x: sx(b) + inset, y, width: Math.max(0.5, cw - 2 * inset), height: rowH, class: `role-${role}` }, root);
+        hover(cell, { title: `Bucket ${b} in fold ${k}`, lines: [[role, `(a test bucket of fold ${Math.floor(b / fw)})`]] }, cell);
+      });
+    });
+    const b = F.example_bucket;
+    svg('rect', { x: sx(b) - 1, y: topH - 2, width: cw + 2, height: gridBottom - topH + 4, class: 'column-mark' }, root);
+    const x = sx(b) + cw / 2;
+    svg('path', { d: `M${x},${gridBottom + 6}l4.5,7h-9z`, class: 'pointer' }, root);
+    const right = x > W * 0.6;
+    label(root, right ? x + 5 : x - 5, gridBottom + 28, `${F.example_case} · bucket ${b}`, 'annot', { 'text-anchor': right ? 'end' : 'start' });
+  }
+
+  /* each project's share per fold against its size, with the random-deal band */
+  function funnel(box, W) {
+    const rows = DATA.balance.projects;
+    const nf = rows[0].folds.length, even = 1 / nf;
+    const H = Math.round(Math.min(400, Math.max(290, W * 0.5)));
+    const padL = 46, padR = 16, padT = 14, padB = 44;
+    const ns = rows.map(r => r.cases);
+    const lo = Math.log10(Math.min(...ns) / 1.3), hi = Math.log10(Math.max(...ns) * 1.3);
+    const sx = n => padL + (W - padL - padR) * (Math.log10(n) - lo) / (hi - lo);
+    const half = n => 1.96 * Math.sqrt(even * (1 - even) / n);
+    const shares = rows.flatMap(r => r.folds.map(k => k / r.cases));
+    const ymax = Math.min(1, Math.ceil(Math.max(...shares, even + half(10 ** lo)) * 10) / 10);
+    const sy = s => padT + (H - padT - padB) * (1 - s / ymax);
+    const root = plot(box, W, H, 'Fold share against project size');
+    for (let t = 0; t <= ymax + 1e-9; t += 0.1) {
+      svg('line', { x1: padL, x2: W - padR, y1: sy(t), y2: sy(t), class: t < 1e-9 ? 'baseline' : 'gridline' }, root);
+      label(root, padL - 6, sy(t), pct(t, 0), 'tick', { 'text-anchor': 'end', 'dominant-baseline': 'central' });
+    }
+    for (const n of [10, 20, 50, 100, 200, 500, 1000, 2000, 5000]) {
+      if (Math.log10(n) < lo || Math.log10(n) > hi) continue;
+      svg('line', { x1: sx(n), x2: sx(n), y1: sy(0), y2: sy(0) + 4, class: 'baseline' }, root);
+      label(root, sx(n), sy(0) + 16, int(n), 'tick', { 'text-anchor': 'middle' });
+    }
+    label(root, W - padR, H - 4, 'patients in the project, log scale', 'tick', { 'text-anchor': 'end' });
+    const upper = [], lower = [];
+    for (let i = 0; i <= 80; i++) {
+      const n = 10 ** (lo + (hi - lo) * i / 80);
+      upper.push(`${sx(n).toFixed(1)},${sy(Math.min(ymax, even + half(n))).toFixed(1)}`);
+      lower.push(`${sx(n).toFixed(1)},${sy(Math.max(0, even - half(n))).toFixed(1)}`);
+    }
+    svg('path', { d: `M${upper.join('L')}L${[...lower].reverse().join('L')}Z`, class: 'band' }, root);
+    svg('path', { d: `M${upper.join('L')}`, class: 'band-edge' }, root);
+    svg('path', { d: `M${lower.join('L')}`, class: 'band-edge' }, root);
+    svg('line', { x1: padL, x2: W - padR, y1: sy(even), y2: sy(even), class: 'ref-line' }, root);
+    const points = [];
+    rows.forEach(r => r.folds.forEach((k, f) => points.push({ r, f, k, s: k / r.cases })));
+    const dots = points.map(p => svg('circle', { cx: sx(p.r.cases), cy: sy(p.s), r: 4, class: 'dot mark-1' }, root));
+    points.forEach((p, i) => {
+      const hit = svg('circle', { cx: sx(p.r.cases), cy: sy(p.s), r: 11, class: 'hit-area' }, root);
+      hover(hit, {
+        title: `${p.r.code} · fold ${p.f}`,
+        lines: [[pct(p.s), 'of the project’s patients'], [`${int(p.k)} of ${int(p.r.cases)}`, 'patients']],
+      }, dots[i]);
+    });
+  }
+
+  /* ---------- the barcode ---------- */
+  function barcode() {
+    const box = document.getElementById('barcode');
+    const ex = DATA.folds.examples[0];
+    const parts = ex.barcode.split('-');
+    if (parts.length < 4) return;
+    const names = ['program', 'tissue source site', 'participant', 'sample type · vial', 'portion · analyte', 'plate', 'centre'];
+    const segment = (text, what) => {
+      const seg = document.createElement('div');
+      seg.className = 'seg';
+      const c = document.createElement('span'); c.className = 'code'; c.textContent = text;
+      const w = document.createElement('span'); w.className = 'what'; w.textContent = what || '';
+      seg.append(c, w);
+      return seg;
+    };
+    const group = document.createElement('div');
+    group.className = 'case-group';
+    const caseSegs = document.createElement('div');
+    caseSegs.className = 'segs';
+    const rest = document.createElement('div');
+    rest.className = 'segs';
+    parts.forEach((p, i) => (i < 3 ? caseSegs : rest).append(segment(p, names[i])));
+    const caption = document.createElement('div');
+    caption.className = 'case-caption';
+    caption.textContent = `case_submitter_id ${parts.slice(0, 3).join('-')}: the patient, what step 1 hashes`;
+    group.append(caseSegs, caption);
+    box.replaceChildren(group, rest);
+  }
+
+  /* ---------- wire it up ---------- */
+  const C = DATA.cohort, V = DATA.values, G = DATA.genes, F = DATA.folds, B = DATA.balance;
+
+  mount('chart-projects', (box, W) => hbar(box, W, C.projects.map(p => ({
+    label: p.code,
+    value: p.samples,
+    tip: {
+      title: p.name ? `${p.code} · ${p.name}` : p.code,
+      lines: [[int(p.samples), 'samples'], [int(p.cases), 'patients'], [int(p.normal), 'solid-tissue normals']],
+    },
+  })), { title: 'Samples per project', unit: 'samples' }));
+  mount('chart-types', (box, W) => hbar(box, W, C.sample_types.map(t => ({ label: t.type, value: t.samples })), { title: 'Samples by sample type', unit: 'samples' }));
+  mount('chart-aliquots', (box, W) => hbar(box, W, C.aliquots.map(a => ({
+    label: `${a.aliquots} aliquot${a.aliquots > 1 ? 's' : ''}`,
+    value: a.cases,
+  })), { title: 'Patients by number of aliquots', unit: 'patients' }));
+
+  mount('chart-reads', (box, W) => histogram(box, W, V.reads, {
+    title: 'Total reads per sample',
+    unit: 'samples',
+    xticks: [5, 10, 20, 50, 100, 200].map(m => [Math.log10(m * 1e6), `${m}M`]),
+    range: (a, b) => `${millions(10 ** a)}–${millions(10 ** b)} reads`,
+    marker: { value: V.reads.median, text: `median ${millions(10 ** V.reads.median)}` },
+  }));
+  mount('chart-assigned', (box, W) => histogram(box, W, V.assigned, {
+    title: 'Share of reads assigned to a gene',
+    unit: 'samples',
+    xticks: [0, 0.25, 0.5, 0.75, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `${pct(a)}–${pct(b)} assigned`,
+    marker: { value: V.assigned.median, text: `median ${pct(V.assigned.median, 0)}` },
+  }));
+  mount('chart-protein', (box, W) => histogram(box, W, V.protein_share, {
+    title: 'Share of assigned reads on protein-coding genes',
+    unit: 'samples',
+    xticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `${pct(a, 0)}–${pct(b, 0)} protein-coding`,
+    marker: { value: V.protein_share.median, text: `median ${pct(V.protein_share.median)}` },
+  }));
+
+  const biotypeRows = key => G.biotypes.map(b => ({
+    label: b.biotype,
+    value: b[key],
+    cls: b.selected ? 'mark-1' : 'mark-quiet',
+    tip: { title: b.biotype, lines: [[int(b.genes), 'genes'], [pct(b.read_share, 2), 'of assigned reads']] },
+  }));
+  mount('chart-biotype-genes', (box, W) => hbar(box, W, biotypeRows('genes'), { title: 'Genes per biotype' }));
+  mount('chart-biotype-reads', (box, W) => hbar(box, W, biotypeRows('read_share'), {
+    title: 'Share of assigned reads per biotype',
+    format: v => pct(v, v < 0.01 ? 2 : 1),
+    tick: v => pct(v, 0),
+    max: 1,
+  }));
+  mount('chart-detection', (box, W) => histogram(box, W, G.detection, {
+    title: 'Genes by detection rate',
+    unit: 'genes',
+    xticks: [0, 0.25, 0.5, 0.75, 1].map(v => [v, pct(v, 0)]),
+    range: (a, b) => `detected in ${pct(a, 0)}–${pct(b, 0)} of samples`,
+  }));
+  mount('chart-buckets', bucketGrid);
+  mount('chart-balance', funnel);
+
+  barcode();
+  fillTable('table-projects', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Study', value: p => p.name },
+    { label: 'Samples', num: true, value: p => int(p.samples) },
+    { label: 'Patients', num: true, value: p => int(p.cases) },
+    { label: 'Normals', num: true, value: p => int(p.normal) },
+  ], C.projects);
+  fillTable('table-quant', [
+    { label: 'config', value: q => codeNode(q.name) },
+    { label: 'kind', value: q => q.kind },
+    { label: 'stored as', value: q => q.dtype },
+    { label: 'measures', value: q => q.measures },
+  ], V.quantifications);
+  fillTable('table-biotypes', [
+    { label: 'Biotype', value: b => b.biotype },
+    { label: 'Genes', num: true, value: b => int(b.genes) },
+    { label: 'Share of reads', num: true, value: b => pct(b.read_share, 2) },
+  ], G.biotypes);
+  fillTable('table-folds', [
+    { label: 'Fold', value: s => `fold ${s.fold}` },
+    ...['train', 'val', 'test'].map(role => ({
+      label: role,
+      num: true,
+      value: s => stacked(int(s[`${role}_samples`]), `${int(s[`${role}_cases`])} patients`),
+    })),
+  ], F.sizes);
+  fillTable('table-examples', [
+    { label: 'Case', value: e => codeNode(e.case) },
+    { label: 'Project', value: e => e.project.replace('TCGA-', '') },
+    { label: 'Bucket', num: true, value: e => String(e.bucket) },
+    ...F.layout.map((_, k) => ({ label: `fold ${k}`, value: e => chip(e.roles[k]) })),
+  ], F.examples);
+  fillTable('table-balance', [
+    { label: 'Project', value: p => p.code },
+    { label: 'Patients', num: true, value: p => int(p.cases) },
+    ...B.projects[0].folds.map((_, k) => ({
+      label: `fold ${k}`,
+      num: true,
+      value: p => `${int(p.folds[k])} (${pct(p.folds[k] / p.cases, 0)})`,
+    })),
+  ], B.projects);
+
+})();
+</script>
+</body>
+</html>

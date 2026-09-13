@@ -1,0 +1,31 @@
+# A few minutes on real data: a tiny TxFM over a handful of batches, to check
+# the pipeline end to end before committing to a long run.
+seed_everything: 0
+
+trainer:
+  max_epochs: 2
+  limit_train_batches: 20
+  limit_val_batches: 5
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 5
+  default_root_dir: runs/debug
+  logger: false
+  enable_checkpointing: false
+
+model:
+  # n_genes and library_size are linked from data.
+  n_unmasked: 256
+  d_model: 64
+  n_layers: 2
+  n_heads: 4
+  decoder_layers: 2
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  batch_size: 32
+  fold: 0

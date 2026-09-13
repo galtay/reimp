@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+.env
+
+# Training runs, checkpoints and extracted embeddings. The dataset itself
+# lives in the HF cache, never in the repo.
+runs/
+lightning_logs/
+out/
+*.ckpt
+*.parquet

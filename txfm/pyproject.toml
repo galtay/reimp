@@ -1,0 +1,22 @@
+[project]
+name = "reimp-txfm"
+version = "0.1.0"
+description = "Reimplementation of TxFM (Kenyon-Dean et al., ICLR 2026 Workshop FM4S) on TCGA bulk RNA-seq."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },
+]
+dependencies = [
+    "reimp-shared",
+    "lightning[pytorch-extra]",
+    "torch",
+]
+
+[project.scripts]
+txfm = "reimp_txfm.cli:main"
+txfm-embed = "reimp_txfm.embed:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"

@@ -1,0 +1,48 @@
+# uv workspace for reimplementations of RNA-seq representation learners.
+#
+#   shared/  reimp-shared  data access, patient-level splits, preprocessing,
+#                          linear probes, PCA baseline. Every model uses it.
+#   txfm/    reimp-txfm    TxFM (Kenyon-Dean et al., ICLR 2026 FM4S workshop).
+#
+# A new reimplementation is a new directory with its own pyproject.toml,
+# listed in `members` and `[tool.uv.sources]` below.
+
+[tool.uv.workspace]
+members = ["shared", "txfm"]
+
+[tool.uv.sources]
+reimp-shared = { workspace = true }
+reimp-txfm = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "latex2mathml>=3.81.1",
+    "pre-commit>=4.0",
+    "pytest>=9.0.3",
+    # Keep in lockstep with the rev pinned in .pre-commit-config.yaml.
+    "ruff>=0.15.12",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+# importlib mode lets each package keep a plain tests/ directory without
+# test-module basenames colliding across packages.
+addopts = ["--import-mode=importlib", "-m", "not network"]
+# The report build scripts import their shared module, reportkit, as a script would.
+pythonpath = ["reports/build"]
+markers = [
+    "network: downloads from the HF Hub (run with '-m network')",
+]
+testpaths = ["shared/tests", "txfm/tests", "reports/build"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["reimp_shared", "reimp_txfm"]

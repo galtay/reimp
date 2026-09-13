@@ -1,0 +1,37 @@
+# Run on every commit:  uv run pre-commit install
+# Run over everything:   uv run pre-commit run --all-files
+#
+# The ruff hooks are pinned to the same version as the `dev` dependency
+# group in pyproject.toml. Bump both together, or the hook and a local
+# `uv run ruff` will disagree about what "formatted" means.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.12
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      # Checkpoints, embeddings and dataset parquets belong in runs/, out/
+      # or the HF cache. A large staged file means one escaped .gitignore.
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (offline)
+        entry: uv run pytest -q
+        language: system
+        pass_filenames: false
+        types: [python]
