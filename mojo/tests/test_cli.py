@@ -39,6 +39,40 @@ def test_every_config_runs_a_batch(config, fake_dataset, tmp_path) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "config, checkpoints",
+    [("debug.yaml", ["last.ckpt"]), ("tcga.yaml", ["best.ckpt", "last.ckpt"])],
+)
+def test_a_fold_runs_in_its_own_directory(config, checkpoints, fake_dataset, tmp_path) -> None:
+    root = tmp_path / "runs"
+    args = [
+        "fit",
+        "--config",
+        str(CONFIGS / config),
+        "--trainer.accelerator=cpu",
+        "--trainer.max_epochs=1",
+        "--trainer.limit_train_batches=1",
+        "--trainer.limit_val_batches=1",
+        "--trainer.enable_progress_bar=false",
+        f"--trainer.default_root_dir={root}",
+        "--data.batch_size=8",
+        "--data.fold=2",
+    ]
+    build_cli(args)
+    run = root / "fold2"
+    assert sorted(p.name for p in (run / "checkpoints").iterdir()) == checkpoints
+    assert (run / "config.yaml").exists()
+    # A rerun replaces the fold's run: no version_N directories or -v1 files.
+    build_cli(args)
+    assert sorted(p.name for p in (run / "checkpoints").iterdir()) == checkpoints
+    assert not list(root.rglob("version_*"))
+    # The documented path is what mojo-embed reads, and the fold travels with it.
+    _, _, folds = read_embeddings(
+        embed(run / "checkpoints" / checkpoints[0], tmp_path / "e.parquet", accelerator="cpu")
+    )
+    assert set(folds.tolist()) == {2}
+
+
 @pytest.mark.parametrize("fold", [0, 2])
 def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
     dm = ExpressionDataModule("tpm_unstranded", transform="log1p", batch_size=8, fold=fold)

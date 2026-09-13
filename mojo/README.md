@@ -16,17 +16,19 @@ changes with the tokens and objective held fixed.
 
 ```bash
 uv run mojo fit --config mojo/configs/debug.yaml                 # ~1 minute, on real data
-uv run mojo-embed --ckpt runs/mojo_debug/checkpoints/last.ckpt --out out/mojo_debug/fold0.parquet
+uv run mojo-embed --ckpt runs/mojo_debug/fold0/checkpoints/last.ckpt --out out/mojo_debug/fold0.parquet
 
 uv run mojo fit --config mojo/configs/tcga.yaml --data.fold 0    # and so on for folds 1-4
-uv run mojo-embed --ckpt <fold 0 checkpoint> --out out/mojo/fold0.parquet
+uv run mojo-embed --ckpt runs/mojo/fold0/checkpoints/best.ckpt --out out/mojo/fold0.parquet
 uv run reimp-shared probe out/mojo out/pca256 --against pca256
 ```
 
-Train one model per fold (`--data.fold k`, with a separate
-`--trainer.default_root_dir` or logger directory per fold) and embed each
-with its own checkpoint: the checkpoint records its fold and its
-tokenizer, so `mojo-embed` needs nothing else. [`paper.md`](paper.md)
+Train one model per fold (`--data.fold k`) and embed each with its own
+checkpoint. Fold k runs in `runs/mojo/fold<k>/` (config, `metrics.csv`,
+TensorBoard events), with the lowest-val-loss checkpoint at
+`checkpoints/best.ckpt` and the final one at `checkpoints/last.ckpt`;
+rerunning a fold replaces its run. The checkpoint records its fold and
+its tokenizer, so `mojo-embed` needs nothing else. [`paper.md`](paper.md)
 records what the paper did; below is how this reimplementation follows it.
 
 ## Model

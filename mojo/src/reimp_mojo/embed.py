@@ -3,7 +3,7 @@
 Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 `fold` the checkpoint was trained for) that `reimp-shared probe` scores:
 
-  mojo-embed --ckpt runs/mojo/checkpoints/last.ckpt --out out/mojo/fold0.parquet
+  mojo-embed --ckpt runs/mojo/fold0/checkpoints/best.ckpt --out out/mojo/fold0.parquet
 """
 
 from __future__ import annotations
