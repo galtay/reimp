@@ -1,0 +1,65 @@
+# TifBERT on TCGA: BERT-base (12 layers, 768-d, 12 heads, ~100M parameters
+# with a 19,946-token vocabulary) over 512-token windows at stride 256 of
+# each sample's top 10,000 protein-coding genes — 39 windows, as in the
+# paper — ranked by tf-idf with the entropy weight on TPM, fit on the
+# fold's training samples. 15% of tokens masked, 80/10/10.
+#
+# An epoch here is one random window per training sample (~8,300 windows),
+# so 200 epochs see each sample's 39 windows about five times over.
+seed_everything: 0
+
+trainer:
+  max_epochs: 200
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 50
+  default_root_dir: runs/tifbert_base
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/tifbert_base
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/tifbert_base
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: step
+
+model:
+  # n_genes is linked from data.
+  rank_score: tfidf
+  idf_scheme: entropy
+  detection_threshold: 0.0
+  max_genes: 10000
+  window: 512
+  stride: 256
+  mask_prob: 0.15
+  d_model: 768
+  n_layers: 12
+  n_heads: 12
+  mlp_ratio: 4.0
+  dropout: 0.1
+  lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_frac: 0.1
+  embed_chunk: 128
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: none
+  batch_size: 32
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

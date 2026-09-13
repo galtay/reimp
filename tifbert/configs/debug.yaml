@@ -1,0 +1,40 @@
+# About a minute on real data: a tiny BERT over short windows of each
+# sample's top 2,048 genes, a handful of batches, then last.ckpt for
+# tifbert-embed — to check the pipeline end to end before a long run.
+seed_everything: 0
+
+trainer:
+  max_epochs: 2
+  limit_train_batches: 30
+  limit_val_batches: 5
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 5
+  default_root_dir: runs/tifbert_debug # checkpoints/last.ckpt beneath it
+  logger: false
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+        save_top_k: 0
+
+model:
+  # n_genes is linked from data.
+  rank_score: tfidf
+  idf_scheme: entropy
+  max_genes: 2048
+  window: 128
+  stride: 64
+  d_model: 64
+  n_layers: 2
+  n_heads: 4
+  lr: 1.0e-3
+  embed_chunk: 1024
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: none
+  batch_size: 64
+  fold: 0
