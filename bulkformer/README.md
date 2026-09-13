@@ -23,7 +23,11 @@ uv run reimp-shared probe out/bulkformer out/pca256 --against pca256
 
 The debug config trains a 1.3M-parameter model for 40 steps of 4 samples
 on fold 0 and saves `runs/bulkformer_debug/checkpoints/last.ckpt`; on an
-M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s.
+M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s,
+and embedding all 11,505 samples from it ~2.5 min. `tcga.yaml`'s 14.8M
+model measured 2.2 s per step of 8 samples on the same machine, with a
+31 GiB peak MPS allocation: ~37 min per epoch, ~12 h for its 20 epochs per
+fold.
 The graph ablation from `paper.md` is one flag:
 
 ```bash
