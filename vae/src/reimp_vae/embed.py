@@ -3,9 +3,10 @@
 Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 `fold` the checkpoint was trained for) that `reimp-shared probe` scores. The
 checkpoint carries the scaler fit on its fold's training rows, so every
-sample is scaled as in training:
+sample is scaled as in training. Fold k's run keeps its best checkpoint in
+`runs/<model>/fold<k>/checkpoints/best.ckpt`:
 
-  vae-embed --ckpt runs/tybalt/version_0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
+  vae-embed --ckpt runs/tybalt/fold0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
 """
 
 from __future__ import annotations

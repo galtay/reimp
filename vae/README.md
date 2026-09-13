@@ -20,17 +20,23 @@ Both embed a sample as its posterior mean.
 uv run vae fit --config vae/configs/debug.yaml          # Tybalt, about a minute on real data
 uv run vae fit --config vae/configs/debug_mmdae.yaml    # MMD-AE + organ head, likewise
 
-# One model per fold, 0-4; each run is a new version_N under the config's run directory.
+# One model per fold, 0-4; fold k runs in runs/<variant>/fold<k>/.
 uv run vae fit --config vae/configs/tybalt.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_none.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_organ.yaml --data.fold 0
 uv run vae fit --config vae/configs/mmdae_project.yaml --data.fold 0   # optional, not ranked
 
 # The fold is read from the checkpoint; keep one directory per model and variant.
-uv run vae-embed --ckpt runs/tybalt/version_0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
-uv run vae-embed --ckpt runs/mmdae_organ/version_0/checkpoints/best.ckpt --out out/mmdae_organ/fold0.parquet
+uv run vae-embed --ckpt runs/tybalt/fold0/checkpoints/best.ckpt --out out/tybalt/fold0.parquet
+uv run vae-embed --ckpt runs/mmdae_organ/fold0/checkpoints/best.ckpt --out out/mmdae_organ/fold0.parquet
 uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ --against pca256
 ```
+
+Each fold's run directory (`FoldCLI`, from `reimp_shared.foldcli`) holds
+the saved `config.yaml`, the CSV logger's `metrics.csv`, and
+`checkpoints/best.ckpt` (the lowest `val/loss`, what `vae-embed` reads) and
+`checkpoints/last.ckpt`. Rerunning a fold replaces its run. The debug
+configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`.
 
 ## The two models
 
@@ -210,6 +216,10 @@ patients.
 - `test_organs`: all 33 projects mapped; each within-organ probe group
   shares one organ; 26 classes; labels depend on the project alone.
 - `test_lit`, `test_cli`: training steps, the warm-up in a fit, the
-  supervised head, posterior-mean predictions, every config runs a batch,
-  and a one-fold fit then `vae-embed` writes a file `read_embeddings`
-  accepts.
+  supervised head, posterior-mean predictions, every config runs a batch;
+  a fit through the CLI on fold 0 or 2 lands in `<root>/fold<k>/` with
+  `checkpoints/best.ckpt` and `last.ckpt`, a rerun replaces it, and
+  `vae-embed` on it writes a file `read_embeddings` accepts; and, for a
+  Tybalt and an MMD-AE model fit on fold 3, `vae-embed` embeds every
+  training sample alike when the held-out rows are scrambled
+  (`assert_embedding_ignores_held_out`).

@@ -4,7 +4,7 @@
 #   vae fit --config vae/configs/debug_mmdae.yaml --data.supervision none \
 #     --trainer.default_root_dir runs/debug/mmdae_none
 # Then:
-#   vae-embed --ckpt runs/debug/mmdae_organ/checkpoints/best.ckpt \
+#   vae-embed --ckpt runs/debug/mmdae_organ/fold0/checkpoints/best.ckpt \
 #     --out out/vae_debug/mmdae_organ/fold0.parquet
 seed_everything: 0
 

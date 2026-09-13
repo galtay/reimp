@@ -12,12 +12,13 @@ trainer:
   accelerator: auto
   devices: 1
   log_every_n_steps: 20
+  # Fold k runs in runs/mmdae_organ/fold<k>/, with checkpoints/best.ckpt and last.ckpt:
+  #   vae-embed --ckpt runs/mmdae_organ/fold0/checkpoints/best.ckpt --out out/mmdae_organ/fold0.parquet
   default_root_dir: runs/mmdae_organ
   logger:
     - class_path: lightning.pytorch.loggers.CSVLogger
       init_args:
-        save_dir: runs/mmdae_organ
-        name: ""
+        save_dir: runs/mmdae_organ # replaced by the fold's directory
   callbacks:
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
