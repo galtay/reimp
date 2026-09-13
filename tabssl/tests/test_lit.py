@@ -175,6 +175,30 @@ def test_statistics_are_saved_with_the_model(tmp_path) -> None:
     assert "pool" not in model.state_dict()  # rebuilt from the data at every fit
 
 
+def test_inputs_are_clipped_to_the_training_range() -> None:
+    model = _model("scarf").eval()
+    train = _values(seed=1)  # the samples `_model` fit on
+    # Training samples lie within their own range: the clip leaves them as they are.
+    torch.testing.assert_close(model.scale(train), model.scaler(train), rtol=0, atol=0)
+    # Far outside the range, as a held-out sample can be for a gene nearly
+    # constant over training: clipped to the training extreme.
+    held_out = _values(n=4, seed=2)
+    held_out[:, 0], held_out[:, 1] = 1e4, -1e4
+    x = model.scale(held_out)
+    assert (x >= model.low).all() and (x <= model.high).all()
+    torch.testing.assert_close(x[:, 0], model.high[0].expand(4))
+    torch.testing.assert_close(x[:, 1], model.low[1].expand(4))
+    # So it embeds as the training maximum (minimum) would.
+    at_extremes = held_out.clone()
+    at_extremes[:, 0], at_extremes[:, 1] = train[:, 0].max(), train[:, 1].min()
+    with torch.no_grad():
+        embed = [
+            model.predict_step({"values": v, "sample_index": torch.arange(4)}, 0)["embedding"]
+            for v in (held_out, at_extremes)
+        ]
+    torch.testing.assert_close(embed[0], embed[1])
+
+
 # ---------- validation, embedding and the untrained control ----------
 
 
@@ -200,7 +224,8 @@ def test_embeddings_are_the_encoder_on_clean_scaled_inputs(fake_dataset, tmp_pat
     sample_index = torch.cat([o["sample_index"] for o in first])
     assert sample_index.tolist() == dm.data.samples["sample_index"].tolist()
     with torch.no_grad():
-        expected = model.eval().encoder(model.scaler(torch.from_numpy(dm.data.values)))
+        scaled = model.scaler(torch.from_numpy(dm.data.values))
+        expected = model.eval().encoder(torch.clamp(scaled, model.low, model.high))
     torch.testing.assert_close(embeddings, expected)
     assert embeddings.shape == (len(sample_index), TINY["hidden_dim"])
 

@@ -17,8 +17,11 @@ the shared DataModule. At the start of `fit` this module fits, on the
 fold's training samples only: a per-gene z-score (`GeneScaler`, saved with
 the model), each gene's scaled [min, max] for SCARF's uniform replacement,
 and the pool of scaled training samples every marginal replacement is drawn
-from (rebuilt at each fit, not saved). Embeddings are the encoder's output
-on scaled, uncorrupted inputs, in eval mode.
+from (rebuilt at each fit, not saved). Every scaled input, at training and
+at embedding, is clipped to that [min, max] (`scale`): a gene nearly
+constant over training otherwise gives a held-out sample z-scores in the
+thousands. Embeddings are the encoder's output on scaled, uncorrupted
+inputs, in eval mode.
 
 Training corruptions come from the global RNG (seeded by `seed_everything`)
 and are redrawn every batch. Validation corruptions come from a generator
@@ -104,7 +107,8 @@ class LitTabSSL(L.LightningModule):
         self.save_hyperparameters()
         self.scaler = GeneScaler(n_genes)
         self.encoder = MLPEncoder(n_genes, hidden_dim, n_layers, dropout)
-        # Each gene's scaled range over the training samples (SCARF uniform).
+        # Each gene's scaled range over the training samples: SCARF's
+        # uniform replacement range, and the clip on every scaled input.
         self.register_buffer("low", torch.zeros(n_genes))
         self.register_buffer("high", torch.zeros(n_genes))
         # Scaled training samples, the source of marginal replacements.
@@ -156,6 +160,16 @@ class LitTabSSL(L.LightningModule):
         self.low.copy_(scaled.min(dim=0).values)
         self.high.copy_(scaled.max(dim=0).values)
         self.pool = scaled if self.needs_pool else scaled.new_empty(0, scaled.shape[1])
+
+    def scale(self, values: Tensor) -> Tensor:
+        """z-scored `values`, clipped to each gene's scaled range over the training samples.
+
+        The clip leaves training samples as they are. A held-out sample can
+        lie far outside: a gene expressed in one training sample has std
+        ~1/√n_train of its peak, so a higher held-out value scales to
+        thousands of standard deviations and swamps the first layer.
+        """
+        return torch.clamp(self.scaler(values), self.low, self.high)
 
     def setup(self, stage: str) -> None:
         if stage != "fit":
@@ -210,7 +224,7 @@ class LitTabSSL(L.LightningModule):
 
     def losses(self, values: Tensor, generator: torch.Generator | None = None) -> dict[str, Tensor]:
         """The objective's loss (and its parts) on a batch of transformed values."""
-        x = self.scaler(values)
+        x = self.scale(values)
         objective = self.hparams.objective
         if objective == "scarf":
             return self._scarf(x, generator)
@@ -228,7 +242,7 @@ class LitTabSSL(L.LightningModule):
         if self.hparams.objective == "none":
             # BatchNorm running statistics only; returning None skips the step.
             with torch.no_grad():
-                self.encoder(self.scaler(values))
+                self.encoder(self.scale(values))
             return None
         losses = self.losses(values)
         n = len(values)
@@ -255,8 +269,8 @@ class LitTabSSL(L.LightningModule):
             self.log(f"val/{name}", value, prog_bar=name == "loss", batch_size=len(values))
 
     def predict_step(self, batch: dict[str, Tensor], batch_idx: int) -> dict[str, Tensor]:
-        """Encoder embeddings of scaled, uncorrupted inputs. No head."""
-        embedding = self.encoder(self.scaler(batch["values"]))
+        """Encoder embeddings of scaled, clipped, uncorrupted inputs. No head."""
+        embedding = self.encoder(self.scale(batch["values"]))
         return {"sample_index": batch["sample_index"], "embedding": embedding}
 
     def configure_optimizers(self):
