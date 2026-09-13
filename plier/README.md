@@ -186,6 +186,8 @@ A fit writes three files:
   as ‖ΔB‖²/‖B‖² < `tol`, even before iteration 20, which leaves U = 0. On
   the debug run the ratio was 1e-3 at iteration 20, so this did not happen.
   The log reports the number of LVs with a gene set every 20 iterations.
+  The miniature dataset does converge early, so its pipeline and CLI tests
+  set `tol = 0` to run past iteration 20.
 - **No end-to-end parity test against R PLIER** (paper.md's
   `dataWholeBlood` plan) in this pass. The pieces are tested against R
   instead: the smoother, `num.pc`, `wilcox.test`, `p.adjust` and glmnet's
@@ -210,12 +212,18 @@ A fit writes three files:
 - **R reference values** (`test_smooth.py`): R's smoother and `num.pc`.
 - **Prior** (`test_prior.py`): symbol mapping and the unmapped count. GMT
   reading and MSigDB fetching are tested in `shared/tests/test_genesets.py`.
-- **Pipeline** (`test_pipeline.py`), on the miniature dataset:
-  - the fitted statistics are unchanged when validation and test values
-    are replaced;
+- **Pipeline** (`test_pipeline.py`), on the miniature dataset, with the
+  prior entering:
+  - the fitted statistics, λ3, U, the held-out genes and the annotations
+    among them, are unchanged when validation and test rows are rewritten
+    (`scramble_held_out`);
   - genes constant over the training rows are dropped;
   - one projection embeds every split;
-  - a save/load round trip.
-- **CLI** (`test_cli.py`): every config names only MSigDB collections
-  `genesets` knows, and fits and embeds to a file `read_embeddings`
-  accepts; `--data.fold`; the no-prior variant.
+  - a save/load round trip, U and the annotations included.
+- **CLI** (`test_cli.py`):
+  - every config names only MSigDB collections `genesets` knows, fits with
+    the prior entering, and embeds to a file `read_embeddings` accepts;
+  - `--data.fold`: the model's means are that fold's training means;
+  - `plier-embed` gives training samples the same embedding when held-out
+    rows are rewritten (`assert_embedding_ignores_held_out`);
+  - the no-prior variant.
