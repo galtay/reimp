@@ -1,0 +1,37 @@
+# About a minute on real data: a tiny BulkFormer over a few batches of all
+# 19,944 protein-coding genes — gene graph fit on the fold's training
+# samples, GCN, Performer, masked loss, checkpoint — to check the pipeline
+# end to end before committing to a long run. 20k tokens per sample, so the
+# batches are small.
+seed_everything: 0
+
+trainer:
+  max_epochs: 1
+  limit_train_batches: 40
+  limit_val_batches: 5
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 5
+  default_root_dir: runs/bulkformer_debug
+  logger: false
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+
+model:
+  # n_genes is linked from data.
+  d_model: 32
+  n_blocks: 1
+  n_layers: 1
+  n_heads: 4
+  lr: 1.0e-3
+  warmup_frac: 0.1
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 4
+  fold: 0

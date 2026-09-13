@@ -1,0 +1,63 @@
+# The released "147M" configuration (current model/config.py): d = 640, one
+# GCN + 12 Performer layers, 8 heads x 80, sample-context MLP 2,560 wide —
+# ~133M parameters on our 19,944 genes. Kept as a variant: at ~8,000
+# training patients the sample MLP alone can memorise the training set
+# (paper.md, "For reimp"). Activations for 20k tokens x 12 layers call for
+# activation checkpointing and small batches.
+seed_everything: 0
+
+trainer:
+  max_epochs: 20
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 2
+  log_every_n_steps: 10
+  default_root_dir: runs/bulkformer_147m
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/bulkformer_147m
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/bulkformer_147m
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: step
+
+model:
+  # n_genes is linked from data.
+  d_model: 640
+  n_blocks: 1
+  n_layers: 12
+  n_heads: 8
+  mlp_ratio: 4.0
+  sample_hidden: 2560
+  dropout: 0.1
+  mask_ratio: 0.15
+  graph: coexpression
+  graph_space: linear
+  activation_checkpointing: true
+  pooling: max
+  lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_frac: 0.05
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 4
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold
