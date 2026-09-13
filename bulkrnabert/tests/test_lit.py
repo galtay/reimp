@@ -6,6 +6,7 @@ import torch
 from reimp_bulkrnabert.lit import LitBulkRNABert
 from reimp_bulkrnabert.model import mlm_loss
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.testing import scramble_held_out
 from reimp_shared.tokens import IGNORE_INDEX
 
 TINY = dict(d_model=32, n_layers=1, n_heads=4, dim_ff=64)
@@ -85,18 +86,22 @@ def test_overfits_a_small_batch() -> None:
     assert np.mean(losses[-10:]) < 0.5 * np.mean(losses[:10])
 
 
-def test_tokenizer_maximum_comes_from_training_rows_only(fake_dataset, tmp_path) -> None:
-    dm = ExpressionDataModule(**DATA)
+def test_tokenizer_maximum_comes_from_training_rows_only(
+    fake_dataset, monkeypatch, tmp_path
+) -> None:
+    fold = 1
+    # Every val and test row is rewritten (times 3, plus 1), so its maximum
+    # passes the training rows': a fit that reads any held-out split moves.
+    scramble_held_out(monkeypatch, fold)
+    dm = ExpressionDataModule(**DATA, fold=fold)
     dm.setup()
     data = dm.data
-    train, held_out = data.rows("train"), np.concatenate([data.rows("val"), data.rows("test")])
-    # A value far above anything in training, in held-out rows only. The
-    # DataModule's tensors share this memory, so the model sees it too.
-    data.values[held_out[:3], 0] = 1e3
+    train_max = float(data.values[data.rows("train")].max())
+    for split in ["val", "test"]:
+        assert data.values[data.rows(split)].max() > train_max + 0.5
     model = LitBulkRNABert(n_genes=dm.n_genes, **TINY)
     _trainer(tmp_path, max_epochs=1).fit(model, datamodule=dm)
-    assert model.hparams.token_max == pytest.approx(float(data.values[train].max()))
-    assert model.hparams.token_max < 1e3
+    assert model.hparams.token_max == pytest.approx(train_max)
     assert model.tokenizer.max_ == model.hparams.token_max
 
 
