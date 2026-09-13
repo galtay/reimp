@@ -1,0 +1,55 @@
+# Tybalt (Way and Greene 2018) as released: log FPKM, the 5,000 genes with
+# the largest median absolute deviation, min-max scaled per gene (ranking,
+# minima and maxima all fit on the fold's training samples; val and test
+# clipped to [0, 1]); one dense layer to a 100-d latent with BatchNorm and
+# ReLU on the mean and log-variance heads; a sigmoid decoder under per-gene
+# BCE; KL warmed up with κ = 1; Adam 5e-4, batch 50, 50 epochs. Early
+# stopping and the kept checkpoint follow the fold's val loss.
+seed_everything: 0
+
+trainer:
+  max_epochs: 50
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 20
+  default_root_dir: runs/tybalt
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/tybalt
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: best
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 10
+
+model:
+  # n_genes and n_classes are linked from data.
+  latent_dim: 100
+  hidden_factor: 0.0 # no hidden layer
+  heads: bn_relu # linear: the textbook VAE
+  reconstruction: bce
+  regularizer: kl
+  kappa: 1.0
+  glorot_init: true
+  lr: 5.0e-4
+
+data:
+  quantification: fpkm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  top_genes: 5000
+  scaling: minmax
+  supervision: none
+  batch_size: 50
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

@@ -1,0 +1,48 @@
+# About a minute on real data: Tybalt (configs/tybalt.yaml) on fold 0 for
+# three short epochs, enough to cross the KL warm-up, to check the pipeline
+# end to end before a real run. Then:
+#   vae-embed --ckpt runs/debug/tybalt/checkpoints/best.ckpt --out out/vae_debug/tybalt/fold0.parquet
+seed_everything: 0
+
+trainer:
+  max_epochs: 3
+  limit_train_batches: 40
+  limit_val_batches: 10
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 10
+  default_root_dir: runs/debug/tybalt
+  logger: false
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_top_k: 1
+        filename: best
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 10
+
+model:
+  # n_genes and n_classes are linked from data.
+  latent_dim: 100
+  hidden_factor: 0.0
+  heads: bn_relu
+  reconstruction: bce
+  regularizer: kl
+  kappa: 1.0
+  glorot_init: true
+  lr: 5.0e-4
+
+data:
+  quantification: fpkm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  top_genes: 5000
+  scaling: minmax
+  supervision: none
+  batch_size: 50
+  fold: 0
