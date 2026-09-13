@@ -13,13 +13,13 @@ trainer:
   default_root_dir: runs/compass_debug
   logger: false
   callbacks:
+    # runs/compass_debug/fold<k>/checkpoints/best.ckpt
     - class_path: lightning.pytorch.callbacks.ModelCheckpoint
       init_args:
         monitor: val/loss
         mode: min
         save_top_k: 1
         filename: best
-        enable_version_counter: false
     - class_path: lightning.pytorch.callbacks.EarlyStopping
       init_args:
         monitor: val/loss
