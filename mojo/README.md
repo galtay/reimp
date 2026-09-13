@@ -113,11 +113,13 @@ fitted maximum nor any training sample's embedding moves.
 - **Size.** 10.4M parameters with a 256-d embedding, scaled to ~8,000
   training samples per fold, against the paper's 52.3M at 512 channels,
   8 layers and 16 heads.
-- **Block internals are ours.** The paper's config fixes the stem kernel,
-  the halving count, the pre-LN rotary SwiGLU transformer and its 2×
-  feed-forward; the inner kernel (5), average pooling, the residual 1×1
-  convolutions, the geometric channel schedule, the stem skip, the head and
-  the optimizer settings are our choices.
+- **Block internals.** The paper's config fixes the stem kernel, the
+  halving count, the pre-LN rotary SwiGLU transformer and its 2×
+  feed-forward. The inner kernel (5), average pooling and the residual 1×1
+  convolutions follow InstaDeep's released code
+  (instadeepai/multiomics-open-research, `mojo/model.py`), written
+  independently here. The geometric channel schedule, the skip layout, the
+  stem skip, the head and the optimizer settings are our choices.
 - **Dataset order by default.** The dataset lists genes by Ensembl ID, so
   neighbouring positions are unrelated genes; the paper found genome order
   changed nothing within error, and `gene_order: genome` runs that variant.

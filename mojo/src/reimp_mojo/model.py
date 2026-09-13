@@ -18,8 +18,9 @@
 The sample embedding is the mean over the pooled positions of the last
 transformer layer. The paper fixes the stem kernel (15), the halving blocks,
 the pre-LN rotary SwiGLU layers and the 2 × d_model feed-forward
-(`config.json`); the inner kernel size, the per-block layout and the head
-are ours.
+(`config.json`). The inner kernel size (5), average pooling and residual 1×1
+convolutions follow the released code; the channel schedule, the skip layout
+and the head are ours.
 """
 
 from __future__ import annotations

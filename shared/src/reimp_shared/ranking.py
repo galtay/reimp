@@ -17,9 +17,10 @@ Scores, for a sample's value x_g of gene g, applied to values as given
                  smooth   log((1 + N) / (1 + n_g)) + 1
                  entropy  log N − H_g, H_g the entropy of gene g's share
                           of its own total across the training samples
-  cohort_l2    x_g / ||x_·g||₂ — what TifBERT's released code computes
-               (sklearn's TfidfTransformer fit with genes as documents);
-               its paper describes tfidf
+  cohort_l2    x_g / ||x_·g||₂ — approximately what TifBERT's released code
+               computes (sklearn's TfidfTransformer fit with genes as
+               documents, whose smoothed idf also weights each sample
+               inside the norm); its paper describes tfidf
 
 The count form is text retrieval's, and on dense bulk data it degenerates:
 a gene detected in every sample gets weight 0, whatever its expression.
