@@ -92,8 +92,8 @@ def test_the_objective_falls_on_a_small_batch(config) -> None:
 
 def test_tybalt_fit_logs_each_term_and_warms_up_the_kl(fake_dataset, tmp_path) -> None:
     dm = VAEDataModule(
-        quantification="fpkm_unstranded",
-        transform="log1p",
+        quantification="unstranded",
+        transform="lognorm",
         top_genes=10,
         scaling="minmax",
         batch_size=8,

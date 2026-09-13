@@ -139,11 +139,16 @@ PCA/ICA/NMF comparison and no downstream prediction task.
 - Adam at lr 5e-4, batch 50, 50 epochs.
 - Input: top-5,000 genes by absolute deviation, min-max scaled per gene.
 - Embedding: the posterior mean.
-- A log-transformed FPKM input (`fpkm_unstranded` + `log1p`) is the closest
-  match. Because each gene is then min-max scaled, the log base does not
-  matter.
 
 **Incidental**, standardized:
+
+- The quantification. The paper's input is "log2(FPKM + 1) transformed RSEM
+  values"; reimp uses the PCA baseline's input, library-normalized log counts
+  (`unstranded` + `lognorm`), so the matched-k comparison with PCA below
+  differs only in the 5,000-gene selection and min-max scaling. Because each
+  gene is then min-max scaled, the log base does not matter. (Changed
+  2026-09-13 from `fpkm_unstranded` + `log1p`, first recorded here as the
+  closest match: the input is not what defines Tybalt.)
 
 - Training on the fold's training patients only (about 8,300 samples; the
   paper had about 9,400 in its 90%). Tumours and normals are both kept, as in

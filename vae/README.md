@@ -32,14 +32,11 @@ uv run vae-embed --ckpt runs/mmdae_organ/version_0/checkpoints/best.ckpt --out o
 uv run reimp-shared probe out/pca256 out/tybalt out/mmdae_none out/mmdae_organ --against pca256
 ```
 
-Tybalt reads `fpkm_unstranded`, which the first run downloads into the HF
-cache (1.3 GB) if it is not there yet.
-
 ## The two models
 
 | | Tybalt (`tybalt.yaml`) | MMD-AE (`mmdae_{none,organ,project}.yaml`) |
 |---|---|---|
-| input | `fpkm_unstranded`, log1p | `tpm_unstranded`, log1p |
+| input | `unstranded` counts, `lognorm` (the PCA baseline's input) | `tpm_unstranded`, log1p |
 | genes | the 5,000 protein-coding genes with the largest median absolute deviation | all 19,944 protein-coding genes |
 | scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score |
 | encoder | genes → 100; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
@@ -129,8 +126,12 @@ Tybalt:
 - **Fit on the fold's training samples**: the ranking, minima and maxima
   were fit on all samples in the paper. Val and test values are clipped to
   [0, 1], which BCE and the sigmoid need.
-- **GDC STAR FPKM over protein-coding genes**, log1p, instead of Xena's
-  RSEM log2(FPKM + 1). Min-max scaling removes the log base.
+- **Library-normalized log counts** (`unstranded`, `lognorm`) over
+  protein-coding genes instead of Xena's `HiSeqV2`, which the paper calls
+  "log2(FPKM + 1) transformed RSEM values". The quantification is not what
+  defines Tybalt, and this is the PCA baseline's input, so the matched-k
+  comparison with PCA differs only in Tybalt's 5,000-gene selection and
+  min-max scaling. Min-max scaling removes the log base.
 - **The fold's val patients** replace the random 10% sample hold-out, and
   early stopping (patience 10) on their loss, with the best checkpoint kept,
   bounds the paper's fixed 50 epochs.

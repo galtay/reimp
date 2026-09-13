@@ -8,7 +8,7 @@ from reimp_vae.data import VAEDataModule
 from reimp_vae.lit import LitVAE
 from reimp_vae.scaling import GeneScaler
 
-TYBALT = dict(quantification="fpkm_unstranded", transform="log1p", top_genes=10, scaling="minmax")
+TYBALT = dict(quantification="unstranded", transform="lognorm", top_genes=10, scaling="minmax")
 
 
 def test_width_and_classes_are_known_before_setup(fake_dataset, project_organ) -> None:
@@ -67,7 +67,7 @@ def test_scaler_is_fit_on_training_rows_only(fake_dataset, monkeypatch) -> None:
         np.testing.assert_array_equal(getattr(clean, name), getattr(shifted, name))
 
     # And what it holds is the training rows' own statistics.
-    data = load_expression(quantification="fpkm_unstranded", transform="log1p")
+    data = load_expression(quantification="unstranded", transform="lognorm")
     direct = GeneScaler("minmax", 10).fit(data.values[data.rows("train")])
     for name in ["genes_", "offset_", "scale_"]:
         np.testing.assert_array_equal(getattr(clean, name), getattr(direct, name))

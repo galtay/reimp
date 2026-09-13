@@ -38,9 +38,9 @@ model:
   lr: 5.0e-4
 
 data:
-  quantification: fpkm_unstranded
+  quantification: unstranded
   gene_types: [protein_coding]
-  transform: log1p
+  transform: lognorm
   top_genes: 5000
   scaling: minmax
   supervision: none

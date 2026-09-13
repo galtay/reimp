@@ -1,5 +1,6 @@
-# Tybalt (Way and Greene 2018) as released: log FPKM, the 5,000 genes with
-# the largest median absolute deviation, min-max scaled per gene (ranking,
+# Tybalt (Way and Greene 2018) as released, on the PCA baseline's input
+# (library-normalized log counts): the 5,000 genes with the largest median
+# absolute deviation, min-max scaled per gene (ranking,
 # minima and maxima all fit on the fold's training samples; val and test
 # clipped to [0, 1]); one dense layer to a 100-d latent with BatchNorm and
 # ReLU on the mean and log-variance heads; a sigmoid decoder under per-gene
@@ -44,9 +45,9 @@ model:
   lr: 5.0e-4
 
 data:
-  quantification: fpkm_unstranded
+  quantification: unstranded
   gene_types: [protein_coding]
-  transform: log1p
+  transform: lognorm
   top_genes: 5000
   scaling: minmax
   supervision: none
