@@ -1,0 +1,64 @@
+# BulkRNABert at the paper's size (§3.1: 4 layers, 8 heads, d = 256, FFN 512)
+# on log TPM of the 19,944 protein-coding genes, 64 bins, 15% of tokens
+# corrupted 80/10/10. 8 samples x 16 accumulated batches is 128 samples, ~2.6M
+# tokens per step (paper: ~3M); 72 epochs of fold 0's 8,304 training samples
+# is ~12B tokens, the paper's pretraining budget, in ~4,700 steps.
+#
+# Sized for a CUDA GPU, where attention over 20k tokens runs in fused
+# kernels; add `--trainer.precision bf16-mixed` there. On Apple MPS it runs at
+# ~6 s per sample (attn_chunk keeps each attention call under MPS's 2^31
+# elements per tensor) — enough to try, not to train.
+seed_everything: 0
+
+trainer:
+  max_epochs: 72
+  accumulate_grad_batches: 16
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 10
+  default_root_dir: runs/bulkrnabert
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/bulkrnabert
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/bulkrnabert
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: step
+
+model:
+  # n_genes is linked from data; the tokenizer maximum is fit on the fold's
+  # training rows when fit starts, and saved with the checkpoint.
+  n_bins: 64
+  d_model: 256
+  n_layers: 4
+  n_heads: 8
+  dim_ff: 512
+  dropout: 0.0
+  attn_chunk: 1024
+  mask_prob: 0.15
+  lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_frac: 0.1
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 8
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold
