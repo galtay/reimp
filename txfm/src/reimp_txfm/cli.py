@@ -2,17 +2,19 @@
 
 txfm fit --config txfm/configs/debug.yaml
 txfm fit --config txfm/configs/tcga_s.yaml --trainer.max_epochs 50
+
+Fold k runs in `<trainer.default_root_dir>/fold<k>/` (`FoldCLI`), e.g.
+`runs/txfm_s/fold0/checkpoints/best.ckpt`.
 """
 
 from __future__ import annotations
 
-from lightning.pytorch.cli import LightningCLI
-
 from reimp_shared.data import ExpressionDataModule
+from reimp_shared.foldcli import FoldCLI
 from reimp_txfm.lit import LitTxFM
 
 
-class TxFMCLI(LightningCLI):
+class TxFMCLI(FoldCLI):
     def add_arguments_to_parser(self, parser) -> None:
         # The data normalizes each library to `library_size` and the output
         # activation is bounded by log(library_size + 1): one value, set once.
@@ -23,13 +25,7 @@ class TxFMCLI(LightningCLI):
 
 
 def build_cli(args: list[str] | None = None, run: bool = True) -> TxFMCLI:
-    return TxFMCLI(
-        LitTxFM,
-        ExpressionDataModule,
-        save_config_kwargs={"overwrite": True},
-        args=args,
-        run=run,
-    )
+    return TxFMCLI(LitTxFM, ExpressionDataModule, args=args, run=run)
 
 
 def main() -> None:

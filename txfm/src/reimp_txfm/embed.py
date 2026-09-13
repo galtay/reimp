@@ -3,7 +3,7 @@
 Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 `fold` the checkpoint was trained for) that `reimp-shared probe` scores:
 
-  txfm-embed --ckpt runs/txfm_s/version_0/checkpoints/last.ckpt --out out/txfm_s/fold0.parquet
+  txfm-embed --ckpt runs/txfm_s/fold0/checkpoints/best.ckpt --out out/txfm_s/fold0.parquet
 """
 
 from __future__ import annotations

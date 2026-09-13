@@ -6,6 +6,7 @@ import pytest
 from reimp_shared import hub
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.eval import read_embeddings
+from reimp_shared.testing import assert_embedding_ignores_held_out
 from reimp_txfm.cli import build_cli
 from reimp_txfm.embed import embed
 from reimp_txfm.lit import LitTxFM
@@ -38,8 +39,8 @@ def test_every_config_runs_a_batch(config, fake_dataset, tmp_path) -> None:
     )
 
 
-@pytest.mark.parametrize("fold", [0, 2])
-def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+def _checkpoint(tmp_path: Path, fold: int) -> Path:
+    """A tiny TxFM fit on fold `fold` of the fake dataset, saved."""
     dm = ExpressionDataModule(transform="lognorm", batch_size=8, fold=fold)
     model = LitTxFM(n_genes=dm.n_genes, n_unmasked=8, d_model=16, n_layers=1, n_heads=2)
     trainer = L.Trainer(
@@ -54,7 +55,19 @@ def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
     trainer.fit(model, datamodule=dm)
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
+    return ckpt
 
+
+def test_embedding_ignores_held_out_rows(fake_dataset, monkeypatch, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold=1)
+    assert_embedding_ignores_held_out(
+        lambda out: embed(ckpt, out, draws=2, accelerator="cpu"), 1, monkeypatch, tmp_path
+    )
+
+
+@pytest.mark.parametrize("fold", [0, 2])
+def test_embed_from_a_checkpoint(fold, fake_dataset, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold)
     sample_index, embeddings, folds = read_embeddings(
         embed(ckpt, tmp_path / "embeddings.parquet", draws=2, accelerator="cpu")
     )

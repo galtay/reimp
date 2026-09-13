@@ -14,7 +14,8 @@ loaders, and the yardstick.
 | `genesets` | gene sets: GMT files, and MSigDB 2026.1 collections fetched by name into `$REIMP_CACHE`, md5-pinned (`load_gene_sets`; PLIER's prior). KEGG_LEGACY and BioCarta are not offered: KEGG and BioCarta license them to the Broad alone |
 | `labels` | evaluation labels: survival endpoints (per case) and ssGSEA pathway scores (per aliquot) from `tcga-patients-open`, technical covariates from the expression dataset |
 | `eval` | the embeddings file format; classification, invertibility, pathway, survival, geometry and confounder probes; patient bootstrap and paired differences; PCA and top-variance-gene baselines |
-| `testing` | a miniature copy of the datasets for offline tests |
+| `foldcli` | `FoldCLI`, the LightningCLI every Lightning model's command line uses: fold k of a model runs in `<trainer.default_root_dir>/fold<k>/`, checkpoints in its `checkpoints/`, and a rerun replaces it |
+| `testing` | a miniature copy of the datasets for offline tests; `scramble_held_out` and `assert_embedding_ignores_held_out`, which check a model never fits or embeds with held-out rows |
 
 ## Folds
 

@@ -45,7 +45,7 @@ the fold that never saw it:
 ```bash
 uv run reimp-shared splits                                        # the five folds, per project
 uv run txfm fit --config txfm/configs/tcga_s.yaml --data.fold 0   # and so on for folds 1-4
-uv run txfm-embed --ckpt <fold 0 checkpoint> --out out/txfm_s/fold0.parquet
+uv run txfm-embed --ckpt runs/txfm_s/fold0/checkpoints/best.ckpt --out out/txfm_s/fold0.parquet
 uv run reimp-shared baseline-pca --out out/pca256                 # (Lib+Log)Norm + PCA, per fold
 uv run reimp-shared baseline-hvg --out out/hvg5000                # the 5,000 most variable genes
 uv run reimp-shared probe out/pca256 out/txfm_s --against pca256  # same probes, paired gaps

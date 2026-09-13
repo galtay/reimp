@@ -31,7 +31,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from reimp_shared import hub, labels
-from reimp_shared.splits import N_FOLDS
+from reimp_shared.splits import N_FOLDS, split_samples
 
 PROJECTS = ("TCGA-AAA", "TCGA-BBB", "TCGA-CCC")
 GENE_TYPES = ("protein_coding", "lncRNA", "miRNA")
@@ -249,3 +249,49 @@ def use_fake_dataset(monkeypatch, root: Path) -> None:
     monkeypatch.setattr(labels, "_resolve", lambda revision: "fake")
     monkeypatch.setattr(labels, "_patient_parquets", lambda commit: (patients, None))
     monkeypatch.setenv("REIMP_CACHE", str(root / "cache"))
+
+
+def scramble_held_out(monkeypatch, fold: int) -> None:
+    """Rewrite every val and test value of `fold`, wherever `hub.load_values` is read.
+
+    Each held-out row gets its genes reversed, times 3, plus 1: scaling a
+    row alone would not do, since library normalization removes it.
+    Anything fit on the fold's training rows is unchanged; anything fit on
+    all rows moves. Use it to check that fitting, and embedding from a
+    fitted model, never read held-out rows.
+    """
+    held_out = split_samples(hub.load_samples(), fold).to_numpy() != "train"
+    load = hub.load_values
+
+    def scrambled(quantification: str = "unstranded", revision: str | None = None) -> np.ndarray:
+        values = load(quantification, revision).copy()
+        values[held_out] = values[held_out][:, ::-1] * 3 + 1
+        return values
+
+    monkeypatch.setattr(hub, "load_values", scrambled)
+
+
+def assert_embedding_ignores_held_out(embed, fold: int, monkeypatch, tmp_path: Path) -> None:
+    """Check `embed(out_path)` embeds the fold's training samples alike when held-out rows change.
+
+    `embed` writes an embeddings file from an already fitted model and
+    returns its path. A model that embeds with the statistics it fit on
+    training rows gives every training sample the same embedding after
+    `scramble_held_out`; one that refits on all samples at embed time does
+    not. The held-out samples' own embeddings must change, which shows the
+    scramble reached the model's data.
+    """
+    from reimp_shared.eval import read_embeddings
+
+    clean_index, clean, _ = read_embeddings(embed(tmp_path / "clean.parquet"))
+    scramble_held_out(monkeypatch, fold)
+    index, scrambled, _ = read_embeddings(embed(tmp_path / "scrambled.parquet"))
+    assert index.tolist() == clean_index.tolist()
+
+    samples = hub.load_samples()
+    split = split_samples(samples, fold).to_numpy()
+    train_ids = samples["sample_index"].to_numpy()[split == "train"]
+    train = np.isin(index, train_ids)
+    assert train.any() and not train.all()
+    np.testing.assert_allclose(scrambled[train], clean[train], rtol=1e-5, atol=1e-6)
+    assert not np.allclose(scrambled[~train], clean[~train]), "the scramble never reached the model"

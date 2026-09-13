@@ -6,5 +6,6 @@
 - `ranking`     per-sample gene rankings for rank-based models
 - `tokens`      binned expression tokens and MLM masking
 - `genesets`    GMT gene sets and MSigDB collections, fetched by name
+- `foldcli`     LightningCLI with one run directory per fold
 - `eval`        embeddings file format, linear probes, PCA baseline
 """

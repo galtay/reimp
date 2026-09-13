@@ -13,7 +13,7 @@ through a rectified tanh, under a Poisson loss on every gene.
 ```bash
 uv run txfm fit --config txfm/configs/debug.yaml     # minutes, on real data
 uv run txfm fit --config txfm/configs/tcga_s.yaml    # TxFM-S on TCGA
-uv run txfm-embed --ckpt <ckpt> --out out/txfm_s.parquet
+uv run txfm-embed --ckpt runs/txfm_s/fold0/checkpoints/best.ckpt --out out/txfm_s/fold0.parquet
 ```
 
 [`paper.md`](paper.md) records what the paper did, including its
