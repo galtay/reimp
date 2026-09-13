@@ -109,3 +109,20 @@ two, 20 of validation) and embeds all 11,505 samples in ~3.5 min at
 least 32. `tcga.yaml` is
 for a CUDA GPU (add `--trainer.precision bf16-mixed`); on MPS it takes ~6 s
 per sample.
+
+## Citations
+
+BibTeX for the paper implemented here.
+
+```bibtex
+@inproceedings{gelard2025bulkrnabert,
+    title     = {BulkRNABert: Cancer prognosis from bulk RNA-seq based language models},
+    author    = {G{\'{e}}lard, Maxence and Richard, Guillaume and Pierrot, Thomas and Courn{\`{e}}de, Paul-Henry},
+    booktitle = {Proceedings of the 4th Machine Learning for Health Symposium},
+    volume    = {259},
+    pages     = {384--400},
+    year      = {2025},
+    publisher = {PMLR},
+    url       = {https://proceedings.mlr.press/v259/gelard25a.html}
+}
+```

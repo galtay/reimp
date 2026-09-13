@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: >-
+  Cite this repository as below. The papers of the methods it implements
+  are cited at the end of each model's README.
+title: "reimp: reimplementations of RNA-seq representation learners on TCGA"
+type: software
+authors:
+  - family-names: Altay
+    given-names: Gabriel
+license: MIT
+repository-code: "https://github.com/galtay/reimp"
+abstract: >-
+  Reimplementations of RNA-seq representation learners on one shared
+  footing: TCGA bulk RNA-seq, the same patient-level 5-fold
+  cross-validation, and the same linear probes for every model.
+keywords:
+  - RNA-seq
+  - representation learning
+  - TCGA
+  - foundation models
+  - benchmarking

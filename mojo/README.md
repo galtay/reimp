@@ -126,3 +126,20 @@ fitted maximum nor any training sample's embedding moves.
 
 Validation logs the masked-token loss and accuracy on the val rows, with
 masks from a generator reset each epoch so epochs compare like with like.
+
+## Citations
+
+BibTeX for the paper implemented here. The tokenizer is BulkRNABert's; its
+citation is in
+[`bulkrnabert/README.md`](../bulkrnabert/README.md#citations).
+
+```bibtex
+@article{gelard2025bimodal,
+    title     = {Bimodal masked language modeling for bulk RNA-seq and DNA methylation representation learning},
+    author    = {Gélard, Maxence and Benkirane, Hakim and Pierrot, Thomas and Richard, Guillaume and Cournède, Paul-Henry},
+    year      = {2025},
+    publisher = {openRxiv},
+    doi       = {10.1101/2025.06.25.661237},
+    url       = {https://doi.org/10.1101/2025.06.25.661237}
+}
+```

@@ -167,3 +167,57 @@ The *For reimp* section of [`paper.md`](paper.md) sets these out; in brief:
   linear probes — the paper's "frozen" setting, where all three methods did
   worst. Unfrozen fine-tuning is out of scope.
 - **`none`** is ours: the untrained-encoder control the paper lacks.
+
+## Citations
+
+BibTeX for the study this directory follows (Dradjat et al.) and for the
+three methods it compares: SCARF, VIME and BYOL.
+
+```bibtex
+@article{dradjat2025selfsupervised,
+    title     = {Self-supervised representation learning on gene expression data},
+    author    = {Dradjat, Kevin and Hamidi, Massinissa and Bartet, Pierre and Hanczar, Blaise},
+    journal   = {Bioinformatics},
+    volume    = {41},
+    number    = {11},
+    year      = {2025},
+    publisher = {Oxford University Press (OUP)},
+    doi       = {10.1093/bioinformatics/btaf533},
+    url       = {https://doi.org/10.1093/bioinformatics/btaf533}
+}
+```
+
+```bibtex
+@misc{bahri2021scarf,
+    title     = {SCARF: Self-Supervised Contrastive Learning using Random Feature Corruption},
+    author    = {Bahri, Dara and Jiang, Heinrich and Tay, Yi and Metzler, Donald},
+    year      = {2021},
+    publisher = {arXiv},
+    doi       = {10.48550/arXiv.2106.15147},
+    url       = {https://arxiv.org/abs/2106.15147}
+}
+```
+
+```bibtex
+@inproceedings{yoon2020vime,
+    title     = {VIME: Extending the Success of Self- and Semi-supervised Learning to Tabular Domain},
+    author    = {Yoon, Jinsung and Zhang, Yao and Jordon, James and van der Schaar, Mihaela},
+    booktitle = {Advances in Neural Information Processing Systems},
+    volume    = {33},
+    pages     = {11033--11043},
+    year      = {2020},
+    publisher = {Curran Associates, Inc.},
+    url       = {https://proceedings.neurips.cc/paper_files/paper/2020/file/7d97667a3e056acab9aaf653807b4a03-Paper.pdf}
+}
+```
+
+```bibtex
+@misc{grill2020bootstrap,
+    title     = {Bootstrap your own latent: A new approach to self-supervised Learning},
+    author    = {Grill, Jean-Bastien and Strub, Florian and Altché, Florent and Tallec, Corentin and Richemond, Pierre H. and Buchatskaya, Elena and Doersch, Carl and Pires, Bernardo Avila and Guo, Zhaohan Daniel and Azar, Mohammad Gheshlaghi and others},
+    year      = {2020},
+    publisher = {arXiv},
+    doi       = {10.48550/arXiv.2006.07733},
+    url       = {https://arxiv.org/abs/2006.07733}
+}
+```

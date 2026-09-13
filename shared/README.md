@@ -189,3 +189,97 @@ is one GDC release behind the expression data, so ~1% of expression cases
 have no labels and are left out.
 
 [ds]: https://huggingface.co/datasets/gabrielaltay/tcga-gene-expression-quantification-open
+
+## Citations
+
+BibTeX for the data (TCGA, distributed by the GDC), the gene sets (MSigDB)
+and the per-sample pathway scores (ssGSEA, as implemented in GSVA).
+
+```bibtex
+@article{weinstein2013cancer,
+    title     = {The Cancer Genome Atlas Pan-Cancer analysis project},
+    author    = {Weinstein, John N and Collisson, Eric A and Mills, Gordon B and Shaw, Kenna R Mills and Ozenberger, Brad A and Ellrott, Kyle and Shmulevich, Ilya and Sander, Chris and Stuart, Joshua M},
+    journal   = {Nature Genetics},
+    volume    = {45},
+    number    = {10},
+    pages     = {1113--1120},
+    year      = {2013},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/ng.2764},
+    url       = {https://doi.org/10.1038/ng.2764}
+}
+```
+
+```bibtex
+@article{grossman2016toward,
+    title     = {Toward a Shared Vision for Cancer Genomic Data},
+    author    = {Grossman, Robert L. and Heath, Allison P. and Ferretti, Vincent and Varmus, Harold E. and Lowy, Douglas R. and Kibbe, Warren A. and Staudt, Louis M.},
+    journal   = {New England Journal of Medicine},
+    volume    = {375},
+    number    = {12},
+    pages     = {1109--1112},
+    year      = {2016},
+    publisher = {Massachusetts Medical Society},
+    doi       = {10.1056/nejmp1607591},
+    url       = {https://doi.org/10.1056/nejmp1607591}
+}
+```
+
+```bibtex
+@article{subramanian2005gene,
+    title     = {Gene set enrichment analysis: A knowledge-based approach for interpreting genome-wide expression profiles},
+    author    = {Subramanian, Aravind and Tamayo, Pablo and Mootha, Vamsi K. and Mukherjee, Sayan and Ebert, Benjamin L. and Gillette, Michael A. and Paulovich, Amanda and Pomeroy, Scott L. and Golub, Todd R. and Lander, Eric S. and others},
+    journal   = {Proceedings of the National Academy of Sciences},
+    volume    = {102},
+    number    = {43},
+    pages     = {15545--15550},
+    year      = {2005},
+    publisher = {National Academy of Sciences},
+    doi       = {10.1073/pnas.0506580102},
+    url       = {https://doi.org/10.1073/pnas.0506580102}
+}
+```
+
+```bibtex
+@article{liberzon2015molecular,
+    title     = {The Molecular Signatures Database Hallmark Gene Set Collection},
+    author    = {Liberzon, Arthur and Birger, Chet and Thorvaldsdóttir, Helga and Ghandi, Mahmoud and Mesirov, Jill P. and Tamayo, Pablo},
+    journal   = {Cell Systems},
+    volume    = {1},
+    number    = {6},
+    pages     = {417--425},
+    year      = {2015},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.cels.2015.12.004},
+    url       = {https://doi.org/10.1016/j.cels.2015.12.004}
+}
+```
+
+```bibtex
+@article{barbie2009systematic,
+    title     = {Systematic RNA interference reveals that oncogenic KRAS-driven cancers require TBK1},
+    author    = {Barbie, David A. and Tamayo, Pablo and Boehm, Jesse S. and Kim, So Young and Moody, Susan E. and Dunn, Ian F. and Schinzel, Anna C. and Sandy, Peter and Meylan, Etienne and Scholl, Claudia and others},
+    journal   = {Nature},
+    volume    = {462},
+    number    = {7269},
+    pages     = {108--112},
+    year      = {2009},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/nature08460},
+    url       = {https://doi.org/10.1038/nature08460}
+}
+```
+
+```bibtex
+@article{hanzelmann2013gsva,
+    title     = {GSVA: gene set variation analysis for microarray and RNA-Seq data},
+    author    = {Hänzelmann, Sonja and Castelo, Robert and Guinney, Justin},
+    journal   = {BMC Bioinformatics},
+    volume    = {14},
+    number    = {1},
+    year      = {2013},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1186/1471-2105-14-7},
+    url       = {https://doi.org/10.1186/1471-2105-14-7}
+}
+```

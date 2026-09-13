@@ -192,3 +192,22 @@ in this package:
 - a 43-component PCA;
 - concept fidelity: each concept's correlation with its own genes;
 - external immune-state labels.
+
+## Citations
+
+BibTeX for the paper implemented here.
+
+```bibtex
+@article{shen2026generalizable,
+    title     = {Generalizable AI predicts immunotherapy outcomes across cancers and treatments},
+    author    = {Shen, Wanxiang and Moon, Intae and Nguyen, Thinh H. and Li, Michelle M. and Huang, Yepeng and Nair, Nitya and Marbach, Daniel and Zitnik, Marinka},
+    journal   = {Nature Medicine},
+    volume    = {32},
+    number    = {8},
+    pages     = {3010--3022},
+    year      = {2026},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/s41591-026-04502-7},
+    url       = {https://doi.org/10.1038/s41591-026-04502-7}
+}
+```

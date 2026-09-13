@@ -296,3 +296,37 @@ Methods and main text; the PLIER preprint, bioRxiv
 and the no-prior comparison; and the MultiPLIER author manuscript
 ([PMC6538307](https://pmc.ncbi.nlm.nih.gov/articles/PMC6538307/)) for the
 projection. The PLIER supplement was not read: PMC served a CAPTCHA.
+
+## Citations
+
+BibTeX for PLIER and MultiPLIER, the papers the solver is written from.
+
+```bibtex
+@article{mao2019pathwaylevel,
+    title     = {Pathway-level information extractor (PLIER) for gene expression data},
+    author    = {Mao, Weiguang and Zaslavsky, Elena and Hartmann, Boris M. and Sealfon, Stuart C. and Chikina, Maria},
+    journal   = {Nature Methods},
+    volume    = {16},
+    number    = {7},
+    pages     = {607--610},
+    year      = {2019},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/s41592-019-0456-1},
+    url       = {https://doi.org/10.1038/s41592-019-0456-1}
+}
+```
+
+```bibtex
+@article{taroni2019multiplier,
+    title     = {MultiPLIER: A Transfer Learning Framework for Transcriptomics Reveals Systemic Features of Rare Disease},
+    author    = {Taroni, Jaclyn N. and Grayson, Peter C. and Hu, Qiwen and Eddy, Sean and Kretzler, Matthias and Merkel, Peter A. and Greene, Casey S.},
+    journal   = {Cell Systems},
+    volume    = {8},
+    number    = {5},
+    pages     = {380--394.e4},
+    year      = {2019},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.cels.2019.04.003},
+    url       = {https://doi.org/10.1016/j.cels.2019.04.003}
+}
+```

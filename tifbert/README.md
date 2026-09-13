@@ -118,3 +118,18 @@ Model fields (`model.*`; `n_genes` is linked from the data):
 Data fields (`data.*`) are the shared `ExpressionDataModule`'s; the
 configs use `tpm_unstranded`, protein-coding genes, `transform: none` —
 the ranker is fit on values as the model reads them — and `fold`.
+
+## Citations
+
+BibTeX for the paper implemented here.
+
+```bibtex
+@article{hosseini2026tifbert,
+    title     = {TifBERT: a self-supervised foundation model for normalization-robust bulk RNA-seq representation learning},
+    author    = {Hosseini, SeyedMohsen and Sharma, Divya},
+    year      = {2026},
+    publisher = {openRxiv},
+    doi       = {10.64898/2026.06.08.728683},
+    url       = {https://doi.org/10.64898/2026.06.08.728683}
+}
+```

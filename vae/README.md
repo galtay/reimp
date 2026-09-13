@@ -223,3 +223,60 @@ patients.
   Tybalt and an MMD-AE model fit on fold 3, `vae-embed` embeds every
   training sample alike when the held-out rows are scrambled
   (`assert_embedding_ignores_held_out`).
+
+## Citations
+
+BibTeX for Tybalt and its BioBombe follow-up, and for the tissue-supervised
+MMD autoencoder and Flexynesis, the toolkit it builds on.
+
+```bibtex
+@inproceedings{way2017extracting,
+    title     = {Extracting a biologically relevant latent space from cancer transcriptomes with variational autoencoders},
+    author    = {Way, Gregory P. and Greene, Casey S.},
+    booktitle = {Biocomputing 2018},
+    pages     = {80--91},
+    year      = {2017},
+    publisher = {WORLD SCIENTIFIC},
+    doi       = {10.1142/9789813235533_0008},
+    url       = {https://doi.org/10.1142/9789813235533_0008}
+}
+```
+
+```bibtex
+@article{way2020compressing,
+    title     = {Compressing gene expression data using multiple latent space dimensionalities learns complementary biological representations},
+    author    = {Way, Gregory P. and Zietz, Michael and Rubinetti, Vincent and Himmelstein, Daniel S. and Greene, Casey S.},
+    journal   = {Genome Biology},
+    volume    = {21},
+    number    = {1},
+    year      = {2020},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1186/s13059-020-02021-3},
+    url       = {https://doi.org/10.1186/s13059-020-02021-3}
+}
+```
+
+```bibtex
+@article{pande2026atlasscale,
+    title     = {An atlas-scale generative model for unified representation learning of bulk RNA-seq data},
+    author    = {Pande, Amit and Uyar, Bora and Akalin, Altuna},
+    year      = {2026},
+    publisher = {openRxiv},
+    doi       = {10.64898/2026.06.18.733198},
+    url       = {https://doi.org/10.64898/2026.06.18.733198}
+}
+```
+
+```bibtex
+@article{uyar2025flexynesis,
+    title     = {Flexynesis: A deep learning toolkit for bulk multi-omics data integration for precision oncology and beyond},
+    author    = {Uyar, Bora and Savchyn, Taras and Naghsh Nilchi, Amirhossein and Sarigun, Ahmet and Wurmus, Ricardo and Shaik, Mohammed Maqsood and Grüning, Björn and Franke, Vedran and Akalin, Altuna},
+    journal   = {Nature Communications},
+    volume    = {16},
+    number    = {1},
+    year      = {2025},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/s41467-025-63688-5},
+    url       = {https://doi.org/10.1038/s41467-025-63688-5}
+}
+```

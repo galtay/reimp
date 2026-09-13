@@ -49,3 +49,18 @@ The paper leaves these open; each is a constructor argument.
   genes.
 - Validation reports the Poisson loss on masked and visible genes
   separately, plus per-sample Pearson and R² on the masked ones.
+
+## Citations
+
+BibTeX for the paper implemented here.
+
+```bibtex
+@misc{kenyondean2026effective,
+    title     = {Effective Biological Representation Learning by Masking Gene Expression},
+    author    = {Kenyon-Dean, Kian and Selega, Alina and Bendidi, Ihab and Sorokin, Jordan M. and Bertinetto, Luca and Errington, David and Donnella, Hayley and Kraus, Oren},
+    year      = {2026},
+    publisher = {arXiv},
+    doi       = {10.48550/arXiv.2605.31562},
+    url       = {https://arxiv.org/abs/2605.31562}
+}
+```

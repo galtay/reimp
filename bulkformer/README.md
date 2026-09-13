@@ -193,3 +193,34 @@ Where the paper or its code is silent, or we differ:
   decay 0.01 on matrices and embeddings, gradient clipping at 1.0, batch 8
   for 20 epochs — ~21k optimizer steps, near the paper's ~30k at batch
   512.
+
+## Citations
+
+BibTeX for BulkFormer, implemented here, and for Performer, the source of
+the FAVOR+ attention in `favor.py`.
+
+```bibtex
+@article{kang2026bulkformer,
+    title     = {BulkFormer: A large-scale foundation model for bulk transcriptomes},
+    author    = {Kang, Boming and Fan, Rui and Yi, Meizheng and Cui, Chunmei and Cui, Qinghua},
+    journal   = {Cell Systems},
+    volume    = {17},
+    number    = {7},
+    pages     = {101657},
+    year      = {2026},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.cels.2026.101657},
+    url       = {https://doi.org/10.1016/j.cels.2026.101657}
+}
+```
+
+```bibtex
+@misc{choromanski2020rethinking,
+    title     = {Rethinking Attention with Performers},
+    author    = {Choromanski, Krzysztof and Likhosherstov, Valerii and Dohan, David and Song, Xingyou and Gane, Andreea and Sarlos, Tamas and Hawkins, Peter and Davis, Jared and Mohiuddin, Afroz and Kaiser, Lukasz and others},
+    year      = {2020},
+    publisher = {arXiv},
+    doi       = {10.48550/arXiv.2009.14794},
+    url       = {https://arxiv.org/abs/2009.14794}
+}
+```

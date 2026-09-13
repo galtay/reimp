@@ -26,6 +26,12 @@ one split, one set of labels for every model. [`shared/EVALS.md`](shared/EVALS.m
 catalogues them — what exists, where each came from, what is queued, and
 the leakage rules every evaluation follows.
 
+Each model's README ends with a Citations section giving the BibTeX for
+the papers it implements. The sources of the evaluations are cited in
+[`shared/EVALS.md`](shared/EVALS.md), and those of the data and gene sets
+in [`shared/README.md`](shared/README.md). [`CITATION.cff`](CITATION.cff)
+gives the citation for this repository.
+
 ## Develop
 
 A [uv](https://docs.astral.sh/uv/) workspace; one `uv sync` at the root

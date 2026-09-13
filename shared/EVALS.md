@@ -145,3 +145,66 @@ then read.
 | tuning each representation, or an MLP-Cox head, on the downstream label | Gross et al. 2024 | answers "best pipeline"; here every frozen embedding gets the same linear probe |
 | a win criterion over repeated retraining (≥ 75% of splits) | Gross et al. 2024 | retraining every model per split is too costly; the baselines' fold redraws stand in (rule 6) |
 | metastatic or recurrent samples in survival | Gross et al. 2024; Thorsson et al. 2018 | sampled after diagnosis: guaranteed survival, and for PFI outcomes that precede the sample (see above) |
+
+## Citations
+
+BibTeX for the studies cited in this document.
+
+```bibtex
+@article{gross2024robust,
+    title     = {Robust evaluation of deep learning-based representation methods for survival and gene essentiality prediction on bulk RNA-seq data},
+    author    = {Gross, Baptiste and Dauvin, Antonin and Cabeli, Vincent and Kmetzsch, Virgilio and El Khoury, Jean and Dissez, Gaëtan and Ouardini, Khalil and Grouard, Simon and Davi, Alec and Loeb, Regis and others},
+    journal   = {Scientific Reports},
+    volume    = {14},
+    number    = {1},
+    year      = {2024},
+    publisher = {Springer Science and Business Media LLC},
+    doi       = {10.1038/s41598-024-67023-8},
+    url       = {https://doi.org/10.1038/s41598-024-67023-8}
+}
+```
+
+```bibtex
+@article{liu2018integrated,
+    title     = {An Integrated TCGA Pan-Cancer Clinical Data Resource to Drive High-Quality Survival Outcome Analytics},
+    author    = {Liu, Jianfang and Lichtenberg, Tara and Hoadley, Katherine A. and Poisson, Laila M. and Lazar, Alexander J. and Cherniack, Andrew D. and Kovatich, Albert J. and Benz, Christopher C. and Levine, Douglas A. and Lee, Adrian V. and others},
+    journal   = {Cell},
+    volume    = {173},
+    number    = {2},
+    pages     = {400--416.e11},
+    year      = {2018},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.cell.2018.02.052},
+    url       = {https://doi.org/10.1016/j.cell.2018.02.052}
+}
+```
+
+```bibtex
+@article{thorsson2018immune,
+    title     = {The Immune Landscape of Cancer},
+    author    = {Thorsson, Vésteinn and Gibbs, David L. and Brown, Scott D. and Wolf, Denise and Bortone, Dante S. and Ou Yang, Tai-Hsien and Porta-Pardo, Eduard and Gao, Galen F. and Plaisier, Christopher L. and Eddy, James A. and others},
+    journal   = {Immunity},
+    volume    = {48},
+    number    = {4},
+    pages     = {812--830.e14},
+    year      = {2018},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.immuni.2018.03.023},
+    url       = {https://doi.org/10.1016/j.immuni.2018.03.023}
+}
+```
+
+```bibtex
+@article{sanchezvega2018oncogenic,
+    title     = {Oncogenic Signaling Pathways in The Cancer Genome Atlas},
+    author    = {Sanchez-Vega, Francisco and Mina, Marco and Armenia, Joshua and Chatila, Walid K. and Luna, Augustin and La, Konnor C. and Dimitriadoy, Sofia and Liu, David L. and Kantheti, Havish S. and Saghafinia, Sadegh and others},
+    journal   = {Cell},
+    volume    = {173},
+    number    = {2},
+    pages     = {321--337.e10},
+    year      = {2018},
+    publisher = {Elsevier BV},
+    doi       = {10.1016/j.cell.2018.03.035},
+    url       = {https://doi.org/10.1016/j.cell.2018.03.035}
+}
+```
