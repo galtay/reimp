@@ -15,6 +15,7 @@ members = [
     "reimp-bulkformer",
     "reimp-bulkrnabert",
     "reimp-shared",
+    "reimp-tabssl",
     "reimp-tifbert",
     "reimp-txfm",
 ]
@@ -1806,6 +1807,25 @@ requires-dist = [
     { name = "pyarrow" },
     { name = "scikit-learn" },
     { name = "scipy" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "reimp-tabssl"
+version = "0.1.0"
+source = { editable = "tabssl" }
+dependencies = [
+    { name = "lightning", extra = ["pytorch-extra"] },
+    { name = "numpy" },
+    { name = "reimp-shared" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lightning", extras = ["pytorch-extra"] },
+    { name = "numpy" },
+    { name = "reimp-shared", editable = "shared" },
     { name = "torch" },
 ]
 

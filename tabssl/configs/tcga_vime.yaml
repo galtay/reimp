@@ -1,0 +1,56 @@
+# VIME as Dradjat et al. run it (§2.2.2, Table S3) on TCGA protein-coding
+# genes: a Bernoulli(0.3) mask, each masked gene replaced by its value in a
+# random training sample (redrawn every batch), 4 x 256 mask and feature
+# decoders, BCE + 2.0 * MSE, RMSprop 1e-3, batch 32, up to 500 epochs. Early
+# stopping on val patients; embed from the best checkpoint.
+seed_everything: 0
+
+trainer:
+  max_epochs: 500
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 50
+  default_root_dir: runs/tabssl_vime
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/tabssl_vime
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/tabssl_vime
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "best-epoch{epoch:04d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 30 # the paper's patience (for its classifier heads)
+
+model:
+  # n_genes is linked from data.
+  objective: vime
+  hidden_dim: 256
+  n_layers: 4
+  dropout: 0.2
+  corruption_rate: 0.3
+  decoder_layers: 4
+  vime_alpha: 2.0
+  lr: null # null = the objective's rate in Table S3: RMSprop 1e-3
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  batch_size: 32
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

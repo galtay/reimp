@@ -1,0 +1,56 @@
+# BYOL as Dradjat et al. run it (§2.2.3, Table S3, code) on TCGA
+# protein-coding genes: clean vs. VIME-corrupted view, 4096-hidden projector
+# and predictor, EMA target with a fixed decay of 0.9, symmetric 2 - 2 cos,
+# Adam 1e-4 (the code's; Table S3 says SGD), batch 32, up to 50 epochs. Early
+# stopping on val patients; embed from the best checkpoint.
+seed_everything: 0
+
+trainer:
+  max_epochs: 50
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 50
+  default_root_dir: runs/tabssl_byol
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/tabssl_byol
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/tabssl_byol
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "best-epoch{epoch:04d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.EarlyStopping
+      init_args:
+        monitor: val/loss
+        mode: min
+        patience: 30 # the paper's patience (for its classifier heads)
+
+model:
+  # n_genes is linked from data.
+  objective: byol
+  hidden_dim: 256
+  n_layers: 4
+  dropout: 0.2
+  corruption_rate: 0.3
+  byol_hidden_dim: 4096
+  byol_ema: 0.9
+  lr: null # null = the objective's rate: Adam 1e-4
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  batch_size: 32
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

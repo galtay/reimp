@@ -1,0 +1,42 @@
+# About a minute on real data: the paper's encoder over a handful of batches,
+# to check the pipeline end to end before a long run. One config for every
+# objective; give each run its own directory so their checkpoints stay apart:
+#
+#   tabssl fit --config tabssl/configs/debug.yaml --model.objective vime \
+#     --trainer.default_root_dir runs/tabssl_debug/vime
+#   tabssl-embed --ckpt runs/tabssl_debug/vime/checkpoints/last.ckpt \
+#     --out out/tabssl_debug/vime/fold0.parquet
+#
+# No early stopping or best-checkpoint monitor here: `none` logs no loss.
+seed_everything: 0
+
+trainer:
+  max_epochs: 2
+  limit_train_batches: 20
+  limit_val_batches: 5
+  accelerator: auto
+  devices: 1
+  log_every_n_steps: 5
+  default_root_dir: runs/tabssl_debug/scarf
+  logger: false
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+        save_top_k: 0
+
+model:
+  # n_genes is linked from data.
+  objective: scarf # scarf | vime | byol | none
+  hidden_dim: 256
+  n_layers: 4
+  dropout: 0.2
+  corruption_rate: 0.3
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  batch_size: 64
+  fold: 0

@@ -1,0 +1,38 @@
+# The untrained-encoder control: the same 4 x 256 MLP at its random
+# initialization (seed_everything fixes it), on the same scaled inputs. One
+# pass over the training samples sets the BatchNorm statistics and nothing
+# else; there is no loss, so no validation and no early stopping.
+seed_everything: 0
+
+trainer:
+  max_epochs: 1
+  limit_val_batches: 0
+  accelerator: auto
+  devices: 1
+  default_root_dir: runs/tabssl_none
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/tabssl_none
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        save_last: true
+        save_top_k: 0
+
+model:
+  # n_genes is linked from data.
+  objective: none
+  hidden_dim: 256
+  n_layers: 4
+  dropout: 0.2
+
+data:
+  quantification: unstranded
+  gene_types: [protein_coding]
+  transform: lognorm
+  library_size: 100000.0
+  batch_size: 256
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold
