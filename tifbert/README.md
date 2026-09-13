@@ -59,9 +59,14 @@ Standardized, as `paper.md`'s "For reimp" section decides:
 
 Choices the paper leaves open, each a constructor argument:
 
-- A sentence holds only genes the sample expresses (value > 0) and the
-  ranker can weigh (seen expressed in training) — a zero has no rank among
-  the others — top-ranked first, at most `max_genes` = 10,000. Our samples
+- A sentence holds only genes the sample expresses (value > 0) that some
+  training sample expressed — a zero has no rank among the others, and a
+  gene never expressed in training has nothing to score it by —
+  top-ranked first, at most `max_genes` = 10,000. The score doesn't choose
+  the genes, only their order: one it weighs 0 (under `idf_scheme: count`,
+  any gene detected in every training sample, about half of them) stays
+  in the sentence and ranks last. The mask of genes expressed in training
+  is fit with the ranker and saved in the checkpoint. Our samples
   express a median 17,239 protein-coding genes (14,614 at least), so the
   cap drops each sample's lowest-ranked genes and keeps the paper's
   sequence length and window count; the paper got there by filtering its

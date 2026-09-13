@@ -3,10 +3,11 @@
 Batches arrive from the shared DataModule as expression values
 (`tpm_unstranded`, as stored, in the configs). Before a batch leaves the
 CPU, `on_before_batch_transfer` ranks each sample's genes with the model's
-`GeneRanker`, so only gene tokens reach the accelerator. The ranker is fit
-in `setup` on the DataModule's training rows — the fold's training
-samples, never its val or test ones — and travels in the checkpoint, so
-embedding reuses the fold's own ranker.
+`GeneRanker`, so only gene tokens reach the accelerator. The ranker, and
+the mask of genes expressed in training that says which genes a sentence
+may hold, are fit in `setup` on the DataModule's training rows — the
+fold's training samples, never its val or test ones — and travel in the
+checkpoint, so embedding reuses the fold's own.
 
 Training draws one window per sample per step, uniformly over the sample's
 windows, and masks it, from the global RNG (seeded by `seed_everything`).
@@ -28,7 +29,7 @@ from torch import Tensor
 from reimp_shared.ranking import GeneRanker, IdfScheme, RankScore
 from reimp_shared.tokens import IGNORE_INDEX
 from reimp_tifbert.model import TifBERT, mask_genes, mlm_loss
-from reimp_tifbert.sequences import all_windows, rank_genes, sample_windows
+from reimp_tifbert.sequences import all_windows, detected_in, rank_genes, sample_windows
 
 RANKER_KEY = "gene_ranker"
 
@@ -85,6 +86,8 @@ class LitTifBERT(L.LightningModule):
             dropout=dropout,
         )
         self.ranker: GeneRanker | None = None
+        # Genes some training sample expresses: the only ones a sentence holds.
+        self.detected: np.ndarray | None = None
         self._generator = torch.Generator().manual_seed(seed)
 
     # ---------- ranking ----------
@@ -94,10 +97,11 @@ class LitTifBERT(L.LightningModule):
         return GeneRanker(hp.rank_score, hp.idf_scheme, hp.detection_threshold)
 
     def fit_ranker(self, values: np.ndarray) -> LitTifBERT:
-        """Fit the gene ranker on `values` (training samples x genes)."""
+        """Fit the gene ranker and the detection mask on `values` (training samples x genes)."""
         if values.shape[1] != self.hparams.n_genes:
             raise ValueError(f"{values.shape[1]} genes, but the model has {self.hparams.n_genes}")
         self.ranker = self._new_ranker().fit(values)
+        self.detected = detected_in(values)
         return self
 
     def setup(self, stage: str) -> None:
@@ -117,7 +121,11 @@ class LitTifBERT(L.LightningModule):
         if self.ranker is None:
             raise RuntimeError("fit the gene ranker first: fit_ranker, or trainer.fit")
         genes, lengths = rank_genes(
-            self.ranker, values.cpu().numpy(), self.hparams.max_genes, self.model.pad_id
+            self.ranker,
+            values.cpu().numpy(),
+            self.detected,
+            self.hparams.max_genes,
+            self.model.pad_id,
         )
         return torch.from_numpy(genes), torch.from_numpy(lengths)
 
@@ -131,6 +139,7 @@ class LitTifBERT(L.LightningModule):
             checkpoint[RANKER_KEY] = {
                 "offset": torch.from_numpy(self.ranker.offset_),
                 "weight": torch.from_numpy(self.ranker.weight_),
+                "detected": torch.from_numpy(self.detected),
             }
 
     def on_load_checkpoint(self, checkpoint: dict) -> None:
@@ -139,6 +148,7 @@ class LitTifBERT(L.LightningModule):
             self.ranker = self._new_ranker()
             self.ranker.offset_ = state["offset"].cpu().numpy()
             self.ranker.weight_ = state["weight"].cpu().numpy()
+            self.detected = state["detected"].cpu().numpy()
 
     # ---------- steps ----------
 

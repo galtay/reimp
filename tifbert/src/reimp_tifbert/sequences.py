@@ -4,10 +4,13 @@
            genes, highest score first. A gene's token is its identity — its
            position in the loaded gene selection — and its rank is where it
            stands in the sentence; no expression value is kept.
-  keep     only genes the sample expresses (value > 0) that the ranker can
-           weigh (weight > 0: seen expressed in training). A zero has no
-           rank among the others, and a gene never expressed in training has
-           no rarity to score. At most `max_genes` genes, the top-ranked.
+  keep     only genes the sample expresses (value > 0) that some training
+           sample expressed (`detected_in`). A zero has no rank among the
+           others, and a gene never expressed in training has nothing to
+           score it by. The score's weight plays no part: a gene the score
+           weighs 0 — under the `count` rarity weight, one detected in every
+           training sample — is kept and ranks last. At most `max_genes`
+           genes, the top-ranked.
   windows  `window` tokens every `stride`, starting at 0, until a window
            reaches the end of the sentence: 1 + ceil((n − window) / stride)
            windows for n genes, the last padded. The paper's ~10,000 genes
@@ -27,18 +30,28 @@ from torch.nn import functional as F
 from reimp_shared.ranking import GeneRanker
 
 
+def detected_in(values: np.ndarray) -> np.ndarray:
+    """Per gene, whether any sample in `values` (samples x genes) expresses it (value > 0)."""
+    return (np.asarray(values) > 0).any(axis=0)
+
+
 def rank_genes(
-    ranker: GeneRanker, values: np.ndarray, max_genes: int | None, pad_id: int
+    ranker: GeneRanker,
+    values: np.ndarray,
+    detected: np.ndarray,
+    max_genes: int | None,
+    pad_id: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """(B, G) values -> ranked gene positions (B, L) and each row's length (B,).
 
-    L = min(`max_genes`, G). Rows are the kept genes in score order, then
-    `pad_id`. Scores that can go negative (`z`) may rank an unexpressed
-    gene above an expressed one; it is dropped all the same.
+    `detected` is `detected_in` the training samples, the ones `ranker`
+    was fit on. L = min(`max_genes`, G). Rows are the kept genes in score
+    order, then `pad_id`. Scores that can go negative (`z`) may rank an
+    unexpressed gene above an expressed one; it is dropped all the same.
     """
     values = np.asarray(values)
     order = ranker.order(values)
-    keep = (values > 0) & (ranker.weight_ > 0)
+    keep = (values > 0) & detected
     # Move the kept genes to the front, each group still in score order.
     kept_first = np.argsort(~np.take_along_axis(keep, order, axis=1), axis=1, kind="stable")
     order = np.take_along_axis(order, kept_first, axis=1)
