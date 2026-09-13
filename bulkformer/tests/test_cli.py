@@ -37,8 +37,62 @@ def test_every_config_runs_a_batch(config, fake_dataset, tmp_path) -> None:
     )
 
 
-@pytest.mark.parametrize(("fold", "pooling"), [(0, None), (2, "mean")])
-def test_embed_from_a_checkpoint(fold, pooling, fake_dataset, tmp_path) -> None:
+def test_a_fit_lands_in_its_folds_run_directory(fake_dataset, tmp_path) -> None:
+    """Fold 2 of a run rooted at `root` writes `root/fold2/`; embed reads its checkpoint."""
+    root = tmp_path / "runs" / "bulkformer_debug"
+    build_cli(
+        [
+            "fit",
+            "--config",
+            str(CONFIGS / "debug.yaml"),
+            "--trainer.accelerator=cpu",
+            "--trainer.enable_progress_bar=false",
+            f"--trainer.default_root_dir={root}",
+            "--data.batch_size=8",
+            "--data.fold=2",
+        ]
+    )
+    assert [p.name for p in root.iterdir()] == ["fold2"]
+    run_dir = root / "fold2"
+    assert [p.name for p in (run_dir / "checkpoints").iterdir()] == ["last.ckpt"]
+    assert "config.yaml" in {p.name for p in run_dir.iterdir()}
+    assert not any(p.name.startswith("version_") for p in run_dir.rglob("*"))
+
+    ckpt = run_dir / "checkpoints" / "last.ckpt"
+    out = embed(ckpt, tmp_path / "embeddings.parquet", accelerator="cpu")
+    assert set(read_embeddings(out)[2].tolist()) == {2}
+
+
+def test_the_tcga_config_saves_best_and_last_with_its_logs(fake_dataset, tmp_path) -> None:
+    root = tmp_path / "runs" / "bulkformer"
+    build_cli(
+        [
+            "fit",
+            "--config",
+            str(CONFIGS / "tcga.yaml"),
+            "--trainer.accelerator=cpu",
+            "--trainer.enable_progress_bar=false",
+            "--trainer.max_epochs=1",
+            "--trainer.limit_train_batches=2",
+            "--trainer.limit_val_batches=1",
+            f"--trainer.default_root_dir={root}",
+            "--model.d_model=16",
+            "--model.n_heads=2",
+            "--model.n_layers=1",
+            "--model.graph_k=5",
+            "--data.batch_size=8",
+            "--data.fold=2",
+        ]
+    )
+    run_dir = root / "fold2"
+    ckpts = sorted(p.name for p in (run_dir / "checkpoints").iterdir())
+    assert ckpts == ["best.ckpt", "last.ckpt"]
+    assert {"config.yaml", "metrics.csv"} <= {p.name for p in run_dir.iterdir()}
+    assert not any(p.name.startswith("version_") for p in run_dir.rglob("*"))
+
+
+def _checkpoint(tmp_path: Path, fold: int) -> Path:
+    """A tiny BulkFormer fit on fold `fold` of the fake dataset, saved."""
     dm = ExpressionDataModule("tpm_unstranded", transform="log1p", batch_size=8, fold=fold)
     model = LitBulkFormer(n_genes=dm.n_genes, d_model=16, n_layers=1, n_heads=2, graph_k=5)
     trainer = L.Trainer(
@@ -53,7 +107,12 @@ def test_embed_from_a_checkpoint(fold, pooling, fake_dataset, tmp_path) -> None:
     trainer.fit(model, datamodule=dm)
     ckpt = tmp_path / "model.ckpt"
     trainer.save_checkpoint(ckpt)
+    return ckpt
 
+
+@pytest.mark.parametrize(("fold", "pooling"), [(0, None), (2, "mean")])
+def test_embed_from_a_checkpoint(fold, pooling, fake_dataset, tmp_path) -> None:
+    ckpt = _checkpoint(tmp_path, fold)
     out = embed(ckpt, tmp_path / "embeddings.parquet", pooling=pooling, accelerator="cpu")
     sample_index, embeddings, folds = read_embeddings(out)
     assert sample_index.tolist() == hub.load_samples()["sample_index"].tolist()

@@ -4,8 +4,10 @@ Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 `fold` the checkpoint was trained for) that `reimp-shared probe` scores. The
 gene graph comes from the checkpoint, fit on that fold's training samples:
 
-  bulkformer-embed --ckpt runs/bulkformer/checkpoints/last.ckpt --out out/bulkformer/fold0.parquet
-  bulkformer-embed --ckpt ... --pooling mean --out out/bulkformer_mean/fold0.parquet
+  bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt \
+      --out out/bulkformer/fold0.parquet
+  bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt --pooling mean \
+      --out out/bulkformer_mean/fold0.parquet
 """
 
 from __future__ import annotations

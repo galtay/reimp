@@ -30,8 +30,7 @@ trainer:
         mode: min
         save_last: true
         save_top_k: 1
-        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
-        auto_insert_metric_name: false
+        filename: best # fold k: runs/bulkformer_147m/fold<k>/checkpoints/{best,last}.ckpt
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
       init_args:
         logging_interval: step

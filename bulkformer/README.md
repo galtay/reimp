@@ -15,15 +15,22 @@ max-pooled over genes.
 ```bash
 uv run bulkformer fit --config bulkformer/configs/debug.yaml               # ~15 s on real data
 uv run bulkformer fit --config bulkformer/configs/tcga.yaml --data.fold 0  # and so on for folds 1-4
-uv run bulkformer-embed --ckpt runs/bulkformer/version_0/checkpoints/last.ckpt \
+uv run bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt \
     --out out/bulkformer/fold0.parquet
-uv run bulkformer-embed --ckpt <same> --pooling mean --out out/bulkformer_mean/fold0.parquet
+uv run bulkformer-embed --ckpt runs/bulkformer/fold0/checkpoints/last.ckpt --pooling mean \
+    --out out/bulkformer_mean/fold0.parquet
 uv run reimp-shared probe out/bulkformer out/pca256 --against pca256
 ```
 
+Fold k of a run lands in `<trainer.default_root_dir>/fold<k>/`
+(`reimp_shared.foldcli`): `config.yaml`, the CSV and TensorBoard logs, and
+`checkpoints/best.ckpt` (lowest `val/loss`) beside `checkpoints/last.ckpt`
+(the end of the cosine schedule, which is what we embed). Rerunning a fold
+replaces its run.
+
 The debug config trains a 1.3M-parameter model for 40 steps of 4 samples
-on fold 0 and saves `runs/bulkformer_debug/checkpoints/last.ckpt`; on an
-M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s,
+on fold 0 and saves only `runs/bulkformer_debug/fold0/checkpoints/last.ckpt`;
+on an M4 Max (MPS) the whole fit, data loading and graph included, takes ~15 s,
 and embedding all 11,505 samples from it ~2.5 min. `tcga.yaml`'s 14.8M
 model measured 2.2 s per step of 8 samples on the same machine, with a
 31 GiB peak MPS allocation: ~37 min per epoch, ~12 h for its 20 epochs per
