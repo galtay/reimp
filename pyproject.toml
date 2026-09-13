@@ -4,17 +4,19 @@
 #                                    linear probes, PCA baseline. Every model uses it.
 #   txfm/         reimp-txfm         TxFM (Kenyon-Dean et al., ICLR 2026 FM4S workshop).
 #   bulkrnabert/  reimp-bulkrnabert  BulkRNABert (Gélard et al., ML4H 2024).
+#   tifbert/      reimp-tifbert      TifBERT (Hosseini and Sharma, 2026).
 #
 # A new reimplementation is a new directory with its own pyproject.toml,
 # listed in `members` and `[tool.uv.sources]` below.
 
 [tool.uv.workspace]
-members = ["shared", "txfm", "bulkrnabert"]
+members = ["shared", "txfm", "bulkrnabert", "tifbert"]
 
 [tool.uv.sources]
 reimp-shared = { workspace = true }
 reimp-txfm = { workspace = true }
 reimp-bulkrnabert = { workspace = true }
+reimp-tifbert = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -37,7 +39,7 @@ pythonpath = ["reports/build"]
 markers = [
     "network: downloads from the HF Hub (run with '-m network')",
 ]
-testpaths = ["shared/tests", "txfm/tests", "bulkrnabert/tests", "reports/build"]
+testpaths = ["shared/tests", "txfm/tests", "bulkrnabert/tests", "tifbert/tests", "reports/build"]
 
 [tool.ruff]
 line-length = 100
@@ -47,4 +49,4 @@ target-version = "py313"
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["reimp_shared", "reimp_txfm", "reimp_bulkrnabert"]
+known-first-party = ["reimp_shared", "reimp_txfm", "reimp_bulkrnabert", "reimp_tifbert"]
