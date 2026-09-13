@@ -18,6 +18,7 @@ members = [
     "reimp-tabssl",
     "reimp-tifbert",
     "reimp-txfm",
+    "reimp-vae",
 ]
 
 [manifest.dependency-groups]
@@ -1861,6 +1862,25 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "lightning", extras = ["pytorch-extra"] },
+    { name = "reimp-shared", editable = "shared" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "reimp-vae"
+version = "0.1.0"
+source = { editable = "vae" }
+dependencies = [
+    { name = "lightning", extra = ["pytorch-extra"] },
+    { name = "numpy" },
+    { name = "reimp-shared" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lightning", extras = ["pytorch-extra"] },
+    { name = "numpy" },
     { name = "reimp-shared", editable = "shared" },
     { name = "torch" },
 ]

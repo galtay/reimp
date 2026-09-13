@@ -206,6 +206,10 @@ chosen by sample, which includes our test patients.
   instead of the sigmoid, which cannot represent z-scores; and
   `σ = exp(logvar / 2)` instead of the raw head output. A reimplementation
   written from scratch also sidesteps Flexynesis's noncommercial licence.
+  *Note added in implementation:* with both fixes and no KL term, nothing
+  bounds the log-variance, and on TCGA it passed 100 within a few dozen
+  steps, overflowing exp. `reimp-vae` caps it at 0 (`logvar_max`), a
+  posterior no wider than the prior; see `README.md`.
 
 **Supervision on TCGA.** The paper's tissue label is an organ. TCGA alone
 offers only labels derived from the project, so any supervision here is

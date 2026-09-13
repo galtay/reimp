@@ -1,0 +1,23 @@
+[project]
+name = "reimp-vae"
+version = "0.1.0"
+description = "Reimplementations of Tybalt (Way and Greene, PSB 2018) and a tissue-supervised MMD autoencoder (Pande et al., bioRxiv 2026) on TCGA bulk RNA-seq."
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [
+    { name = "Gabriel Altay", email = "gabriel.altay@gmail.com" },
+]
+dependencies = [
+    "reimp-shared",
+    "lightning[pytorch-extra]",
+    "numpy",
+    "torch",
+]
+
+[project.scripts]
+vae = "reimp_vae.cli:main"
+vae-embed = "reimp_vae.embed:main"
+
+[build-system]
+requires = ["uv_build>=0.11.6,<0.12.0"]
+build-backend = "uv_build"
