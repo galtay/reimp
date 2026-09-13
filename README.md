@@ -9,14 +9,14 @@ TCGA bulk RNA-seq from [`gabrielaltay/tcga-gene-expression-quantification-open`]
 |---|---|---|
 | [`shared/`](shared/) | `reimp-shared` | dataset access, the split, configurable data loaders, probes, PCA baseline |
 | [`txfm/`](txfm/) | `reimp-txfm` | TxFM, a transformer masked autoencoder (Kenyon-Dean et al., 2026) |
-| [`bulkrnabert/`](bulkrnabert/) | — | stub: BulkRNABert (InstaDeep), paper survey only |
-| [`tifbert/`](tifbert/) | — | stub: TifBERT, paper survey only |
-| [`bulkformer/`](bulkformer/) | — | stub: BulkFormer, gene co-expression graph + Performer (Kang et al., 2026) |
-| [`tabssl/`](tabssl/) | — | stub: SCARF, VIME and BYOL on one MLP encoder (Dradjat et al., 2025) |
-| [`vae/`](vae/) | — | stub: Tybalt (Way and Greene, 2018) and a tissue-supervised MMD autoencoder (Pande et al., 2026) |
-| [`compass/`](compass/) | — | stub: COMPASS, a gene-set concept bottleneck trained contrastively (Shen et al., 2026) |
-| [`plier/`](plier/) | — | stub: PLIER / MultiPLIER, pathway-informed matrix factorization (Mao et al.; Taroni et al., 2019) |
-| [`mojo/`](mojo/) | — | stub: MOJO's RNA half, BulkRNABert's tokens on a convolutional U-Net (Gélard et al., 2025) |
+| [`bulkrnabert/`](bulkrnabert/) | `reimp-bulkrnabert` | BulkRNABert, a BERT-style masked language model over 64-bin log-TPM tokens with learned gene embeddings (Gélard et al., 2024) |
+| [`tifbert/`](tifbert/) | `reimp-tifbert` | TifBERT, a BERT doing masked gene modelling over each sample's genes ranked by tf-idf, in overlapping windows (Hosseini and Sharma, 2026) |
+| [`bulkformer/`](bulkformer/) | `reimp-bulkformer` | BulkFormer, a GCN over a per-fold gene co-expression graph plus FAVOR+ Performer over all ~20k genes, masked-value regression (Kang et al., 2026) |
+| [`tabssl/`](tabssl/) | `reimp-tabssl` | SCARF, VIME and BYOL on one MLP encoder, plus an untrained-encoder control (Dradjat et al., 2025) |
+| [`vae/`](vae/) | `reimp-vae` | Tybalt (Way and Greene, 2018) and a tissue-supervised MMD autoencoder (Pande et al., 2026), the latter with `none` / `organ` / `project` supervision |
+| [`compass/`](compass/) | `reimp-compass` | COMPASS, a gene-set concept bottleneck trained contrastively (Shen et al., 2026): 43 concept and 132 set scores, no cancer-type token |
+| [`plier/`](plier/) | `reimp-plier` | PLIER / MultiPLIER, pathway-informed matrix factorization with a cell-marker + canonical-pathway prior, numpy port (Mao et al.; Taroni et al., 2019) |
+| [`mojo/`](mojo/) | `reimp-mojo` | MOJO's RNA half: BulkRNABert's tokens on a convolutional U-Net with attention over 78 pooled positions (Gélard et al., 2025) |
 | [`reports/`](reports/) | — | self-contained HTML reports on the data and the baselines, rebuilt from them |
 
 Each model directory has a `paper.md` recording what the original work did —
