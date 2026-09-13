@@ -1,0 +1,63 @@
+# MOJO's RNA half on TCGA protein-coding genes, sized for ~8,000 training
+# samples per fold: 8 halving blocks take 19,944 genes (padded to 19,968)
+# to 78 pooled positions, where 4 pre-LN rotary SwiGLU layers attend.
+# BulkRNABert's tokens: 64 bins of log TPM over the training maximum.
+seed_everything: 0
+
+trainer:
+  max_epochs: 50
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 10
+  default_root_dir: runs/mojo
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/mojo
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/mojo
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: step
+
+model:
+  # n_genes is linked from data; token_max: null fits the tokenizer's
+  # maximum on the fold's training rows.
+  n_bins: 64
+  mask_prob: 0.15
+  token_max: null
+  gene_order: dataset # or genome, the paper's ablation
+  embed_dim: 128
+  conv_channels: 128
+  d_model: 256
+  n_down: 8
+  n_layers: 4
+  n_heads: 8
+  mlp_ratio: 2.0
+  stem_kernel: 15
+  kernel_size: 5
+  dropout: 0.0
+  lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_frac: 0.05
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 32
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold

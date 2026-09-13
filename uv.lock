@@ -15,6 +15,7 @@ members = [
     "reimp-bulkformer",
     "reimp-bulkrnabert",
     "reimp-compass",
+    "reimp-mojo",
     "reimp-plier",
     "reimp-shared",
     "reimp-tabssl",
@@ -1790,6 +1791,27 @@ requires-dist = [
 name = "reimp-compass"
 version = "0.1.0"
 source = { editable = "compass" }
+dependencies = [
+    { name = "lightning", extra = ["pytorch-extra"] },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "reimp-shared" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lightning", extras = ["pytorch-extra"] },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "reimp-shared", editable = "shared" },
+    { name = "torch" },
+]
+
+[[package]]
+name = "reimp-mojo"
+version = "0.1.0"
+source = { editable = "mojo" }
 dependencies = [
     { name = "lightning", extra = ["pytorch-extra"] },
     { name = "numpy" },
