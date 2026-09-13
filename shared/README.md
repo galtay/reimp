@@ -10,6 +10,7 @@ loaders, and the yardstick.
 | `preprocess` | gene selection and value transforms |
 | `data` | `load_expression` (numpy), `ExpressionDataset` (torch), `ExpressionDataModule` (Lightning) |
 | `ranking` | per-sample gene rankings for rank-based models (`GeneRanker`: expression, z, tf-idf with count / smooth / entropy weights, cohort L2) |
+| `tokens` | binned expression tokens for masked language models (`BinTokenizer`: one training-set maximum, bin 0 for exact zeros; BulkRNABert, MOJO) and BERT's 80/10/10 masking (`mask_tokens`) |
 | `labels` | evaluation labels: survival endpoints (per case) and ssGSEA pathway scores (per aliquot) from `tcga-patients-open`, technical covariates from the expression dataset |
 | `eval` | the embeddings file format; classification, invertibility, pathway, survival, geometry and confounder probes; patient bootstrap and paired differences; PCA and top-variance-gene baselines |
 | `testing` | a miniature copy of the datasets for offline tests |
