@@ -14,20 +14,24 @@ embedding is the mean over genes of the last layer.
 
 ```bash
 uv run bulkrnabert fit --config bulkrnabert/configs/debug.yaml --data.fold 0  # ~1 min, real data
-uv run bulkrnabert-embed --ckpt runs/bulkrnabert_debug/checkpoints/last.ckpt \
+uv run bulkrnabert-embed --ckpt runs/bulkrnabert_debug/fold0/checkpoints/last.ckpt \
     --out out/bulkrnabert_debug/fold0.parquet --batch-size 4
 uv run reimp-shared probe out/bulkrnabert_debug --bootstrap 0
 
 uv run bulkrnabert fit --config bulkrnabert/configs/tcga.yaml --data.fold 2  # one fold, paper size
-uv run bulkrnabert-embed --ckpt runs/bulkrnabert/version_<n>/checkpoints/last.ckpt \
+uv run bulkrnabert-embed --ckpt runs/bulkrnabert/fold2/checkpoints/best.ckpt \
     --out out/bulkrnabert/fold2.parquet
 ```
 
 Train one model per fold (`--data.fold 0` … `4`) and write each fold's
 embeddings to `out/bulkrnabert/fold<k>.parquet`; `reimp-shared probe
-out/bulkrnabert` then scores all five together. `bulkrnabert-embed` reads
-the fold, the data settings and the tokenizer maximum from the checkpoint,
-and embeds every sample from uncorrupted tokens.
+out/bulkrnabert` then scores all five together. Fold k runs in
+`<trainer.default_root_dir>/fold<k>/` (`reimp_shared.foldcli.FoldCLI`):
+config, logs and `checkpoints/` — `best.ckpt` (lowest `val/loss`) and
+`last.ckpt` for `tcga.yaml`, `last.ckpt` only for `debug.yaml` — and a
+rerun of the fold replaces them. `bulkrnabert-embed` reads the fold, the
+data settings and the tokenizer maximum from the checkpoint, and embeds
+every sample from uncorrupted tokens.
 
 [`paper.md`](paper.md) records what the paper did, including its
 evaluations; below is how this reimplementation follows it.

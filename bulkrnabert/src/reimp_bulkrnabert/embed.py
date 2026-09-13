@@ -5,7 +5,7 @@ Writes the shared embeddings parquet (`sample_index`, `embedding`, and the
 Samples are tokenized by the maximum the checkpoint's model was fit with,
 on its fold's training rows:
 
-  bulkrnabert-embed --ckpt runs/bulkrnabert/version_0/checkpoints/last.ckpt \
+  bulkrnabert-embed --ckpt runs/bulkrnabert/fold0/checkpoints/best.ckpt \
       --out out/bulkrnabert/fold0.parquet
 """
 
