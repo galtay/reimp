@@ -5,8 +5,9 @@ import torch
 
 from reimp_shared.data import ExpressionDataModule
 from reimp_shared.ranking import GeneRanker
+from reimp_shared.testing import scramble_held_out
 from reimp_tifbert.lit import LitTifBERT
-from reimp_tifbert.sequences import all_windows
+from reimp_tifbert.sequences import all_windows, detected_in
 
 TINY = dict(max_genes=None, window=8, stride=4, d_model=32, n_layers=1, n_heads=4, dropout=0.0)
 
@@ -96,28 +97,26 @@ def test_fit_logs_metrics(fake_dataset, tmp_path) -> None:
         assert torch.isfinite(trainer.callback_metrics[name])
 
 
-def test_the_ranker_is_fit_on_training_samples_only(fake_dataset, tmp_path) -> None:
-    def fitted_weights(scale_rows: str | None) -> tuple[np.ndarray, ExpressionDataModule]:
-        dm = _datamodule()
-        dm.setup()
-        if scale_rows is not None:
-            # In place: the loaders read the same array.
-            rows = dm.data.rows(scale_rows)
-            dm.data.values[rows] *= np.random.default_rng(0).uniform(0.1, 10, dm.data.values.shape)[
-                rows
-            ]
+def test_the_ranker_is_fit_on_training_samples_only(fake_dataset, monkeypatch, tmp_path) -> None:
+    fold = 1
+
+    def fitted() -> tuple[LitTifBERT, ExpressionDataModule]:
+        dm = _datamodule(fold=fold)
         model = LitTifBERT(n_genes=dm.n_genes, **TINY)
         _trainer(tmp_path, max_steps=1, limit_val_batches=0).fit(model, datamodule=dm)
-        return model.ranker.weight_, dm
+        return model, dm
 
-    weights, dm = fitted_weights(None)
+    model, dm = fitted()
     train = dm.data.values[dm.data.rows("train")]
-    np.testing.assert_array_equal(weights, GeneRanker().fit(train).weight_)
-    assert not np.allclose(weights, GeneRanker().fit(dm.data.values).weight_)
-    # Val and test samples can be anything; training samples cannot.
-    for split in ["val", "test"]:
-        np.testing.assert_array_equal(fitted_weights(split)[0], weights)
-    assert not np.allclose(fitted_weights("train")[0], weights)
+    np.testing.assert_array_equal(model.ranker.weight_, GeneRanker().fit(train).weight_)
+    np.testing.assert_array_equal(model.detected, detected_in(train))
+    assert not np.allclose(model.ranker.weight_, GeneRanker().fit(dm.data.values).weight_)
+    # Val and test samples can be anything; the fit must not move.
+    scramble_held_out(monkeypatch, fold)
+    scrambled, scrambled_dm = fitted()
+    assert not np.allclose(scrambled_dm.data.values, dm.data.values)
+    np.testing.assert_array_equal(scrambled.ranker.weight_, model.ranker.weight_)
+    np.testing.assert_array_equal(scrambled.detected, model.detected)
 
 
 def test_the_checkpoint_carries_the_ranker(fake_dataset, tmp_path) -> None:
@@ -129,12 +128,14 @@ def test_the_checkpoint_carries_the_ranker(fake_dataset, tmp_path) -> None:
     loaded = LitTifBERT.load_from_checkpoint(tmp_path / "model.ckpt", map_location="cpu")
     np.testing.assert_array_equal(loaded.ranker.weight_, model.ranker.weight_)
     np.testing.assert_array_equal(loaded.ranker.offset_, model.ranker.offset_)
+    np.testing.assert_array_equal(loaded.detected, model.detected)
     assert loaded.ranker.score == "tfidf" and loaded.ranker.idf_scheme == "entropy"
 
 
 def test_a_samples_embedding_is_the_mean_over_its_windows(fake_dataset, tmp_path) -> None:
     dm = _datamodule()
-    model = LitTifBERT(n_genes=dm.n_genes, **{**TINY, "embed_chunk": 5})
+    # Dropout on, so two predicts agree only if predict runs in eval mode.
+    model = LitTifBERT(n_genes=dm.n_genes, **{**TINY, "dropout": 0.5, "embed_chunk": 5})
     trainer = _trainer(tmp_path)
     first = trainer.predict(model, datamodule=dm)
     second = trainer.predict(model, datamodule=dm)
@@ -148,6 +149,13 @@ def test_a_samples_embedding_is_the_mean_over_its_windows(fake_dataset, tmp_path
     batch = model.on_before_batch_transfer(_batch(torch.from_numpy(dm.data.values[:1])), 0)
     tokens, _ = all_windows(batch["genes"], batch["lengths"], 8, 4, model.model.pad_id)
     assert len(tokens) > 1
-    with torch.no_grad():
-        by_hand = torch.stack([model.model.embed(w.unsqueeze(0))[0] for w in tokens]).mean(0)
-    torch.testing.assert_close(embeddings[0], by_hand, atol=1e-5, rtol=1e-5)
+
+    def by_hand() -> torch.Tensor:
+        with torch.no_grad():
+            return torch.stack([model.model.embed(w.unsqueeze(0))[0] for w in tokens]).mean(0)
+
+    model.eval()
+    torch.testing.assert_close(embeddings[0], by_hand(), atol=1e-5, rtol=1e-5)
+    # In train mode dropout would move it: the check above has teeth.
+    model.train()
+    assert not torch.allclose(embeddings[0], by_hand(), atol=1e-5, rtol=1e-5)
