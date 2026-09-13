@@ -1,0 +1,66 @@
+# BulkFormer at reimp's default size (paper.md, "For reimp"): d = 256, one
+# GCN + 4 Performer layers, the sample-context MLP's hidden width cut to d —
+# ~15M parameters — on log1p TPM of the 19,944 protein-coding genes, the
+# gene graph fit on each fold's training samples. 20 epochs at batch 8 is
+# ~21k optimizer steps, near the paper's ~30k (at batch 512 on 0.5M
+# profiles).
+seed_everything: 0
+
+trainer:
+  max_epochs: 20
+  accelerator: auto
+  devices: 1
+  gradient_clip_val: 1.0
+  log_every_n_steps: 10
+  default_root_dir: runs/bulkformer
+  logger:
+    - class_path: lightning.pytorch.loggers.CSVLogger
+      init_args:
+        save_dir: runs/bulkformer
+        name: ""
+    - class_path: lightning.pytorch.loggers.TensorBoardLogger
+      init_args:
+        save_dir: runs/bulkformer
+        name: ""
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+        monitor: val/loss
+        mode: min
+        save_last: true
+        save_top_k: 1
+        filename: "epoch{epoch:03d}-val{val/loss:.4f}"
+        auto_insert_metric_name: false
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: step
+
+model:
+  # n_genes is linked from data.
+  d_model: 256
+  n_blocks: 1
+  n_layers: 4
+  n_heads: 8
+  n_features: null # null = d_head * ln(d_head) per head, performer-pytorch's default
+  mlp_ratio: 4.0
+  sample_hidden: null # null = d_model
+  dropout: 0.1
+  mask_ratio: 0.15
+  graph: coexpression # or random (degree-matched control), none (Performer only)
+  graph_k: 20
+  graph_threshold: 0.4
+  graph_space: linear # correlate linear TPM, as the released graph was
+  feature_redraw_interval: 1000
+  activation_checkpointing: false
+  pooling: max # embeddings; mean is the variant
+  lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_frac: 0.05
+
+data:
+  quantification: tpm_unstranded
+  gene_types: [protein_coding]
+  transform: log1p
+  batch_size: 8
+  num_workers: 0
+  fold: 0 # cross-validation fold, 0-4: train one model per fold
