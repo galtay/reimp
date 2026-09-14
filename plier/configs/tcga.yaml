@@ -1,12 +1,14 @@
 # PLIER on TCGA protein-coding genes with the paper's defaults where it gives
 # them (lambda2 = d_k, lambda1 = d_k / 2, 70% of LVs with a gene set, a fifth
 # of each set's genes held out, stopping at ||dB|| / ||B|| < 5e-6) and ours
-# where it does not (k = 2 x the components before the elbow of the training
-# singular values; plier/README.md lists the rest). One model per fold
-# (--data.fold 0-4); every statistic is fit on that fold's training samples.
+# where it does not (plier/README.md lists them). k = 256, reimp's common
+# embedding size, beside PCA-256. One model per fold (--data.fold 0-4); every
+# statistic is fit on that fold's training samples.
 #
 # Variants, each to its own out_dir:
-#   --model.k 64 / --model.k 256     fixed k, beside PCA at equal dimension
+#   --model.k null                   the paper's rule: 2 x the components before
+#                                    the elbow of the training singular values
+#                                    (k = 492 on fold 0)
 #   --prior null                     the no-prior ablation (U = 0), same k
 #   --all_genes false                the prior's genes only
 out_dir: runs/plier
@@ -24,7 +26,7 @@ data:
   fold: 0 # cross-validation fold, 0-4: train one model per fold
 
 model:
-  k: null # null: k_factor x the principal components k_rule keeps
+  k: 256 # null: k_factor x the principal components k_rule keeps
   k_rule: elbow # or gavish_donoho: the singular values above its noise threshold
   k_factor: 2.0
   l1: null # null: lambda2 / 2

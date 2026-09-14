@@ -55,8 +55,9 @@ variables (LVs) and U (gene sets × k) the prior's coefficients.
 
 Where the papers leave something open:
 
-- **k.** By default, the elbow of the fold's training singular values,
-  times 2. The elbow is found by the chord rule. The index and the
+- **k.** The paper's rule, `--model.k null` (the default is a fixed 256;
+  see "Ours, for reimp"): the elbow of the fold's training singular
+  values, times 2. The elbow is found by the chord rule. The index and the
   singular values are both scaled to [0, 1], and the elbow is the point
   farthest below the straight line from the first value to the last. The
   components before it are kept. The spectrum is every singular value of
@@ -156,8 +157,10 @@ Following paper.md's "For reimp":
 - **All genes**: every protein-coding gene that varies over the training
   samples is modelled. Genes in no set get empty rows of C.
   `--all_genes false` models only the genes in some set.
-- **k**: the elbow rule above by default. The fixed-k variants are
-  `--model.k 64` and `--model.k 256`, to sit beside PCA at equal dimension.
+- **k = 256**, reimp's common embedding size (PCA-256's, the
+  transformers' and Tybalt's), so the probes compare like-sized
+  embeddings. The paper's rule above is `--model.k null` (k = 492 on
+  fold 0, and it varies by fold).
 - **The no-prior ablation**, `--prior null`, runs the same solver with
   U = 0, so λ1‖Z‖² replaces λ1‖Z − CU‖². The PLIER preprint makes the same
   comparison by setting λ3 high. It keeps the same k, λ1 and λ2, so the
@@ -223,10 +226,15 @@ protein-coding genes modelled.
   at iteration 31 and λ3 is set three times. The fit takes ~6 s on an M4
   Max (~11 s with loading). On fold 0, 23 of 32 LVs use a gene set and 13
   are annotated.
-- **`tcga.yaml`** uses the defaults above. Its full-length runtime is
-  unmeasured. On fold 0 (k = 492), the spectrum takes 27 s, the SVD 5 s
-  and each iteration ~0.7 s, the U step included. At the cap of 300
-  iterations per phase that is under 10 minutes per fold.
+- **`tcga.yaml`** uses the defaults above. Measured on all five folds
+  (2026-09-13, M4 Max): each fit takes 72–90 s, 223–267 iterations, with
+  the prior entering at iteration 145–197. Both phases stop on `patience`,
+  not `tol`: ‖ΔB‖/‖B‖ is still about 0.007 when they stop, while the
+  objective has levelled off. 178–179 of the 256 LVs use a gene set, and
+  50–57 are annotated. With the elbow rule (k = 492 on fold 0), the
+  spectrum takes 27 s, the SVD 5 s and each iteration ~0.7 s, the U step
+  included; at the cap of 300 iterations per phase that is under 10
+  minutes per fold.
 
 Any field can be overridden on the command line, e.g. `--data.fold 3`.
 

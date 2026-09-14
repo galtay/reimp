@@ -308,9 +308,11 @@ decisions (plier/README.md, "Our decisions"):
   subset excludes TCGA. But it breaks the TCGA-only rule, as Gene2Vec did
   for BulkRNABert, and its prior contains Reactome and PID. It could be
   reported as a labelled reference point at most.
-- **k**: the default run uses the package rule, computed on training
-  samples per fold; the value TCGA gives is unmeasured. Add fixed
-  k ∈ {64, 256} so PLIER sits beside PCA at equal dimension.
+- **k = 256**, reimp's common embedding size, so PLIER sits beside PCA-256
+  and the other models at equal dimension. The package rule, computed on
+  training samples per fold, is a variant (`--model.k null`; k = 492 on
+  fold 0). (Changed 2026-09-13 from the rule as the default: reimp
+  compares methods at a common size, not paper by paper.)
 
 **Leakage**, following rule 3:
 - **Fit on training samples only**: gene means and SDs, the SVD, `num.pc`,
