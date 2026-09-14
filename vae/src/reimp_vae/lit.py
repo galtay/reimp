@@ -48,7 +48,8 @@ REGULARIZERS: tuple[str, ...] = ("kl", "mmd")
 class LitVAE(L.LightningModule):
     """A Gaussian-latent autoencoder. Defaults are Tybalt's (paper.md, "For reimp").
 
-    Tybalt: 100-d latent, no hidden layer, BatchNorm + ReLU on both heads,
+    Tybalt: 256-d latent (the paper's 100, widened to reimp's common size),
+    no hidden layer, BatchNorm + ReLU on both heads,
     sigmoid decoder with BCE, KL warmed up with κ = 1, Glorot init, Adam at
     5e-4. The MMD-AE config sets a 121-d latent, one hidden layer of
     0.2 · n_genes, linear heads, MSE, MMD, Flexynesis's Xavier init
@@ -59,7 +60,7 @@ class LitVAE(L.LightningModule):
         self,
         n_genes: int,
         n_classes: int = 0,
-        latent_dim: int = 100,
+        latent_dim: int = 256,
         hidden_dim: int | None = None,
         hidden_factor: float = 0.0,
         heads: Heads = "bn_relu",

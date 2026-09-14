@@ -2,7 +2,8 @@
 # (library-normalized log counts): the 5,000 genes with the largest median
 # absolute deviation, min-max scaled per gene (ranking,
 # minima and maxima all fit on the fold's training samples; val and test
-# clipped to [0, 1]); one dense layer to a 100-d latent with BatchNorm and
+# clipped to [0, 1]); one dense layer to a 256-d latent (the paper's 100,
+# widened to reimp's common embedding size, PCA-256's) with BatchNorm and
 # ReLU on the mean and log-variance heads; a sigmoid decoder under per-gene
 # BCE; KL warmed up with κ = 1; Adam 5e-4, batch 50, 50 epochs. Early
 # stopping and the kept checkpoint follow the fold's val loss.
@@ -36,7 +37,7 @@ trainer:
 
 model:
   # n_genes and n_classes are linked from data.
-  latent_dim: 100
+  latent_dim: 256
   hidden_factor: 0.0 # no hidden layer
   heads: bn_relu # linear: the textbook VAE
   reconstruction: bce

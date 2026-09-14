@@ -130,7 +130,7 @@ PCA/ICA/NMF comparison and no downstream prediction task.
 
 **Method-defining**, kept:
 
-- A VAE with one dense encoding layer to a latent of k = 100, and BatchNorm
+- A VAE with one dense encoding layer to a latent, and BatchNorm
   and ReLU on both the mean and log-variance heads, as in the code that
   produced every published feature. A textbook linear-head VAE is a one-flag
   variant.
@@ -142,6 +142,10 @@ PCA/ICA/NMF comparison and no downstream prediction task.
 
 **Incidental**, standardized:
 
+- The latent size: k = 256, reimp's common embedding size (the PCA
+  baseline's and the transformers'), instead of the paper's 100. BioBombe
+  already varies k. (Changed 2026-09-13 from 100 after the first 5-fold
+  run: reimp compares methods at a common size, not paper by paper.)
 - The quantification. The paper's input is "log2(FPKM + 1) transformed RSEM
   values"; reimp uses the PCA baseline's input, library-normalized log counts
   (`unstranded` + `lognorm`), so the matched-k comparison with PCA below
@@ -167,7 +171,7 @@ PCA/ICA/NMF comparison and no downstream prediction task.
 samples, and the hold-out was split by sample, not by patient. Neither
 matters for the paper, which has no held-out evaluation. Both matter for us.
 
-**Compute**: tiny. About 1.5M parameters, about 8,300 × 5,000 inputs, and
+**Compute**: tiny. About 3.8M parameters at k = 256 (1.5M at 100), about 8,300 × 5,000 inputs, and
 about 8,300 optimizer steps per fold. My estimate, not measured: minutes per
 fold on a laptop CPU, and seconds per epoch on a GPU. A k-sweep with several
 seeds is affordable.

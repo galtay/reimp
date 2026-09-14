@@ -5,7 +5,8 @@ configurations of one small package:
 
 - **Tybalt** (Way and Greene, PSB 2018;
   [greenelab/tybalt](https://github.com/greenelab/tybalt)): one dense layer
-  to a 100-d latent, KL-regularized, over the 5,000 most variable genes.
+  to a 256-d latent (the paper's is 100-d), KL-regularized, over the 5,000
+  most variable genes.
   [`paper.md`](paper.md), with the BioBombe follow-up that compares it with
   PCA, ICA and NMF across latent sizes.
 - **Tissue-supervised MMD autoencoder** (Pande, Uyar and Akalin, bioRxiv 2026;
@@ -45,8 +46,8 @@ configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`
 | input | `unstranded` counts, `lognorm` (the PCA baseline's input) | `tpm_unstranded`, log1p |
 | genes | the 5,000 protein-coding genes with the largest median absolute deviation | all 19,944 protein-coding genes |
 | scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score; val and test clipped to the gene's training range |
-| encoder | genes → 100; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
-| decoder | 100 → genes, sigmoid | 121 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
+| encoder | genes → 256; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
+| decoder | 256 → genes, sigmoid | 121 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
 | sampling | z = μ + exp(logvar / 2) · ε | the same, with logvar capped at 0 |
 | reconstruction | per-gene BCE, summed over genes | MSE, averaged over genes |
 | regularizer | KL, β = 0 in epoch 0 then raised by κ = 1 per epoch to 1 | MMD between the batch's z and 200 N(0, I) draws, kernel exp(−‖x − y‖² / d²), weight 1 |
@@ -54,8 +55,8 @@ configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`
 | optimizer | Adam 5e-4, batch 50, at most 50 epochs | Adam 1.72e-3, batch 32, at most 500 epochs |
 | stopping | early stopping on the fold's val loss (patience 10), best checkpoint kept | the same |
 | init | Glorot-uniform weights, zero biases (Keras's default) | Xavier-uniform encoder and decoder weights; PyTorch's default biases and classifier head (Flexynesis's) |
-| parameters | 1.5M | 160M |
-| embedding | μ, 100-d and non-negative (the ReLU'd head) | μ, 121-d |
+| parameters | 3.8M | 160M |
+| embedding | μ, 256-d and non-negative (the ReLU'd head) | μ, 121-d |
 
 Tybalt's BatchNorm + ReLU on both heads is what its released code does,
 and every published Tybalt feature came from it: posterior means are
@@ -98,7 +99,7 @@ selection (and `top_genes`) and its `supervision`.
 
 | `model.` | |
 |---|---|
-| `latent_dim` | 100 (Tybalt), 121 (MMD-AE) |
+| `latent_dim` | 256 (Tybalt), 121 (MMD-AE) |
 | `hidden_dim`, `hidden_factor` | hidden width: `hidden_dim` if set, else round(`hidden_factor` · n_genes); 0 means no hidden layer |
 | `heads` | `bn_relu` (Tybalt's code) or `linear` |
 | `reconstruction` | `bce` (sigmoid output; needs min-max input) or `mse` (linear output) |
@@ -127,6 +128,9 @@ validation loop.
 
 Tybalt:
 
+- **A 256-d latent**, not the paper's 100. The latent size is not what
+  defines Tybalt (BioBombe varies it), and reimp compares embeddings at a
+  common size: 256, the PCA baseline's and the transformers'.
 - **Median, not mean, absolute deviation** for the gene ranking, as the
   paper and BioBombe describe it; the released code used pandas' mean
   absolute deviation.

@@ -46,7 +46,7 @@ def test_every_config_runs_a_batch(
 
 
 @pytest.mark.parametrize(
-    ("config", "fold", "latent_dim"), [("tybalt.yaml", 0, 100), ("mmdae_organ.yaml", 2, 121)]
+    ("config", "fold", "latent_dim"), [("tybalt.yaml", 0, 256), ("mmdae_organ.yaml", 2, 121)]
 )
 def test_one_fold_fit_then_embed(
     config, fold, latent_dim, fake_dataset, project_organ, tmp_path, monkeypatch
