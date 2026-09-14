@@ -20,7 +20,7 @@ import torch
 from torch import Tensor
 
 from reimp_txfm.metrics import holdout_metrics
-from reimp_txfm.model import Activation, TxFM, poisson_loss, sample_unmasked
+from reimp_txfm.model import TxFM, poisson_loss, sample_unmasked
 
 
 class LitTxFM(L.LightningModule):
@@ -44,7 +44,6 @@ class LitTxFM(L.LightningModule):
         dropout: float = 0.0,
         drop_path_rate: float = 0.1,
         layer_scale_init: float | None = 1e-4,
-        activation: Activation = "tanh",
         lr: float = 1e-3,
         weight_decay: float | None = None,
         warmup_frac: float = 0.1,
@@ -71,7 +70,6 @@ class LitTxFM(L.LightningModule):
             dropout=dropout,
             drop_path_rate=drop_path_rate,
             layer_scale_init=layer_scale_init,
-            activation=activation,
         )
         self._generator = torch.Generator().manual_seed(seed)
 

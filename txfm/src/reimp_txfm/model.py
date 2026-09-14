@@ -16,29 +16,15 @@ or the decoder's width; those defaults are ours.
 from __future__ import annotations
 
 import math
-from typing import Literal
 
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-Activation = Literal["tanh", "sigmoid"]
-
 
 def rectified_tanh(z: Tensor, library_size: float) -> Tensor:
     """Paper Eq. 1: log(L+1) · ReLU(tanh(z / 4e))."""
     return math.log1p(library_size) * F.relu(torch.tanh(z / (4 * math.e)))
-
-
-def rectified_sigmoid(z: Tensor, library_size: float) -> Tensor:
-    """Eq. 1 in the form opentxfm publishes as `RectifiedSigmoid`.
-
-    Equal to `rectified_tanh` through tanh(y) = 2·sigmoid(2y) − 1.
-    """
-    return math.log1p(library_size) * F.relu(2 * torch.sigmoid(z / (2 * math.e)) - 1)
-
-
-ACTIVATIONS = {"tanh": rectified_tanh, "sigmoid": rectified_sigmoid}
 
 
 def poisson_loss(x_hat: Tensor, target: Tensor) -> Tensor:
@@ -206,13 +192,9 @@ class TxFM(nn.Module):
         dropout: float = 0.0,
         drop_path_rate: float = 0.1,
         layer_scale_init: float | None = 1e-4,
-        activation: Activation = "tanh",
     ) -> None:
         super().__init__()
-        if activation not in ACTIVATIONS:
-            raise ValueError(f"unknown activation {activation!r}; expected one of {[*ACTIVATIONS]}")
         self.library_size = library_size
-        self.activation = ACTIVATIONS[activation]
         self.encoder = TxFMEncoder(
             n_genes, d_model, n_layers, n_heads, dim_ff, dropout, drop_path_rate, layer_scale_init
         )
@@ -220,4 +202,4 @@ class TxFM(nn.Module):
 
     def forward(self, gene_idx: Tensor, values: Tensor) -> Tensor:
         """(B, K) unmasked genes -> (B, G) reconstruction in log1p space."""
-        return self.activation(self.decoder(self.encoder(gene_idx, values)), self.library_size)
+        return rectified_tanh(self.decoder(self.encoder(gene_idx, values)), self.library_size)

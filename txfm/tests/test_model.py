@@ -10,7 +10,6 @@ from reimp_txfm.model import (
     TxFM,
     TxFMEncoder,
     poisson_loss,
-    rectified_sigmoid,
     rectified_tanh,
     sample_unmasked,
 )
@@ -42,15 +41,6 @@ def test_rectified_tanh_is_bounded_and_clamps_negatives() -> None:
     assert (out <= math.log1p(LIBRARY_SIZE)).all()
     assert (out[z <= 0] == 0).all()
     assert out[-1].item() == pytest.approx(math.log1p(LIBRARY_SIZE))
-
-
-def test_tanh_and_sigmoid_forms_agree_in_value_and_gradient() -> None:
-    z = torch.linspace(-200, 200, 4001, dtype=torch.float64, requires_grad=True)
-    a, b = rectified_tanh(z, LIBRARY_SIZE), rectified_sigmoid(z, LIBRARY_SIZE)
-    torch.testing.assert_close(a, b)
-    (grad_a,) = torch.autograd.grad(a.sum(), z)
-    (grad_b,) = torch.autograd.grad(b.sum(), z)
-    torch.testing.assert_close(grad_a, grad_b)
 
 
 def test_poisson_loss_is_minimized_at_the_target() -> None:
@@ -126,8 +116,3 @@ def test_txfm_reconstructs_every_gene_within_the_activation_range() -> None:
     assert out.shape == (2, 50)
     assert (out >= 0).all()
     assert (out <= math.log1p(LIBRARY_SIZE)).all()
-
-
-def test_unknown_activation_raises() -> None:
-    with pytest.raises(ValueError, match="unknown activation"):
-        TxFM(10, activation="relu")
