@@ -206,7 +206,8 @@ chosen by sample, which includes our test patients.
 - Our default 19,944 protein-coding genes, not their 16,115 HGNC set. That
   gives a hidden layer of 3,989 and about 160M parameters. On 8,300 samples
   that is badly over-parameterized; expect early stopping within a few
-  epochs, and expose the hidden width as an option.
+  epochs, and expose the hidden width as an option. *(Measured: best
+  epochs 21–53, stops at 32–64; see Compute.)*
 - The low-variance filter is dropped. It is a 1% cut, and the protein-coding
   set is already a filter.
 - Early stopping on the fold's val patients, never on test.
@@ -261,6 +262,10 @@ epoch costs a few TFLOP, seconds on a single modern GPU. With early
 stopping, minutes per fold, and CPU is feasible. Memory: a few GB,
 about 160M parameters plus Adam state. Their 5 h on an RTX 4060 was for 14×
 the data.
+*Note added 2026-09-15, measured* at the 256-d latent (162M parameters)
+on an Apple M4 Max (MPS), all five folds of each variant: about 13 s per
+epoch and 7–14 minutes per fold, since early stopping comes after 32–64
+epochs, not a few. See `README.md`.
 
 **Implementation note**: this is in the same family as Tybalt. One `vae/`
 package could cover both, with these options:

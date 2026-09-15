@@ -55,7 +55,7 @@ configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`
 | optimizer | Adam 5e-4, batch 50, at most 50 epochs | Adam 1.72e-3, batch 32, at most 500 epochs |
 | stopping | early stopping on the fold's val loss (patience 10), best checkpoint kept | the same |
 | init | Glorot-uniform weights, zero biases (Keras's default) | Xavier-uniform encoder and decoder weights; PyTorch's default biases and classifier head (Flexynesis's) |
-| parameters | 3.8M | 160M |
+| parameters | 3.8M | 162M |
 | embedding | μ, 256-d and non-negative (the ReLU'd head) | μ, 256-d |
 
 Tybalt's BatchNorm + ReLU on both heads is what its released code does,
@@ -201,6 +201,24 @@ MMD-AE:
 
 Neither paper's released weights are used: both saw most TCGA test
 patients.
+
+## Compute
+
+Measured on an Apple M4 Max (MPS), all five folds of each config (Tybalt
+2026-09-13; the MMD-AE 2026-09-15, `mmdae_none` and the first two
+`mmdae_organ` folds sharing the GPU with the tabssl runs):
+
+| config | fit per fold | epochs run (best) | stopped by |
+|---|---|---|---|
+| `tybalt` | 82–83 s | 50 (46–49) | the 50-epoch cap |
+| `mmdae_none` | 12.4–14.3 min | 56–60 (45–49) | early stopping |
+| `mmdae_organ` | 7.8–14.4 min | 34–64 (23–53) | early stopping |
+| `mmdae_project` | 7.3–11.1 min | 32–50 (21–39) | early stopping |
+
+An MMD-AE epoch takes about 13 s, and embedding all 11,505 samples about
+10 s. Tybalt's best epoch is within four of the cap in every fold: it is
+still improving when the paper's 50 epochs end. Each MMD-AE checkpoint is
+1.9 GB, two-thirds of it Adam state for the two 19,944 × 3,989 layers.
 
 ## Tests
 
