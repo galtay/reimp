@@ -168,6 +168,42 @@ The *For reimp* section of [`paper.md`](paper.md) sets these out; in brief:
   worst. Unfrozen fine-tuning is out of scope.
 - **`none`** is ours: the untrained-encoder control the paper lacks.
 
+## Full runs
+
+Measured on all five folds (2026-09-15, Apple M4 Max, MPS, sharing the GPU
+with the MMD-AE runs in `vae/`):
+
+| | fit per fold | epochs run (best) | stopped by |
+|---|---|---|---|
+| `none` | ~6 s | 1 | its one pass |
+| SCARF | 0.8–1.6 min | 60–134 (29–103) | early stopping |
+| VIME | 7.8–13.8 min | 179–305 (148–274) | early stopping |
+| BYOL | 3.1–3.4 min | 50 (34–49) | the 50-epoch cap |
+
+Embedding all 11,505 samples takes 6–8 s per fold.
+
+**BYOL never early-stops** within its 50 epochs. Four folds reach their
+best validation loss at epochs 34–40 and drift up after it; fold 1's best
+is its last epoch, still improving. 50 is the paper's budget, and BYOL's
+validation loss, taken against a moving target, is a noisy guide, so the
+cap stays.
+
+**Embedding spectra.** On fold 0, from the singular values of each
+centred embedding (effective rank: the exponential of the entropy of the
+normalized squared singular values):
+
+| | `none` | SCARF | BYOL | VIME | PCA-256 |
+|---|---|---|---|---|---|
+| directions holding 90% of the variance | 150 | 7 | 12 | 45 | 76 |
+| effective rank | 129 | 8.8 | 12.4 | 33.4 | 48.5 |
+
+No embedding loses dimensions outright: no singular value falls below
+10⁻³ of the largest, except two of VIME's. SCARF and BYOL concentrate
+their variance far more than PCA does. The paper's spectra (Fig. 4, width
+1,024, depth 9) have VIME collapsing most and BYOL not at all, the reverse
+of this ordering at 4 × 256. The linear probes standardize each dimension,
+so concentration alone does not decide their scores.
+
 ## Citations
 
 BibTeX for the study this directory follows (Dradjat et al.) and for the
