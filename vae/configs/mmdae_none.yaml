@@ -2,7 +2,8 @@
 # unsupervised reference for the supervised variants. Log TPM over the
 # 19,944 protein-coding genes, z-scored per gene on the fold's training
 # samples; one hidden layer of 0.2 · n_genes (3,989) with LeakyReLU and
-# BatchNorm; a 121-d latent; MSE with a linear output, plus MMD between the
+# BatchNorm; a 256-d latent (the paper's 121, widened to reimp's common
+# embedding size, PCA-256's); MSE with a linear output, plus MMD between the
 # sampled z and N(0, I). Adam 1.72e-3, batch 32, at most 500 epochs with
 # early stopping (patience 10) on the fold's val loss.
 seed_everything: 0
@@ -35,7 +36,7 @@ trainer:
 
 model:
   # n_genes and n_classes are linked from data.
-  latent_dim: 121
+  latent_dim: 256
   hidden_factor: 0.2 # or hidden_dim: <width>
   heads: linear
   reconstruction: mse

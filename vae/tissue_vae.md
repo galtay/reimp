@@ -183,7 +183,6 @@ chosen by sample, which includes our test patients.
 - An MMD-regularized autoencoder (no KL term) with Gaussian reparameterized
   sampling, and one hidden layer of about 0.2 × n_genes, with LeakyReLU and
   BatchNorm.
-- Latent dimension 121.
 - MSE reconstruction of per-gene z-scored log expression.
 - A jointly trained 2-layer classification head on the sampled latent, in an
   unweighted sum of the three losses.
@@ -197,6 +196,11 @@ chosen by sample, which includes our test patients.
 
 **Incidental**, standardized:
 
+- The latent size: 256, reimp's common embedding size (the PCA baseline's
+  and the transformers'), instead of the paper's 121, which a 3-trial
+  search picked among 67, 105 and 121. (Changed 2026-09-15 from 121, before
+  the first 5-fold run, as Tybalt's was: reimp compares methods at a common
+  size, not paper by paper.)
 - TCGA training patients only, about 8,300 samples per fold, tumours and
   normals.
 - Our default 19,944 protein-coding genes, not their 16,115 HGNC set. That

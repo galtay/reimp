@@ -11,7 +11,7 @@ configurations of one small package:
   PCA, ICA and NMF across latent sizes.
 - **Tissue-supervised MMD autoencoder** (Pande, Uyar and Akalin, bioRxiv 2026;
   [BIMSBbioinfo/flexynesis_tissue_vae_manuscript](https://github.com/BIMSBbioinfo/flexynesis_tissue_vae_manuscript)):
-  MMD-regularized rather than KL, a 121-d latent, and a tissue classifier
+  MMD-regularized rather than KL, a 256-d latent (the paper's is 121-d), and a tissue classifier
   trained jointly on the latent. [`tissue_vae.md`](tissue_vae.md).
 
 One `LitVAE` and one `VAEDataModule` cover both; each model is a config.
@@ -46,17 +46,17 @@ configs log nothing and keep only `best.ckpt`, under `runs/debug/<model>/fold0/`
 | input | `unstranded` counts, `lognorm` (the PCA baseline's input) | `tpm_unstranded`, log1p |
 | genes | the 5,000 protein-coding genes with the largest median absolute deviation | all 19,944 protein-coding genes |
 | scaling | per-gene min-max; val and test clipped to [0, 1] | per-gene z-score; val and test clipped to the gene's training range |
-| encoder | genes → 256; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 121 |
-| decoder | 256 → genes, sigmoid | 121 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
+| encoder | genes → 256; mean and log-variance heads each Dense → BatchNorm → ReLU | genes → 3,989 (0.2 · genes; LeakyReLU 0.2, BatchNorm) → linear heads to 256 |
+| decoder | 256 → genes, sigmoid | 256 → 3,989 (LeakyReLU, BatchNorm) → genes, linear |
 | sampling | z = μ + exp(logvar / 2) · ε | the same, with logvar capped at 0 |
 | reconstruction | per-gene BCE, summed over genes | MSE, averaged over genes |
 | regularizer | KL, β = 0 in epoch 0 then raised by κ = 1 per epoch to 1 | MMD between the batch's z and 200 N(0, I) draws, kernel exp(−‖x − y‖² / d²), weight 1 |
-| supervision | none | `none`; `organ` (26 classes) or `project` (33): a 121 → 32 → classes head (BatchNorm, ReLU, dropout 0.1) on the sampled z, cross-entropy at weight 1 |
+| supervision | none | `none`; `organ` (26 classes) or `project` (33): a 256 → 32 → classes head (BatchNorm, ReLU, dropout 0.1) on the sampled z, cross-entropy at weight 1 |
 | optimizer | Adam 5e-4, batch 50, at most 50 epochs | Adam 1.72e-3, batch 32, at most 500 epochs |
 | stopping | early stopping on the fold's val loss (patience 10), best checkpoint kept | the same |
 | init | Glorot-uniform weights, zero biases (Keras's default) | Xavier-uniform encoder and decoder weights; PyTorch's default biases and classifier head (Flexynesis's) |
 | parameters | 3.8M | 160M |
-| embedding | μ, 256-d and non-negative (the ReLU'd head) | μ, 121-d |
+| embedding | μ, 256-d and non-negative (the ReLU'd head) | μ, 256-d |
 
 Tybalt's BatchNorm + ReLU on both heads is what its released code does,
 and every published Tybalt feature came from it: posterior means are
@@ -99,7 +99,7 @@ selection (and `top_genes`) and its `supervision`.
 
 | `model.` | |
 |---|---|
-| `latent_dim` | 256 (Tybalt), 121 (MMD-AE) |
+| `latent_dim` | 256 for both (the papers' 100 and 121, widened to reimp's common size) |
 | `hidden_dim`, `hidden_factor` | hidden width: `hidden_dim` if set, else round(`hidden_factor` · n_genes); 0 means no hidden layer |
 | `heads` | `bn_relu` (Tybalt's code) or `linear` |
 | `reconstruction` | `bce` (sigmoid output; needs min-max input) or `mse` (linear output) |
@@ -154,6 +154,9 @@ Tybalt:
 
 MMD-AE:
 
+- **A 256-d latent**, not the paper's 121, for the same reason as Tybalt's:
+  reimp compares embeddings at a common size, 256. The classifier head
+  reads it through its 32-wide hidden layer as before.
 - **The two code quirks are fixed**, as `tissue_vae.md` decided: the
   decoder output is linear instead of a sigmoid, which cannot represent
   z-scores, and σ = exp(logvar / 2) instead of the raw log-variance head
@@ -162,7 +165,7 @@ MMD-AE:
   wider than the N(0, I) prior. The two fixes above remove what bounded the
   original's loss, the sigmoid. With a linear output, σ = exp(logvar / 2)
   and no KL term, nothing holds the log-variance down: the MMD's kernel
-  (bandwidth d² = 14,641 at d = 121) barely sees scale, and the decoder's
+  (bandwidth d² = 65,536 at d = 256; 14,641 at the paper's 121) barely sees scale, and the decoder's
   training-mode BatchNorm normalizes away one sample's huge z. In the debug
   run the head passed 100 on some samples within 40 steps, exp overflowed,
   and the val loss was inf, so early stopping chose nothing. 0 is where a
@@ -180,7 +183,7 @@ MMD-AE:
   one SD; 109 go more than 10 SDs past it, 17 more than 50. In the worst
   sample the excess is a third of its squared norm. Tybalt's min-max
   already clips to [0, 1].
-- **No 121 → 121 "fusion" layer** after each head. Flexynesis adds one for
+- **No latent → latent "fusion" layer** after each head. Flexynesis adds one for
   a single omics layer; two linear maps in a row are one linear map, so it
   changes only the optimization.
 - **TCGA only**: training patients of the fold, tumours and normals; 19,944

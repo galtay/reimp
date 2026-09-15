@@ -1,5 +1,5 @@
 # The tissue-supervised MMD autoencoder of Pande et al. 2026, closest to the
-# paper: configs/mmdae_none.yaml plus a classifier head (121 -> 32 -> 26
+# paper: configs/mmdae_none.yaml plus a classifier head (256 -> 32 -> 26
 # organs, BatchNorm, ReLU, dropout 0.1) on the sampled z, trained jointly by
 # cross-entropy in an unweighted sum with MSE and MMD. The label is a fixed
 # project -> organ map (reimp_vae.organs); normals get their organ.
@@ -35,7 +35,7 @@ trainer:
 
 model:
   # n_genes and n_classes are linked from data.
-  latent_dim: 121
+  latent_dim: 256
   hidden_factor: 0.2 # or hidden_dim: <width>
   heads: linear
   reconstruction: mse

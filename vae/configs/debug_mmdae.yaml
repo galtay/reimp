@@ -32,7 +32,7 @@ trainer:
 
 model:
   # n_genes and n_classes are linked from data.
-  latent_dim: 121
+  latent_dim: 256
   hidden_factor: 0.2
   heads: linear
   reconstruction: mse

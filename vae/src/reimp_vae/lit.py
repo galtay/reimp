@@ -51,7 +51,7 @@ class LitVAE(L.LightningModule):
     Tybalt: 256-d latent (the paper's 100, widened to reimp's common size),
     no hidden layer, BatchNorm + ReLU on both heads,
     sigmoid decoder with BCE, KL warmed up with κ = 1, Glorot init, Adam at
-    5e-4. The MMD-AE config sets a 121-d latent, one hidden layer of
+    5e-4. The MMD-AE config keeps the 256-d latent (the paper's 121), one hidden layer of
     0.2 · n_genes, linear heads, MSE, MMD, Flexynesis's Xavier init
     (`xavier_init`, `glorot_init: false`) and Adam at 1.72e-3.
     """
